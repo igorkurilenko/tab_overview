@@ -10,12 +10,18 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    final controller = TabSwitcherController<Tab>();
+
+    return MaterialApp(
       home: Scaffold(
         body: Center(
-          child: TabSwitcher(),
+          child: TabSwitcher<Tab>.builder(
+            controller: controller,
+          ),
         ),
       ),
     );
   }
 }
+
+class Tab {}
