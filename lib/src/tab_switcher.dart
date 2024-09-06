@@ -12,6 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-library tab_switcher;
+import 'package:flutter/widgets.dart';
 
-export 'src/tab_switcher.dart';
+class TabSwitcher extends StatefulWidget {
+  const TabSwitcher({super.key});
+
+  @override
+  State<TabSwitcher> createState() => _TabSwitcherState();
+}
+
+class _TabSwitcherState extends State<TabSwitcher> {
+  @override
+  Widget build(BuildContext context) {
+    return const Placeholder();
+  }
+}

@@ -1,7 +1,7 @@
 name: tab_switcher
 description: >
-	A widget that enables smooth tab transitions with a grid view of 
-	thumbnails for easy tab management and navigation.
+  A widget that enables smooth tab transitions with a grid view of 
+  thumbnails for easy tab management and navigation.
 version: 0.0.1
 homepage:
 
