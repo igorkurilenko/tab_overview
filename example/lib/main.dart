@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:tab_switcher/tab_switcher.dart';
 
@@ -22,13 +24,7 @@ class TabSwitcherExample extends StatefulWidget {
 }
 
 class TabSwitcherExampleState extends State<TabSwitcherExample> {
-  final controller = TabSwitcherController<Tab>(initialTabs: [
-    Tab(1),
-    Tab(2),
-    Tab(3),
-    Tab(4),
-    Tab(5),
-  ]);
+  final controller = TabSwitcherController<Tab>();
 
   @override
   Widget build(BuildContext context) {
@@ -40,6 +36,14 @@ class TabSwitcherExampleState extends State<TabSwitcherExample> {
           crossAxisSpacing: 8,
           mainAxisSpacing: 8,
           tabBuilder: _buildTab,
+          scrollBehavior: ScrollConfiguration.of(context).copyWith(
+            dragDevices: {
+              PointerDeviceKind.mouse,
+              PointerDeviceKind.touch,
+              PointerDeviceKind.stylus,
+              PointerDeviceKind.unknown,
+            },
+          ),
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
@@ -49,6 +53,11 @@ class TabSwitcherExampleState extends State<TabSwitcherExample> {
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           mainAxisSize: MainAxisSize.max,
           children: [
+            FloatingActionButton(
+              shape: const CircleBorder(),
+              onPressed: controller.toggleMode,
+              child: const Icon(Icons.expand),
+            ),
             FloatingActionButton(
               shape: const CircleBorder(),
               onPressed: () {
@@ -63,6 +72,9 @@ class TabSwitcherExampleState extends State<TabSwitcherExample> {
               onPressed: () async {
                 final newTab = Tab(controller.tabs.length + 1);
                 controller.addTab(newTab);
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  controller.expandTab(newTab);
+                });
               },
               child: const Icon(Icons.add),
             ),
@@ -72,13 +84,21 @@ class TabSwitcherExampleState extends State<TabSwitcherExample> {
     );
   }
 
-  Widget _buildTab(BuildContext context, Tab tab) => Center(
-        child: Text(
-          '$tab',
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                fontWeight: FontWeight.w900,
-                fontSize: 60,
-              ),
+  Widget _buildTab(BuildContext context, Tab tab) => GestureDetector(
+        onTap: () => controller.isTabExpanded(tab)
+            ? controller.collapseExpandedTab()
+            : controller.expandTab(tab),
+        child: Container(
+          color: Colors.grey.shade300,
+          child: Center(
+            child: Text(
+              '$tab',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 60,
+                  ),
+            ),
+          ),
         ),
       );
 }
