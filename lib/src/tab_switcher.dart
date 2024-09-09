@@ -60,6 +60,9 @@ class _TabSwitcherState<T> extends State<TabSwitcher<T>> with Responsiveness {
   late TabSwitcherMode _mode;
   T? activeTab;
 
+  AnimatedReorderableState? get thumbnailsGridState =>
+      thumbnailsGridKey.currentState;
+
   TabSwitcherMode get mode => _mode;
   bool get overviewMode => _mode == TabSwitcherMode.overview;
   bool get expandedMode => _mode == TabSwitcherMode.expanded;
@@ -80,6 +83,11 @@ class _TabSwitcherState<T> extends State<TabSwitcher<T>> with Responsiveness {
       activeTab = activeTab == null || !tabs.contains(activeTab as T)
           ? tabs.lastOrNull
           : activeTab;
+
+  bool hasThumbnailAnimation(T tab) =>
+      controller._thumbnailAnimationsByTab[tab] != null;
+  Animation<double>? getThumbnailAnimation(T tab) =>
+      controller._thumbnailAnimationsByTab[tab];
 
   TabSwitcherController<T> get controller => widget.controller;
 
@@ -147,7 +155,17 @@ class _TabSwitcherState<T> extends State<TabSwitcher<T>> with Responsiveness {
   }
 
   Widget _buildThumbnail(BuildContext context, T tab) {
-    return widget.tabThumbnailBuilder(context, tab);
+    final thumbnail = hasThumbnailAnimation(tab)
+        ? ScaleTransition(
+            scale: getThumbnailAnimation(tab)!,
+            child: FadeTransition(
+              opacity: getThumbnailAnimation(tab)!,
+              child: widget.tabThumbnailBuilder(context, tab),
+            ),
+          )
+        : widget.tabThumbnailBuilder(context, tab);
+
+    return thumbnail;
   }
 }
 
@@ -173,6 +191,7 @@ class TabSwitcherController<T> {
   final ValueChanged<T>? onTabCollapsed;
   final VoidCallback? onTabsReordered;
   final ValueChanged<T>? onTabRemoved;
+  final _thumbnailAnimationsByTab = <T, Animation<double>>{};
 
   TabSwitcherController({
     Iterable<T>? initialTabs,
@@ -190,22 +209,60 @@ class TabSwitcherController<T> {
     T newTab, {
     Duration duration = const Duration(milliseconds: 350),
   }) {
-    // TODO: implement
-    return false;
+    assert(_state != null,
+        'TabSwitcherController not attached to any TabSwitcher.');
+
+    if (_tabs.contains(newTab)) return false;
+
+    final index = _tabs.length;
+    _tabs.insert(index, newTab);
+
+    _state!.thumbnailsGridState!.insertItem(index, (context, index, animation) {
+      _thumbnailAnimationsByTab[newTab] = animation;
+      animation.addStatusListener((status) {
+        if (status == AnimationStatus.completed ||
+            status == AnimationStatus.dismissed) {
+          _thumbnailAnimationsByTab.remove(newTab);
+        }
+      });
+      return _state!._buildThumbnail(context, newTab);
+    }, duration: duration);
+
+    return true;
   }
 
-  bool removeTab(
+  void removeTab(
     T tab, {
     Duration duration = const Duration(milliseconds: 350),
   }) =>
       removeTabAt(tabs.indexOf(tab), duration: duration);
 
-  bool removeTabAt(
+  T removeTabAt(
     int index, {
     Duration duration = const Duration(milliseconds: 350),
   }) {
-    // TODO: implement
-    return false;
+    assert(_state != null,
+        'TabSwitcherController not attached to any TabSwitcher.');
+
+    final tab = _tabs.removeAt(index);
+
+    _state!.thumbnailsGridState!.removeItem(
+      index,
+      (context, animation) {
+        _thumbnailAnimationsByTab[tab] = animation;
+        animation.addStatusListener((status) {
+          if (status == AnimationStatus.completed ||
+              status == AnimationStatus.dismissed) {
+            _thumbnailAnimationsByTab.remove(tab);
+            onTabRemoved?.call(tab);
+          }
+        });
+        return _state!._buildThumbnail(context, tab);
+      },
+      duration: duration,
+    );
+
+    return tab;
   }
 
   void expandTab(

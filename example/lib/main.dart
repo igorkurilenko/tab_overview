@@ -42,6 +42,33 @@ class TabSwitcherExampleState extends State<TabSwitcherExample> {
           tabBuilder: _buildTab,
         ),
       ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          mainAxisSize: MainAxisSize.max,
+          children: [
+            FloatingActionButton(
+              shape: const CircleBorder(),
+              onPressed: () {
+                if (controller.tabs.length >= 2) {
+                  controller.removeTabAt(1);
+                }
+              },
+              child: const Icon(Icons.remove),
+            ),
+            FloatingActionButton(
+              shape: const CircleBorder(),
+              onPressed: () async {
+                final newTab = Tab(controller.tabs.length + 1);
+                controller.addTab(newTab);
+              },
+              child: const Icon(Icons.add),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -56,10 +83,16 @@ class TabSwitcherExampleState extends State<TabSwitcherExample> {
       );
 }
 
-class Tab {
+class Tab implements RemovableTab, ReorderableTab {
   final int num;
 
   Tab(this.num);
+
+  @override
+  bool get removable => true;
+
+  @override
+  bool get reorderable => true;
 
   @override
   String toString() => '$num';
