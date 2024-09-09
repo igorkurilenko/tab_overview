@@ -12,6 +12,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  animated_reorderable: ^1.2.0
+  hero_here: ^1.0.0
+  figma_squircle: ^0.5.3
 
 dev_dependencies:
   flutter_test:
