@@ -202,9 +202,11 @@ class _TabSwitcherState<T> extends State<TabSwitcher<T>> with Responsiveness {
         key: thumbnailsGridKey,
         motionAnimationDuration: widget.animationDuration,
         keyGetter: (index) => ValueKey(tabs[index]),
-        onReorder: controller._reorderTabs,
-        onSwipeToRemove: controller.removeTabAt,
         reorderableGetter: isTabReorderableAt,
+        onReorder: controller._reorderTabs,
+        swipeToRemoveDirectionGetter: (index) =>
+            isTabRemovableAt(index) ? AxisDirection.left : null,
+        onSwipeToRemove: controller.removeTabAt,
         gridView: GridView.builder(
           controller: thumbnailsScrollController,
           padding: widget.padding,

@@ -73,7 +73,8 @@ class TabSwitcherExampleState extends State<TabSwitcherExample> {
                 final newTab = Tab(controller.tabs.length + 1);
                 controller.addTab(newTab);
                 WidgetsBinding.instance.addPostFrameCallback((_) {
-                  controller.expandTab(newTab);
+                  // controller.expandTab(newTab);
+                  // controller.scrollToTab(newTab);
                 });
               },
               child: const Icon(Icons.add),
