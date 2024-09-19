@@ -32,9 +32,7 @@ class TabSwitcherExampleState extends State<TabSwitcherExample> {
       body: Center(
         child: TabSwitcher<Tab>.builder(
           controller: controller,
-          padding: const EdgeInsets.all(8),
-          crossAxisSpacing: 8,
-          mainAxisSpacing: 8,
+          thumbnailsGridPadding: const EdgeInsets.all(2.0),
           tabBuilder: _buildTab,
           scrollBehavior: ScrollConfiguration.of(context).copyWith(
             dragDevices: {
@@ -62,7 +60,7 @@ class TabSwitcherExampleState extends State<TabSwitcherExample> {
               shape: const CircleBorder(),
               onPressed: () {
                 if (controller.tabs.length >= 2) {
-                  controller.removeTabAt(1);
+                  controller.removeTabAt(controller.tabs.length - 1);
                 }
               },
               child: const Icon(Icons.remove),
@@ -71,9 +69,9 @@ class TabSwitcherExampleState extends State<TabSwitcherExample> {
               shape: const CircleBorder(),
               onPressed: () async {
                 final newTab = Tab(controller.tabs.length + 1);
-                controller.addTab(newTab);
+                controller.add(newTab);
                 WidgetsBinding.instance.addPostFrameCallback((_) {
-                  // controller.expandTab(newTab);
+                  // controller.expand(newTab);
                   // controller.scrollToTab(newTab);
                 });
               },
@@ -86,9 +84,9 @@ class TabSwitcherExampleState extends State<TabSwitcherExample> {
   }
 
   Widget _buildTab(BuildContext context, Tab tab) => GestureDetector(
-        onTap: () => controller.isTabExpanded(tab)
-            ? controller.collapseExpandedTab()
-            : controller.expandTab(tab),
+        onTap: () => controller.expanded(tab)
+            ? controller.collapse()
+            : controller.expand(tab),
         child: Container(
           color: Colors.grey.shade300,
           child: Center(
