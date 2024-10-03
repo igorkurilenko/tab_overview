@@ -26,6 +26,8 @@ import 'util/sliver_grid_delegate_decorator.dart';
 const kExpandedTabPageViewportFraction = 1.1;
 const kDefaultThumbsGridCrossAxisSpacing = 2.0;
 const kDefaultThumbsGridMainAxisSpacing = 2.0;
+const kThumbsGridScaleWhenExpanded = 0.9;
+const kThumbsGridOpacityWhenExpanded = 0.5;
 
 class TabSwitcher<T> extends StatefulWidget {
   final TabSwitcherController<T> controller;
@@ -73,6 +75,11 @@ class _TabSwitcherState<T> extends State<TabSwitcher<T>> with Responsiveness {
 
   AnimatedReorderableState? get thumbsGridState => thumbsGridKey.currentState;
 
+  double get _thumbsGridScale =>
+      expandedMode ? kThumbsGridScaleWhenExpanded : 1.0;
+  double get _thumbsGridOpacity =>
+      expandedMode ? kThumbsGridOpacityWhenExpanded : 1.0;
+
   TabSwitcherMode get mode => _mode;
   bool get overviewMode => _mode == TabSwitcherMode.overview;
   bool get expandedMode => _mode == TabSwitcherMode.expanded;
@@ -80,6 +87,9 @@ class _TabSwitcherState<T> extends State<TabSwitcher<T>> with Responsiveness {
     if (_mode == value) return;
     setState(() => _mode = value);
   }
+
+  Size? get tabSwitcherSize => constraints?.biggest;
+  Size get screenSize => MediaQuery.sizeOf(context);
 
   List<T> get tabs => controller.tabs;
   int get tabCount => tabs.length;
@@ -163,7 +173,8 @@ class _TabSwitcherState<T> extends State<TabSwitcher<T>> with Responsiveness {
             return Stack(
               children: [
                 IgnorePointer(
-                  ignoring: controller.expanding || controller.collapsing,
+                  ignoring:
+                      controller.isAnyExpanding || controller.isAnyCollapsing,
                   child: _buildThumbs(thumbsGridDelegate),
                 ),
                 // Needed to support hero transition
@@ -193,24 +204,38 @@ class _TabSwitcherState<T> extends State<TabSwitcher<T>> with Responsiveness {
   Widget _buildThumbs(SliverGridDelegate gridDelegate) {
     return ScrollConfiguration(
       behavior: widget.scrollBehavior ?? ScrollConfiguration.of(context),
-      child: AnimatedReorderable.grid(
-        key: thumbsGridKey,
-        motionAnimationDuration: widget.thumbnailsMotionAnimationDuration,
-        keyGetter: (index) => ValueKey(tabs[index]),
-        reorderableGetter: reorderableAt,
-        onReorder: controller._reorderTabs,
-        swipeToRemoveDirectionGetter: (index) =>
-            removableAt(index) ? AxisDirection.left : null,
-        onSwipeToRemove: controller.removeTabAt,
-        gridView: GridView.builder(
-          controller: thumbsScrollController,
-          padding: widget.thumbnailsGridPadding,
-          gridDelegate: SliverGridLayoutNotifier(
-            gridDelegate: gridDelegate,
-            onLayout: (layout) => _thumbsGridLayout = layout,
+      child: AnimatedScale(
+        scale: _thumbsGridScale,
+        // TODO: get duration by tab hero transition duration
+        duration: HeroHere.defaultFlightAnimationDuration,
+        curve: HeroHere.defaultFlightAnimationCurve,
+        child: AnimatedOpacity(
+          opacity: _thumbsGridOpacity,
+          // TODO: get duration by tab hero transition duration
+          duration: HeroHere.defaultFlightAnimationDuration,
+          curve: HeroHere.defaultFlightAnimationCurve,
+          child: AnimatedReorderable.grid(
+            key: thumbsGridKey,
+            motionAnimationDuration: widget.thumbnailsMotionAnimationDuration,
+            keyGetter: (index) => ValueKey(tabs[index]),
+            reorderableGetter: reorderableAt,
+            onReorder: controller._reorderTabs,
+            swipeToRemoveDirectionGetter: (index) =>
+                removableAt(index) ? AxisDirection.left : null,
+            onSwipeToRemove: controller.removeTabAt,
+            gridView: GridView.builder(
+              clipBehavior: Clip.none,
+              controller: thumbsScrollController,
+              padding: widget.thumbnailsGridPadding,
+              gridDelegate: SliverGridLayoutNotifier(
+                gridDelegate: gridDelegate,
+                onLayout: (layout) => _thumbsGridLayout = layout,
+              ),
+              itemCount: tabCount,
+              itemBuilder: (context, index) =>
+                  _buildThumb(context, tabs[index]),
+            ),
           ),
-          itemCount: tabCount,
-          itemBuilder: (context, index) => _buildThumb(context, tabs[index]),
         ),
       ),
     );
@@ -258,8 +283,8 @@ class _TabSwitcherState<T> extends State<TabSwitcher<T>> with Responsiveness {
                     getThumbScrollOffset(tabs.indexOf(tab)) <
                         thumbsScrollController.position.pixels
                 ? 0
-                : constraints!.maxHeight,
-            left: constraints!.maxWidth / 2,
+                : screenSize.height,
+            left: screenSize.width / 2,
             child: SizedBox.fromSize(
               size: Size.zero,
               child: _buildOffScreenThumb(context, tab),
@@ -421,14 +446,14 @@ class TabSwitcherController<T> {
   final List<T> _tabs;
   final _offScreenThumbTabs = <T>{};
   final _animationContextsByTab = <T, _TabAnimationContext>{};
+  final _expandingTabs = <T>{};
+  final _collapsingTabs = <T>{};
   _TabSwitcherState? _state;
   final ValueChanged<T>? onTabExpanded;
   final ValueChanged<T>? onTabCollapsed;
   final VoidCallback? onTabsReordered;
   final ValueChanged<T>? onTabRemoved;
   bool _expandedTabBackgroundVisible = false;
-  bool _expanding = false;
-  bool _collapsing = false;
   T? _activeTab;
 
   TabSwitcherController({
@@ -444,12 +469,12 @@ class TabSwitcherController<T> {
   List<T> get tabs => UnmodifiableListView(_tabs);
 
   bool get expandedMode => _state!.expandedMode;
-
   bool get overviewMode => _state!.overviewMode;
 
-  bool get expanding => _expanding;
-
-  bool get collapsing => _collapsing;
+  bool get isAnyExpanding => _expandingTabs.isNotEmpty;
+  bool get isAnyCollapsing => _collapsingTabs.isNotEmpty;
+  bool isExpanding(T tab) => _expandingTabs.contains(tab);
+  bool isCollapsing(T tab) => _collapsingTabs.contains(tab);
 
   T? get activeTab => _activeTab;
 
@@ -629,12 +654,12 @@ class TabSwitcherController<T> {
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _activeTab = tab;
-        _expanding = true;
+        _expandingTabs.add(tab);
         _state!.mode = TabSwitcherMode.expanded;
       });
     } else {
       _activeTab = tab;
-      _expanding = true;
+      _expandingTabs.add(tab);
       _state!.mode = TabSwitcherMode.expanded;
     }
   }
@@ -645,7 +670,7 @@ class TabSwitcherController<T> {
 
   void _expandedTabFlightAnimationCompleted(T tab) {
     _state!.rebuildThumbs(() {
-      _expanding = false;
+      _expandingTabs.remove(tab);
       _offScreenThumbTabs.remove(tab);
     });
 
@@ -665,8 +690,8 @@ class TabSwitcherController<T> {
 
   void _expandedTabFlightAnimationDismissed(T tab) {
     _state!.rebuildThumbs(() {
-      _expanding = false;
-      _collapsing = false;
+      _expandingTabs.remove(tab);
+      _collapsingTabs.remove(tab);
       _offScreenThumbTabs.remove(tab);
     });
   }
@@ -696,15 +721,16 @@ class TabSwitcherController<T> {
       });
     }
 
+    final tab = _activeTab as T;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _collapsing = true;
+      _collapsingTabs.add(tab);
       _state!.mode = TabSwitcherMode.overview;
     });
   }
 
   void _thumbFlightAnimationCompleted(T tab) {
     _state!.rebuildThumbs(() {
-      _collapsing = false;
+      _collapsingTabs.remove(tab);
       _offScreenThumbTabs.remove(tab);
       _animationContextsByTab.remove(tab);
     });
@@ -712,8 +738,8 @@ class TabSwitcherController<T> {
 
   void _thumbFlightAnimationDismissed(T tab) {
     _state!.rebuildThumbs(() {
-      _collapsing = false;
-      _expanding = false;
+      _collapsingTabs.remove(tab);
+      _expandingTabs.remove(tab);
       _offScreenThumbTabs.remove(tab);
     });
 
@@ -834,4 +860,5 @@ class _TabAnimationContext {
   Duration? heroFlightAnimationDuration;
   Curve? heroFlightAnimationCurve;
   Animation<double>? insertOrRemoveAnimation;
+  Offset? thumbPosition;
 }
