@@ -34,6 +34,9 @@ class TabSwitcherExampleState extends State<TabSwitcherExample> {
           controller: controller,
           thumbnailsGridPadding: const EdgeInsets.all(2.0),
           tabBuilder: _buildTab,
+          thumbnailDecoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(32),
+          ),
           scrollBehavior: ScrollConfiguration.of(context).copyWith(
             dragDevices: {
               PointerDeviceKind.mouse,

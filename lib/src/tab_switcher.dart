@@ -27,7 +27,7 @@ const kExpandedTabPageViewportFraction = 1.1;
 const kDefaultThumbsGridCrossAxisSpacing = 2.0;
 const kDefaultThumbsGridMainAxisSpacing = 2.0;
 const kThumbsGridScaleWhenExpanded = 0.9;
-const kThumbsGridOpacityWhenExpanded = 0.5;
+const kThumbsGridOpacityWhenExpanded = 0.0;
 
 class TabSwitcher<T> extends StatefulWidget {
   final TabSwitcherController<T> controller;
@@ -40,6 +40,10 @@ class TabSwitcher<T> extends StatefulWidget {
   final Duration thumbnailsMotionAnimationDuration;
   final Curve thumbnailsMotionAnimationCurve;
   final ScrollBehavior? scrollBehavior;
+  final Decoration thumbnailDecoration;
+  final Decoration expandedTabDecoration;
+  late final FlightShuttleBuilder<T> expandingFlightShuttleBuilder;
+  late final FlightShuttleBuilder<T> collapsingFlightShuttleBuilder;
 
   TabSwitcher.builder({
     super.key,
@@ -53,11 +57,53 @@ class TabSwitcher<T> extends StatefulWidget {
     this.thumbnailsMotionAnimationDuration = const Duration(milliseconds: 350),
     this.thumbnailsMotionAnimationCurve = Curves.easeInOut,
     this.scrollBehavior,
+    Decoration? thumbnailDecoration,
+    Decoration? expandedTabDecoration,
+    FlightShuttleBuilder<T>? expandingFlightShuttleBuilder,
+    FlightShuttleBuilder<T>? collapsingFlightShuttleBuilder,
   })  : controller = controller ?? TabSwitcherController<T>(),
+        thumbnailDecoration = thumbnailDecoration ?? const BoxDecoration(),
+        expandedTabDecoration = expandedTabDecoration ?? const BoxDecoration(),
         tabThumbBuilder = tabThumbnailBuilder ??
             ((context, tab) => FittedTab(
                   child: tabBuilder(context, tab),
-                ));
+                )) {
+    this.expandingFlightShuttleBuilder = expandingFlightShuttleBuilder ??
+        ((context, animation, tab) {
+          final decorationAnimation = DecorationTween(
+            begin: this.thumbnailDecoration,
+            end: this.expandedTabDecoration,
+          ).animate(animation);
+
+          return AnimatedBuilder(
+            animation: decorationAnimation,
+            builder: (context, child) => Container(
+              clipBehavior: Clip.antiAlias,
+              decoration: decorationAnimation.value,
+              child: child,
+            ),
+            child: tabThumbBuilder(context, tab),
+          );
+        });
+
+    this.collapsingFlightShuttleBuilder = collapsingFlightShuttleBuilder ??
+        ((context, animation, tab) {
+          final decorationAnimation = DecorationTween(
+            begin: this.expandedTabDecoration,
+            end: this.thumbnailDecoration,
+          ).animate(animation);
+
+          return AnimatedBuilder(
+            animation: decorationAnimation,
+            builder: (context, child) => Container(
+              clipBehavior: Clip.antiAlias,
+              decoration: decorationAnimation.value,
+              child: child,
+            ),
+            child: tabThumbBuilder(context, tab),
+          );
+        });
+  }
 
   @override
   State<TabSwitcher> createState() => _TabSwitcherState<T>();
@@ -70,7 +116,6 @@ class _TabSwitcherState<T> extends State<TabSwitcher<T>> with Responsiveness {
   final thumbsScrollController = ScrollController();
   late PageController expandedTabPageController;
   late StateSetter rebuildThumbs;
-  late StateSetter rebuildExpandedTabBackground;
   late StateSetter rebuildExpandedTab;
 
   AnimatedReorderableState? get thumbsGridState => thumbsGridKey.currentState;
@@ -105,6 +150,11 @@ class _TabSwitcherState<T> extends State<TabSwitcher<T>> with Responsiveness {
   Key expandedTabHeroKey(T tab) => ValueKey('${tabHeroTag(tab)}-expanded');
 
   TabSwitcherController<T> get controller => widget.controller;
+
+  Duration? get activeTabHeroAnimationDuration =>
+      controller._activeTabAnimationContext()?.heroFlightAnimationDuration;
+  Curve? get activeTabHeroAnimationCurve =>
+      controller._activeTabAnimationContext()?.heroFlightAnimationCurve;
 
   double getThumbScrollOffset(int index) {
     final maxOffset = thumbsScrollController.position.maxScrollExtent;
@@ -183,14 +233,6 @@ class _TabSwitcherState<T> extends State<TabSwitcher<T>> with Responsiveness {
               ],
             );
           }),
-          StatefulBuilder(builder: (context, setState) {
-            rebuildExpandedTabBackground = setState;
-            return Container(
-              color: controller._expandedTabBackgroundVisible
-                  ? Theme.of(context).scaffoldBackgroundColor
-                  : null,
-            );
-          }),
           if (expandedMode)
             StatefulBuilder(builder: (context, setState) {
               rebuildExpandedTab = setState;
@@ -206,14 +248,17 @@ class _TabSwitcherState<T> extends State<TabSwitcher<T>> with Responsiveness {
       behavior: widget.scrollBehavior ?? ScrollConfiguration.of(context),
       child: AnimatedScale(
         scale: _thumbsGridScale,
-        // TODO: get duration by tab hero transition duration
-        duration: HeroHere.defaultFlightAnimationDuration,
-        curve: HeroHere.defaultFlightAnimationCurve,
+        duration: activeTabHeroAnimationDuration ??
+            HeroHere.defaultFlightAnimationDuration,
+        curve:
+            activeTabHeroAnimationCurve ?? HeroHere.defaultFlightAnimationCurve,
         child: AnimatedOpacity(
           opacity: _thumbsGridOpacity,
-          // TODO: get duration by tab hero transition duration
-          duration: HeroHere.defaultFlightAnimationDuration,
-          curve: HeroHere.defaultFlightAnimationCurve,
+          duration: activeTabHeroAnimationDuration ??
+              HeroHere.defaultFlightAnimationDuration,
+          curve: expandedMode
+              ? Curves.fastOutSlowIn.flipped
+              : Curves.fastOutSlowIn,
           child: AnimatedReorderable.grid(
             key: thumbsGridKey,
             motionAnimationDuration: widget.thumbnailsMotionAnimationDuration,
@@ -250,6 +295,9 @@ class _TabSwitcherState<T> extends State<TabSwitcher<T>> with Responsiveness {
       return Container();
     }
 
+    // TODO: close button
+    // TODO: decoration animation
+
     final inserOrRemoveAnimation =
         controller._ensureAnimationContext(tab).insertOrRemoveAnimation;
     final thumb = inserOrRemoveAnimation != null
@@ -257,10 +305,18 @@ class _TabSwitcherState<T> extends State<TabSwitcher<T>> with Responsiveness {
             scale: inserOrRemoveAnimation,
             child: FadeTransition(
               opacity: inserOrRemoveAnimation,
-              child: widget.tabThumbBuilder(context, tab),
+              child: Container(
+                clipBehavior: Clip.antiAlias,
+                decoration: widget.thumbnailDecoration,
+                child: widget.tabThumbBuilder(context, tab),
+              ),
             ),
           )
-        : widget.tabThumbBuilder(context, tab);
+        : Container(
+            clipBehavior: Clip.antiAlias,
+            decoration: widget.thumbnailDecoration,
+            child: widget.tabThumbBuilder(context, tab),
+          );
 
     return HeroMode(
       enabled: !controller._offScreenThumbTabs.contains(tab),
@@ -269,6 +325,8 @@ class _TabSwitcherState<T> extends State<TabSwitcher<T>> with Responsiveness {
         key: tabThumbHeroKey(tab),
         flightAnimationFactory: (animationController) =>
             _createThumbFlightAnimation(animationController, tab),
+        flightShuttleBuilder: (context, animation, fromHero, toHero) =>
+            widget.collapsingFlightShuttleBuilder(context, animation, tab),
         child: thumb,
       ),
     );
@@ -302,6 +360,8 @@ class _TabSwitcherState<T> extends State<TabSwitcher<T>> with Responsiveness {
         key: tabThumbHeroKey(tab),
         flightAnimationFactory: (animationController) =>
             _createOffScreenThumbFlightAnimation(animationController, tab),
+        flightShuttleBuilder: (context, animation, fromHero, toHero) =>
+            widget.collapsingFlightShuttleBuilder(context, animation, tab),
         child: widget.tabThumbBuilder(context, tab),
       ),
     );
@@ -347,6 +407,8 @@ class _TabSwitcherState<T> extends State<TabSwitcher<T>> with Responsiveness {
           _createTabFlightAnimationController(vsync, tab),
       flightAnimationFactory: (controller) =>
           _createExpandedTabFlightAnimation(controller, tab),
+      flightShuttleBuilder: (context, animation, fromHero, toHero) =>
+          widget.expandingFlightShuttleBuilder(context, animation, tab),
       child: tabWidget,
     );
   }
@@ -429,8 +491,12 @@ class _TabSwitcherState<T> extends State<TabSwitcher<T>> with Responsiveness {
 
 typedef TabSwitcherWidgetBuilder<T> = Widget Function(
     BuildContext context, T tab);
+
 typedef TabSwitcherWidgetAnimatedBuilder<T> = Widget Function(
     BuildContext context, T tab, Animation<double> animation);
+
+typedef FlightShuttleBuilder<T> = Widget Function(
+    BuildContext context, Animation<double> animation, T tab);
 
 enum TabSwitcherMode { expanded, overview }
 
@@ -453,7 +519,6 @@ class TabSwitcherController<T> {
   final ValueChanged<T>? onTabCollapsed;
   final VoidCallback? onTabsReordered;
   final ValueChanged<T>? onTabRemoved;
-  bool _expandedTabBackgroundVisible = false;
   T? _activeTab;
 
   TabSwitcherController({
@@ -588,10 +653,6 @@ class TabSwitcherController<T> {
     required Duration duration,
   }) {
     if (removedTab == _activeTab) {
-      _state!.rebuildExpandedTabBackground(
-        () => _expandedTabBackgroundVisible = false,
-      );
-
       _state!.rebuildThumbs(() {
         _offScreenThumbTabs.add(removedTab);
       });
@@ -643,6 +704,9 @@ class TabSwitcherController<T> {
       return;
     }
 
+    _activeTab = tab;
+    _expandingTabs.add(tab);
+
     _ensureAnimationContext(tab)
       ..heroFlightAnimationDuration = duration
       ..heroFlightAnimationCurve = curve;
@@ -653,13 +717,9 @@ class TabSwitcherController<T> {
       });
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _activeTab = tab;
-        _expandingTabs.add(tab);
         _state!.mode = TabSwitcherMode.expanded;
       });
     } else {
-      _activeTab = tab;
-      _expandingTabs.add(tab);
       _state!.mode = TabSwitcherMode.expanded;
     }
   }
@@ -673,10 +733,6 @@ class TabSwitcherController<T> {
       _expandingTabs.remove(tab);
       _offScreenThumbTabs.remove(tab);
     });
-
-    _state!.rebuildExpandedTabBackground(
-      () => _expandedTabBackgroundVisible = true,
-    );
 
     if (_state!.thumbOffScreen(tab)) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -711,21 +767,19 @@ class TabSwitcherController<T> {
       ..heroFlightAnimationDuration = duration
       ..heroFlightAnimationCurve = curve;
 
-    _state!.rebuildExpandedTabBackground(() {
-      _expandedTabBackgroundVisible = false;
-    });
+    _collapsingTabs.add(activeTab);
 
     if (_state!.thumbOffScreen(activeTab)) {
       _state!.rebuildThumbs(() {
         _offScreenThumbTabs.add(activeTab);
       });
-    }
 
-    final tab = _activeTab as T;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _collapsingTabs.add(tab);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _state!.mode = TabSwitcherMode.overview;
+      });
+    } else {
       _state!.mode = TabSwitcherMode.overview;
-    });
+    }
   }
 
   void _thumbFlightAnimationCompleted(T tab) {
@@ -742,10 +796,6 @@ class TabSwitcherController<T> {
       _expandingTabs.remove(tab);
       _offScreenThumbTabs.remove(tab);
     });
-
-    _state!.rebuildExpandedTabBackground(
-      () => _expandedTabBackgroundVisible = true,
-    );
   }
 
   void _offScreenThumbFlightAnimationCompleted(tab) {
@@ -831,6 +881,9 @@ class TabSwitcherController<T> {
     final offset = _state!.getThumbScrollOffset(index);
     _state!.thumbsScrollController.jumpTo(offset);
   }
+
+  _TabAnimationContext? _activeTabAnimationContext() =>
+      _animationContextsByTab[_activeTab];
 
   _TabAnimationContext _ensureAnimationContext(T tab) =>
       _animationContextsByTab.putIfAbsent(tab, () => _TabAnimationContext());
