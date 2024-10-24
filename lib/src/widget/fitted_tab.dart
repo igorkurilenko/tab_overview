@@ -12,6 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-library tab_switcher;
+import 'package:flutter/widgets.dart';
 
-export 'src/tab_switcher.dart';
+class FittedTab<T> extends StatelessWidget {
+  final Widget child;
+
+  const FittedTab({
+    super.key,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) => FittedBox(
+        clipBehavior: Clip.hardEdge,
+        fit: BoxFit.fitWidth,
+        alignment: Alignment.center,
+        child: SizedBox.fromSize(
+          size: MediaQuery.of(context).size,
+          child: child,
+        ),
+      );
+}

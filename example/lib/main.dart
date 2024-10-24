@@ -1,9 +1,11 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:tab_switcher/tab_switcher.dart';
 
 void main() {
+  // timeDilation = 5;
   runApp(const MainApp());
 }
 
@@ -32,7 +34,7 @@ class TabSwitcherExampleState extends State<TabSwitcherExample> {
       body: Center(
         child: TabSwitcher<Tab>.builder(
           controller: controller,
-          thumbnailsGridPadding: const EdgeInsets.all(2.0),
+          thumbnailsGridPadding: const EdgeInsets.all(16.0),
           tabBuilder: _buildTab,
           thumbnailDecoration: BoxDecoration(
             borderRadius: BorderRadius.circular(32),
@@ -54,22 +56,20 @@ class TabSwitcherExampleState extends State<TabSwitcherExample> {
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           mainAxisSize: MainAxisSize.max,
           children: [
-            FloatingActionButton(
-              shape: const CircleBorder(),
+            IconButton(
               onPressed: controller.toggleMode,
-              child: const Icon(Icons.expand),
+              icon: const Icon(Icons.auto_awesome_motion_outlined),
             ),
-            FloatingActionButton(
-              shape: const CircleBorder(),
+            IconButton(
               onPressed: () {
                 if (controller.tabs.length >= 2) {
-                  controller.removeTabAt(controller.tabs.length - 1);
+                  controller.removeTabAt(1);
+                  // controller.removeTabAt(controller.tabs.length - 1);
                 }
               },
-              child: const Icon(Icons.remove),
+              icon: const Icon(Icons.remove),
             ),
-            FloatingActionButton(
-              shape: const CircleBorder(),
+            IconButton(
               onPressed: () async {
                 final newTab = Tab(controller.tabs.length + 1);
                 controller.add(newTab);
@@ -78,7 +78,7 @@ class TabSwitcherExampleState extends State<TabSwitcherExample> {
                   // controller.scrollToTab(newTab);
                 });
               },
-              child: const Icon(Icons.add),
+              icon: const Icon(Icons.add),
             ),
           ],
         ),
@@ -87,7 +87,7 @@ class TabSwitcherExampleState extends State<TabSwitcherExample> {
   }
 
   Widget _buildTab(BuildContext context, Tab tab) => GestureDetector(
-        onTap: () => controller.expanded(tab)
+        onTap: () => controller.isTabExpanded(tab)
             ? controller.collapse()
             : controller.expand(tab),
         child: Container(

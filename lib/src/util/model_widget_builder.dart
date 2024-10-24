@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-library tab_switcher;
+import 'package:flutter/widgets.dart';
 
-export 'src/tab_switcher.dart';
+typedef ModelWidgetBuilder<T> = Widget Function(BuildContext context, T model);
+
+typedef ModelWidgetAnimatedBuilder<T> = Widget Function(
+    BuildContext context, T model, Animation<double> animation);

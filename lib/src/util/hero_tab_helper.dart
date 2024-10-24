@@ -12,6 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-library tab_switcher;
+import 'package:flutter/widgets.dart';
 
-export 'src/tab_switcher.dart';
+mixin HeroTabHelper<T> {
+  String tabHeroTag(T tab) => '${tab.runtimeType}-${tab.hashCode}';
+
+  Key tabThumbHeroKey(T tab) => ValueKey('${tabHeroTag(tab)}-thumb');
+
+  Key expandedTabHeroKey(T tab) => ValueKey('${tabHeroTag(tab)}-expanded');
+
+  String removeButtonHeroTag(T tab) => '${tabHeroTag(tab)}-remove-btn';
+
+  Key tabThumbRemoveButtonHeroKey(T tab) =>
+      ValueKey('${removeButtonHeroTag(tab)}-thumb');
+
+  Key expandedTabRemoveButtonHeroKey(T tab) =>
+      ValueKey('${removeButtonHeroTag(tab)}-expanded');
+}

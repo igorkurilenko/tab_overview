@@ -12,6 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-library tab_switcher;
+import 'package:flutter/widgets.dart';
 
-export 'src/tab_switcher.dart';
+class AnimationContext<T> {
+  Duration? duration;
+  Curve? curve;
+  final _animation = ProxyAnimation(kAlwaysDismissedAnimation);
+
+  Animation<double> get animation => _animation;
+
+  set animation(Animation<double> value) => _animation.parent = value;
+}
