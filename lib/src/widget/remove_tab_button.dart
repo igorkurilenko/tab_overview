@@ -13,10 +13,10 @@
 // limitations under the License.
 
 import 'package:flutter/material.dart';
-import 'package:tab_switcher/tab_switcher.dart';
+import 'package:tab_overview/tab_overview.dart';
 
 class RemoveTabButton<T> extends StatelessWidget {
-  final TabSwitcherController<T> controller;
+  final TabOverviewController<T> controller;
   final T tab;
 
   const RemoveTabButton({

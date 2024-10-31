@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-part of '../tab_switcher.dart';
+part of '../tab_overview.dart';
 
 class _TabThumbnailsGrid<T> extends StatefulWidget {
-  final TabSwitcherController<T> controller;
+  final TabOverviewController<T> controller;
   final ModelWidgetBuilder<T> removeTabButtonBuilder;
   final EdgeInsets? thumbnailsGridPadding;
   final SliverGridDelegate thumbnailsGridDelegate;
@@ -50,21 +50,21 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
   SliverGridLayout? _thumbsGridLayout;
   final scrollController = ScrollController();
 
-  _TabSwitcherModel<T> get model => controller._model;
+  _TabOverviewModel<T> get model => controller._model;
 
   bool thumbOffScreen(T tab) => thumbOffScreenAt(model.indexOfTab(tab));
 
   bool thumbOffScreenAt(int index) => !thumbsGridState!.isItemRendered(index);
 
-  TabSwitcherController<T> get controller => widget.controller;
+  TabOverviewController<T> get controller => widget.controller;
 
   AnimatedReorderableState? get thumbsGridState => thumbsGridKey.currentState;
 
-  double get thumbsGridScale => controller.mode == TabSwitcherMode.expanded
+  double get thumbsGridScale => controller.mode == TabOverviewMode.expanded
       ? kThumbsGridScaleWhenExpanded
       : 1.0;
 
-  double get thumbsGridOpacity => controller.mode == TabSwitcherMode.expanded
+  double get thumbsGridOpacity => controller.mode == TabOverviewMode.expanded
       ? kThumbsGridOpacityWhenExpanded
       : 1.0;
 
@@ -186,7 +186,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
           opacity: thumbsGridOpacity,
           duration: activeTabHeroAnimationDuration ??
               HeroHere.defaultFlightAnimationDuration,
-          curve: controller.mode == TabSwitcherMode.expanded
+          curve: controller.mode == TabOverviewMode.expanded
               ? Curves.fastOutSlowIn.flipped
               : Curves.fastOutSlowIn,
           child: AnimatedReorderable.grid(
@@ -232,7 +232,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
     thumb = _maybeAnimateScaleAndFade(thumb, tab);
 
     Widget removeButton = widget.removeTabButtonBuilder(context, tab);
-    removeButton = _maybeAnimateScaleAndFade(thumb, tab);
+    removeButton = _maybeAnimateScaleAndFade(removeButton, tab);
 
     return Stack(
       children: [
@@ -413,11 +413,11 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
     );
   }
 
-  Widget _maybeAnimateScaleAndFade(Widget thumb, T tab) {
+  Widget _maybeAnimateScaleAndFade(Widget widget, T tab) {
     final animation = controller._getTabRemoveAnimation(tab) ??
         controller._getTabInsertAnimation(tab);
 
-    return animation != null ? _animateScaleAndFade(animation, thumb) : thumb;
+    return animation != null ? _animateScaleAndFade(animation, widget) : widget;
   }
 
   Widget _animateScaleAndFade(

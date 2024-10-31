@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-part of '../tab_switcher.dart';
+part of '../tab_overview.dart';
 
 class _ExpandedTab<T> extends StatefulWidget {
-  final TabSwitcherController<T> controller;
+  final TabOverviewController<T> controller;
   final ModelWidgetBuilder<T> tabBuilder;
   final ModelWidgetBuilder<T> removeTabButtonBuilder;
   final ScrollBehavior? scrollBehavior;
@@ -40,9 +40,9 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
     with HeroTabHelper<T> {
   late PageController pageController;
 
-  _TabSwitcherModel<T> get model => controller._model;
+  _TabOverviewModel<T> get model => controller._model;
 
-  TabSwitcherController<T> get controller => widget.controller;
+  TabOverviewController<T> get controller => widget.controller;
 
   void jumpToPage(int page) => pageController.jumpToPage(page);
 

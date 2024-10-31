@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-part of 'tab_switcher.dart';
+part of 'tab_overview.dart';
 
-class _TabSwitcherModel<T> {
+class _TabOverviewModel<T> {
   final List<T> _tabs;
   final _offScreenThumbTabs = <T>{};
   GlobalKey<_TabThumbnailsGridState>? _thumbnailsGridKey;
 
-  _TabSwitcherModel({
+  _TabOverviewModel({
     Iterable<T>? initialTabs,
   }) : _tabs = List<T>.from(initialTabs ?? <T>[]);
 
@@ -67,12 +67,24 @@ class _TabSwitcherModel<T> {
   bool removeOffScreenThumbTab(T tab) => _offScreenThumbTabs.remove(tab);
 }
 
-enum TabSwitcherMode { expanded, overview }
+/// Specifies the display mode of the [TabOverview].
+///
+/// - [expanded]: Displays the currently active tab in an expanded, detailed view.
+/// - [overview]: Displays all tabs as thumbnails in an overview grid for easy selection and navigation.
+enum TabOverviewMode { expanded, overview }
 
+/// An abstract class that provides a property to determine if a tab can be reordered within the [TabOverview].
+///
+/// Implement this class in a tab model to enable/disable reordering functionality,
+/// allowing tabs to be dragged and rearranged within the overview interface.
 abstract class ReorderableTab {
   bool get reorderable;
 }
 
+/// An abstract class that provides a property to determine if a tab can be removed from the [TabOverview].
+///
+/// Implement this class in a tab model to allow removal functionality,
+/// enabling tabs to be deleted by the user when `removable` is `true`.
 abstract class RemovableTab {
   bool get removable;
 }

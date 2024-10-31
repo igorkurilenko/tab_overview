@@ -184,7 +184,7 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.2.0"
-  tab_switcher:
+  tab_overview:
     dependency: "direct main"
     description:
       path: ".."

@@ -12,30 +12,46 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-part of 'tab_switcher.dart';
+part of 'tab_overview.dart';
 
-class TabSwitcherController<T> with _AnimationContexts<T>, _Listeners<T> {
-  TabSwitcherMode _mode;
+/// The [TabOverviewController] manages the state, behavior, and animations for the [TabOverview] widget,
+/// allowing it to switch between `overview` and `expanded` modes, handle tab interactions, and manage animations.
+///
+/// This controller provides methods to add, remove, reorder, and activate tabs, as well as listeners for changes
+/// in tab states, allowing detailed customization of the tab-switching experience.
+class TabOverviewController<T> with _AnimationContexts<T>, _Listeners<T> {
+  TabOverviewMode _mode;
   T? _activeTab;
-  final _TabSwitcherModel<T> _model;
+  final _TabOverviewModel<T> _model;
   GlobalKey<_TabThumbnailsGridState>? _thumbnailsGridKey;
   GlobalKey<_ExpandedTabState>? _expandedTabKey;
 
-  TabSwitcherController({
+  /// Constructor for [TabOverviewController] to initialize with optional tabs and display mode.
+  ///
+  /// - [initialTabs]: An optional list of tabs to initialize.
+  /// - [initialMode]: The initial mode of display, defaulting to `overview`.
+  TabOverviewController({
     List<T>? initialTabs,
-    TabSwitcherMode initialMode = TabSwitcherMode.overview,
+    TabOverviewMode initialMode = TabOverviewMode.overview,
   })  : _mode = initialMode,
-        _model = _TabSwitcherModel<T>(initialTabs: initialTabs);
+        _model = _TabOverviewModel<T>(initialTabs: initialTabs);
 
-  TabSwitcherMode get mode => _mode;
+  /// The current display mode of the [TabOverview], either `overview` or `expanded`.
+  ///
+  /// In `overview` mode, tabs are shown as thumbnails; in `expanded` mode, the active tab is shown in detail.
+  TabOverviewMode get mode => _mode;
 
   _TabThumbnailsGridState? get _thumbnailsGridState =>
       _thumbnailsGridKey?.currentState;
 
   _ExpandedTabState? get _expandedTabState => _expandedTabKey?.currentState;
 
+  /// Retrieves the current active tab.
+  ///
+  /// Setting [activeTab] triggers listeners to update the active tab display.
   T? get activeTab => _activeTab;
 
+  /// Sets the active tab and updates the view if the mode is expanded.
   set activeTab(T? value) {
     if (_activeTab == value) return;
 
@@ -43,20 +59,31 @@ class TabSwitcherController<T> with _AnimationContexts<T>, _Listeners<T> {
 
     _notifyActiveTabChanged();
 
-    if (mode == TabSwitcherMode.expanded) {
+    if (mode == TabOverviewMode.expanded) {
       _thumbnailsGridState?.stateChanged();
     }
   }
 
+  /// Returns the index of the current active tab in the [tabs] list.
   int indexOfActiveTab() => _model.indexOfTab(activeTab as T);
 
+  /// Checks if the specified [tab] is currently active.
+  ///
+  /// Returns `true` if [tab] is the active tab.
   bool isActiveTab(T tab) => tab == _activeTab;
 
+  /// List of all active tabs managed by this controller.
   List<T> get tabs => _model.tabs;
 
+  /// Checks if a given [tab] is expanded.
+  ///
+  /// Returns `true` if the [tab] is active and the mode is `expanded`.
   bool isTabExpanded(T tab) =>
-      mode == TabSwitcherMode.expanded && isActiveTab(tab);
+      mode == TabOverviewMode.expanded && isActiveTab(tab);
 
+  /// Checks if the tab at a specified [index] is expanded.
+  ///
+  /// Returns `true` if the tab at [index] is active and the mode is `expanded`.
   bool isTabExpandedAt(int index) => isTabExpanded(tabs[index]);
 
   void _setThumbnailsGridKey(GlobalKey<_TabThumbnailsGridState>? key) {
@@ -68,6 +95,9 @@ class TabSwitcherController<T> with _AnimationContexts<T>, _Listeners<T> {
     _expandedTabKey = key;
   }
 
+  /// Adds a new tab and animates its appearance, if the tab does not already exist.
+  ///
+  /// Returns `true` if the tab was added successfully.
   bool add(
     T newTab, {
     Duration duration = const Duration(milliseconds: 350),
@@ -83,12 +113,18 @@ class TabSwitcherController<T> with _AnimationContexts<T>, _Listeners<T> {
     return true;
   }
 
+  /// Removes the specified [tab] and animates its removal.
+  ///
+  /// Optionally accepts a [duration] for the removal animation.
   void remove(
     T tab, {
     Duration duration = const Duration(milliseconds: 350),
   }) =>
       removeTabAt(tabs.indexOf(tab), duration: duration);
 
+  /// Removes the tab at a specified [index] and animates its removal.
+  ///
+  /// Returns the removed tab.
   T removeTabAt(
     int index, {
     Duration duration = const Duration(milliseconds: 350),
@@ -113,13 +149,16 @@ class TabSwitcherController<T> with _AnimationContexts<T>, _Listeners<T> {
     return removedTab;
   }
 
+  /// Toggles between `overview` and `expanded` modes for the active tab.
+  ///
+  /// Optionally, a [duration] and [curve] can be provided to control the animation.
   void toggleMode({
     Duration duration = HeroHere.defaultFlightAnimationDuration,
     Curve curve = Curves.easeInOut,
   }) {
     if (_model.tabs.isEmpty) return;
 
-    if (mode == TabSwitcherMode.expanded) {
+    if (mode == TabOverviewMode.expanded) {
       collapse(
         duration: duration,
         curve: curve,
@@ -133,6 +172,7 @@ class TabSwitcherController<T> with _AnimationContexts<T>, _Listeners<T> {
     }
   }
 
+  /// Expands the tab at a specified [index], switching the mode to `expanded`.
   void expandAt(
     int index, {
     Duration duration = HeroHere.defaultFlightAnimationDuration,
@@ -144,6 +184,7 @@ class TabSwitcherController<T> with _AnimationContexts<T>, _Listeners<T> {
         curve: curve,
       );
 
+  /// Expands a specified tab, switching the mode to `expanded`.
   void expand(
     T tab, {
     Duration duration = HeroHere.defaultFlightAnimationDuration,
@@ -153,7 +194,7 @@ class TabSwitcherController<T> with _AnimationContexts<T>, _Listeners<T> {
       throw ArgumentError('Tab $tab not found');
     }
 
-    if (mode == TabSwitcherMode.expanded) {
+    if (mode == TabOverviewMode.expanded) {
       scrollToTab(
         tab,
         duration: duration,
@@ -171,6 +212,9 @@ class TabSwitcherController<T> with _AnimationContexts<T>, _Listeners<T> {
     }
   }
 
+  /// Scrolls to a specified [tab].
+  ///
+  /// An optional [duration] and [curve] can control the scroll animation.
   void scrollToTab(
     T tab, {
     Duration duration = const Duration(milliseconds: 350),
@@ -182,12 +226,15 @@ class TabSwitcherController<T> with _AnimationContexts<T>, _Listeners<T> {
         curve: curve,
       );
 
+  /// Scrolls to the tab at the specified [index].
+  ///
+  /// Optionally, [duration] and [curve] can be specified for smooth animation.
   void scrollToTabAt(
     int index, {
     Duration duration = const Duration(milliseconds: 350),
     Curve curve = Curves.easeInOut,
   }) {
-    if (mode == TabSwitcherMode.expanded) {
+    if (mode == TabOverviewMode.expanded) {
       _expandedTabState!.animateToPage(
         index,
         duration: duration,
@@ -203,11 +250,14 @@ class TabSwitcherController<T> with _AnimationContexts<T>, _Listeners<T> {
     }
   }
 
+  /// Collapses the active tab, returning to `overview` mode and animating the change.
+  ///
+  /// Accepts optional [duration] and [curve] parameters to control the animation.
   void collapse({
     Duration duration = HeroHere.defaultFlightAnimationDuration,
     Curve curve = Curves.easeInOut,
   }) {
-    if (mode == TabSwitcherMode.overview) return;
+    if (mode == TabOverviewMode.overview) return;
 
     if (_thumbnailsGridState!.thumbOffScreen(activeTab)) {
       _collapseOffScreen(duration: duration, curve: curve);
@@ -245,7 +295,7 @@ class TabSwitcherController<T> with _AnimationContexts<T>, _Listeners<T> {
       ..duration = duration
       ..curve = curve;
 
-    _mode = TabSwitcherMode.expanded;
+    _mode = TabOverviewMode.expanded;
     _notifyModeChanged(_mode);
   }
 
@@ -271,7 +321,7 @@ class TabSwitcherController<T> with _AnimationContexts<T>, _Listeners<T> {
       ..duration = duration
       ..curve = curve;
 
-    _mode = TabSwitcherMode.overview;
+    _mode = TabOverviewMode.overview;
     _notifyModeChanged(_mode);
   }
 
@@ -370,14 +420,28 @@ class TabSwitcherController<T> with _AnimationContexts<T>, _Listeners<T> {
   }
 }
 
+/// A callback type that is triggered when a new tab is added to the [TabOverview].
+///
+/// The function takes the added [tab] as a parameter, allowing further actions to be taken
+/// in response to a new tab being added.
 typedef TabAddedListener<T> = void Function(T tab);
 
+/// A callback type that is triggered when a tab is removed from the [TabOverview].
+///
+/// The function takes the [removedTab] as a parameter, allowing additional handling,
+/// such as cleanup or UI updates in response to the tab removal.
 typedef TabRemovedListener<T> = void Function(T removedTab);
 
-typedef ModeChangedListener = void Function(TabSwitcherMode mode);
+/// A callback type that is triggered when the mode of the [TabOverview] changes.
+///
+/// The function provides the new [mode], which can be either `overview` or `expanded`,
+/// allowing response to the mode change, such as UI adjustments.
+typedef ModeChangedListener = void Function(TabOverviewMode mode);
 
+/// A callback type that is triggered when the active tab changes.
 typedef ActiveTabChangedListener = VoidCallback;
 
+/// A callback type that is triggered when tabs are reordered within the [TabOverview].
 typedef TabsReorderedListener = VoidCallback;
 
 mixin _Listeners<T> {
@@ -431,7 +495,7 @@ mixin _Listeners<T> {
   void removeOffScreenThumbTabRemovedListener(TabRemovedListener<T> listener) =>
       _offscreenThumbTabRemovedListeners.remove(listener);
 
-  void _notifyModeChanged(TabSwitcherMode mode) {
+  void _notifyModeChanged(TabOverviewMode mode) {
     for (var listener in _modeChangedListeners) {
       listener(mode);
     }
@@ -491,7 +555,8 @@ mixin _AnimationContexts<T> {
   void _putTabInsertAnimation(T tab, Animation<double> animation) =>
       _insertAnimationByTab[tab] = animation;
 
-  Animation<double>? _getTabInsertAnimation(T tab) => _insertAnimationByTab[tab];
+  Animation<double>? _getTabInsertAnimation(T tab) =>
+      _insertAnimationByTab[tab];
 
   Animation<double>? _removeTabInsertAnimation(T tab) =>
       _insertAnimationByTab.remove(tab);
@@ -499,7 +564,8 @@ mixin _AnimationContexts<T> {
   void _putTabRemoveAnimation(T tab, Animation<double> animation) =>
       _removeAnimationByTab[tab] = animation;
 
-  Animation<double>? _getTabRemoveAnimation(T tab) => _removeAnimationByTab[tab];
+  Animation<double>? _getTabRemoveAnimation(T tab) =>
+      _removeAnimationByTab[tab];
 
   Animation<double>? _removeTabRemoveAnimation(T tab) =>
       _removeAnimationByTab.remove(tab);

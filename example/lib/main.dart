@@ -1,11 +1,7 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
-import 'package:tab_switcher/tab_switcher.dart';
+import 'package:tab_overview/tab_overview.dart';
 
 void main() {
-  // timeDilation = 5;
   runApp(const MainApp());
 }
 
@@ -14,89 +10,88 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => const MaterialApp(
-        home: TabSwitcherExample(),
+        home: TabOverviewExample(),
       );
 }
 
-class TabSwitcherExample extends StatefulWidget {
-  const TabSwitcherExample({super.key});
+class TabOverviewExample extends StatefulWidget {
+  const TabOverviewExample({super.key});
 
   @override
-  State<TabSwitcherExample> createState() => TabSwitcherExampleState();
+  State<TabOverviewExample> createState() => TabOverviewExampleState();
 }
 
-class TabSwitcherExampleState extends State<TabSwitcherExample> {
-  final controller = TabSwitcherController<Tab>();
+class TabOverviewExampleState extends State<TabOverviewExample> {
+  // Step 1: Initialize a TabOverviewController with your tab type.
+  // This controller will manage the state, including switching tabs, adding, and removing.
+  final controller = TabOverviewController<Tab>();
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: TabSwitcher<Tab>.builder(
-          controller: controller,
-          thumbnailsGridPadding: const EdgeInsets.all(16.0),
-          tabBuilder: _buildTab,
+  Widget build(BuildContext context) => Scaffold(
+        backgroundColor: Colors.grey.shade200,
+        // Step 2: Use TabOverview.builder to create the TabOverview widget.
+        // Configure the controller, padding, tab content builder, and styling for thumbnails.
+        body: TabOverview<Tab>.builder(
+          controller: controller, // Attach the controller
+          thumbnailsGridPadding: MediaQuery.viewPaddingOf(context).copyWith(
+            left: 16,
+            right: 16,
+          ), // Customize grid padding
+          tabBuilder: (context, tab) => TabWidget(
+            tab: tab,
+            // Step 3: Toggle tab expansion or collapse when a thumbnail is tapped.
+            onTap: () => controller.isTabExpanded(tab)
+                ? controller.collapse() // Collapse if expanded
+                : controller.expand(tab), // Expand on tap
+          ),
           thumbnailDecoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(32),
-          ),
-          scrollBehavior: ScrollConfiguration.of(context).copyWith(
-            dragDevices: {
-              PointerDeviceKind.mouse,
-              PointerDeviceKind.touch,
-              PointerDeviceKind.stylus,
-              PointerDeviceKind.unknown,
-            },
+            borderRadius:
+                BorderRadius.circular(32), // Add rounded corners to thumbnails
           ),
         ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          mainAxisSize: MainAxisSize.max,
-          children: [
-            IconButton(
-              onPressed: controller.toggleMode,
-              icon: const Icon(Icons.auto_awesome_motion_outlined),
-            ),
-            IconButton(
-              onPressed: () {
-                if (controller.tabs.length >= 2) {
-                  controller.removeTabAt(1);
-                  // controller.removeTabAt(controller.tabs.length - 1);
-                }
-              },
-              icon: const Icon(Icons.remove),
-            ),
-            IconButton(
-              onPressed: () async {
-                final newTab = Tab(controller.tabs.length + 1);
-                controller.add(newTab);
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  // controller.expand(newTab);
-                  // controller.scrollToTab(newTab);
-                });
-              },
-              icon: const Icon(Icons.add),
-            ),
-          ],
+        floatingActionButton: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            mainAxisSize: MainAxisSize.max,
+            children: [
+              // A button to toggle between overview and expanded modes.
+              IconButton(
+                onPressed: controller.toggleMode,
+                icon: const Icon(Icons.auto_awesome_motion_outlined),
+              ),
+              // A button to dynamically add new tabs.
+              IconButton(
+                onPressed: () =>
+                    controller.add(Tab(controller.tabs.length + 1)),
+                icon: const Icon(Icons.add),
+              ),
+            ],
+          ),
         ),
-      ),
-    );
-  }
+      );
+}
 
-  Widget _buildTab(BuildContext context, Tab tab) => GestureDetector(
-        onTap: () => controller.isTabExpanded(tab)
-            ? controller.collapse()
-            : controller.expand(tab),
+class TabWidget extends StatelessWidget {
+  final Tab tab;
+  final VoidCallback? onTap;
+
+  const TabWidget({
+    super.key,
+    required this.tab,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+        onTap: onTap,
         child: Container(
           color: Colors.grey.shade300,
           child: Center(
             child: Text(
               '$tab',
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.bold,
                     fontSize: 60,
                   ),
             ),
@@ -105,14 +100,22 @@ class TabSwitcherExampleState extends State<TabSwitcherExample> {
       );
 }
 
+// A Tab model that implements RemovableTab and ReorderableTab.
+//
+// Note: Implementing `RemovableTab` and `ReorderableTab` interfaces in your tab model is optional.
+// By default, all tabs are reorderable and removable (closeable).
+// If you want to disable reordering or removing functionality for specific tabs,
+// you can implement these interfaces in your tab model and set `reorderable` or `removable` to `false`.
 class Tab implements RemovableTab, ReorderableTab {
   final int num;
 
   Tab(this.num);
 
+  // Define if the tab is removable.
   @override
   bool get removable => true;
 
+  // Define if the tab is reorderable.
   @override
   bool get reorderable => true;
 

@@ -12,6 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-library tab_switcher;
+library tab_overview;
 
-export 'src/tab_switcher.dart';
+export 'src/tab_overview.dart';

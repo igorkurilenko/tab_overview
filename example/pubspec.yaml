@@ -9,7 +9,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  tab_switcher:
+  tab_overview:
     path: ../
 
 dev_dependencies:
