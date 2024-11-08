@@ -239,48 +239,56 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
         Positioned.fill(
           child: HeroMode(
             enabled: !model.containsOffScreenThumbTab(tab),
-            child: HeroHere(
-              tag: tabHeroTag(tab),
-              key: tabThumbHeroKey(tab),
-              flightAnimationControllerFactory: (vsync, duration) {
-                final animationContext =
-                    controller._getTabExpandAnimationContext(tab) ??
-                        controller._getTabCollapseAnimationContext(tab);
-                return AnimationController(
-                  vsync: vsync,
-                  duration: animationContext!.duration,
-                )..addStatusListener((status) {
-                    if (status == AnimationStatus.completed) {
-                      controller._collapseAnimationCompleted(tab);
-                    }
-                    if (status == AnimationStatus.dismissed) {
-                      controller._collapseAnimationDismissed(tab);
-                    }
-                  });
-              },
-              flightAnimationFactory: (animationController) {
-                final animationContext =
-                    controller._getTabExpandAnimationContext(tab) ??
-                        controller._getTabCollapseAnimationContext(tab);
-                return animationContext!.animation = CurvedAnimation(
-                  parent: animationController,
-                  curve: animationContext.curve!,
-                );
-              },
-              child: thumb,
-            ),
+            child: _buildThumbHero(thumb, tab),
           ),
         ),
         if (model.removable(tab))
           HeroMode(
             enabled: !model.containsOffScreenThumbTab(tab),
-            child: HeroHere(
-              tag: removeButtonHeroTag(tab),
-              key: tabThumbRemoveButtonHeroKey(tab),
-              child: removeButton,
-            ),
+            child: _buildThumbRemoveButtonHero(removeButton, tab),
           ),
       ],
+    );
+  }
+
+  Widget _buildThumbHero(Widget thumb, T tab) {
+    return HeroHere(
+      tag: tabHeroTag(tab),
+      key: tabThumbHeroKey(tab),
+      flightAnimationControllerFactory: (vsync, duration) {
+        final animationContext =
+            controller._getTabExpandAnimationContext(tab) ??
+                controller._getTabCollapseAnimationContext(tab);
+        return AnimationController(
+          vsync: vsync,
+          duration: animationContext!.duration,
+        )..addStatusListener((status) {
+            if (status == AnimationStatus.completed) {
+              controller._collapseAnimationCompleted(tab);
+            }
+            if (status == AnimationStatus.dismissed) {
+              controller._collapseAnimationDismissed(tab);
+            }
+          });
+      },
+      flightAnimationFactory: (animationController) {
+        final animationContext =
+            controller._getTabExpandAnimationContext(tab) ??
+                controller._getTabCollapseAnimationContext(tab);
+        return animationContext!.animation = CurvedAnimation(
+          parent: animationController,
+          curve: animationContext.curve!,
+        );
+      },
+      child: thumb,
+    );
+  }
+
+  Widget _buildThumbRemoveButtonHero(Widget removeButton, T tab) {
+    return HeroHere(
+      tag: removeButtonHeroTag(tab),
+      key: tabThumbRemoveButtonHeroKey(tab),
+      child: removeButton,
     );
   }
 
@@ -297,67 +305,54 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
             left: screenSize.width / 2,
             child: SizedBox.fromSize(
               size: Size.zero,
-              child: _buildOffScreenThumbHero(context, tab),
+              child: _buildOffScreenThumb(context, tab),
             ),
           ),
       ],
     );
   }
 
-  Widget _buildOffScreenThumbHero(BuildContext context, T tab) {
+  Widget _buildOffScreenThumb(BuildContext context, T tab) {
     Widget thumb = widget.tabThumbBuilder(context, tab);
-
-    if (controller._hasTabExpandAnimationContext(tab)) {
-      final animation = controller._getTabExpandAnimation(tab)!;
-      final decorationAnimation = DecorationTween(
-        begin: widget.thumbnailDecoration,
-        end: widget.expandedTabDecoration,
-      ).animate(animation);
-
-      thumb = AnimatedBuilder(
-        animation: decorationAnimation,
-        builder: (context, child) => Container(
-          clipBehavior: Clip.antiAlias,
-          decoration: decorationAnimation.value,
-          child: child,
-        ),
-        child: thumb,
-      );
-    } else if (controller._hasTabCollapseAnimationContext(tab)) {
-      final collapseAnimation = controller._getTabCollapseAnimation(tab)!;
-      final decorationAnimation = DecorationTween(
-        begin: widget.expandedTabDecoration,
-        end: widget.thumbnailDecoration,
-      ).animate(collapseAnimation);
-
-      thumb = AnimatedBuilder(
-        animation: decorationAnimation,
-        builder: (context, child) => Container(
-          clipBehavior: Clip.antiAlias,
-          decoration: decorationAnimation.value,
-          child: child,
-        ),
-        child: thumb,
-      );
-    } else {
-      thumb = Container(
-        clipBehavior: Clip.antiAlias,
-        decoration: widget.thumbnailDecoration,
-        child: thumb,
-      );
-    }
+    thumb = _decorate(thumb, tab);
+    thumb = _maybeAnimateScaleAndFade(thumb, tab);
 
     return HeroMode(
       enabled: !controller.isTabExpanded(tab),
-      child: HeroHere(
-        tag: tabHeroTag(tab),
-        key: tabThumbHeroKey(tab),
-        flightAnimationControllerFactory: (vsync, duration) =>
-            _createThumbHeroFlightAnimationController(vsync, duration, tab),
-        flightAnimationFactory: (animationController) =>
-            _createThumbHeroFligthAnimation(animationController, tab),
-        child: thumb,
-      ),
+      child: _buildOffScreenThumbHero(thumb, tab),
+    );
+  }
+
+  Widget _buildOffScreenThumbHero(Widget thumb, T tab) {
+    return HeroHere(
+      tag: tabHeroTag(tab),
+      key: tabThumbHeroKey(tab),
+      flightAnimationControllerFactory: (vsync, duration) {
+        final animationContext =
+            controller._getTabExpandAnimationContext(tab) ??
+                controller._getTabCollapseAnimationContext(tab);
+        return AnimationController(
+          vsync: vsync,
+          duration: animationContext!.duration,
+        )..addStatusListener((status) {
+            if (status == AnimationStatus.completed) {
+              controller._collapseOffScreenAnimationCompleted(tab);
+            }
+            if (status == AnimationStatus.dismissed) {
+              controller._collapseOffScreenAnimationDismissed(tab);
+            }
+          });
+      },
+      flightAnimationFactory: (animationController) {
+        final animationContext =
+            controller._getTabExpandAnimationContext(tab) ??
+                controller._getTabCollapseAnimationContext(tab);
+        return animationContext!.animation = CurvedAnimation(
+          parent: animationController,
+          curve: animationContext.curve!,
+        );
+      },
+      child: thumb,
     );
   }
 
@@ -431,39 +426,4 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
           child: widget,
         ),
       );
-
-  AnimationController _createThumbHeroFlightAnimationController(
-    TickerProvider vsync,
-    Duration duration,
-    T tab,
-  ) {
-    final animationContext = controller._getTabExpandAnimationContext(tab) ??
-        controller._getTabCollapseAnimationContext(tab);
-
-    return AnimationController(
-      vsync: vsync,
-      duration: animationContext!.duration,
-    )..addStatusListener((status) {
-        if (status == AnimationStatus.completed) {
-          controller._collapseOffScreenAnimationCompleted(tab);
-        }
-
-        if (status == AnimationStatus.dismissed) {
-          controller._collapseOffScreenAnimationDismissed(tab);
-        }
-      });
-  }
-
-  Animation<double> _createThumbHeroFligthAnimation(
-    AnimationController animationController,
-    T tab,
-  ) {
-    final animationContext = controller._getTabExpandAnimationContext(tab) ??
-        controller._getTabCollapseAnimationContext(tab);
-
-    return animationContext!.animation = CurvedAnimation(
-      parent: animationController,
-      curve: animationContext.curve!,
-    );
-  }
 }

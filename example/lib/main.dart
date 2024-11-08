@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:tab_overview/tab_overview.dart';
 
@@ -27,49 +29,59 @@ class TabOverviewExampleState extends State<TabOverviewExample> {
   final controller = TabOverviewController<Tab>();
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-        backgroundColor: Colors.grey.shade200,
-        // Step 2: Use TabOverview.builder to create the TabOverview widget.
-        // Configure the controller, padding, tab content builder, and styling for thumbnails.
-        body: TabOverview<Tab>.builder(
-          controller: controller, // Attach the controller
-          thumbnailsGridPadding: MediaQuery.viewPaddingOf(context).copyWith(
-            left: 16,
-            right: 16,
-          ), // Customize grid padding
-          tabBuilder: (context, tab) => TabWidget(
-            tab: tab,
-            // Step 3: Toggle tab expansion or collapse when a thumbnail is tapped.
-            onTap: () => controller.isTabExpanded(tab)
-                ? controller.collapse() // Collapse if expanded
-                : controller.expand(tab), // Expand on tap
-          ),
-          thumbnailDecoration: BoxDecoration(
-            borderRadius:
-                BorderRadius.circular(32), // Add rounded corners to thumbnails
-          ),
+  Widget build(BuildContext context) {
+    final viewPadding = MediaQuery.viewPaddingOf(context);
+
+    return Scaffold(
+      backgroundColor: Colors.grey.shade200,
+      // Step 2: Use TabOverview.builder to create the TabOverview widget.
+      // Configure the controller, padding, tab content builder, and styling for thumbnails.
+      body: TabOverview<Tab>.builder(
+        controller: controller, // Attach the controller
+        thumbnailsGridPadding: EdgeInsets.only(
+          top: max(viewPadding.top, 16.0),
+          right: 16.0,
+          bottom: max(viewPadding.bottom, 16.0),
+          left: 16.0,
+        ), // Customize grid padding
+        tabBuilder: (context, tab) => TabWidget(
+          tab: tab,
+          // Step 3: Toggle tab expansion or collapse when a thumbnail is tapped.
+          onTap: () => controller.isTabExpanded(tab)
+              ? controller.collapse() // Collapse if expanded
+              : controller.expand(tab), // Expand on tap
         ),
-        floatingActionButton: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            mainAxisSize: MainAxisSize.max,
-            children: [
-              // A button to toggle between overview and expanded modes.
-              IconButton(
-                onPressed: controller.toggleMode,
-                icon: const Icon(Icons.auto_awesome_motion_outlined),
-              ),
-              // A button to dynamically add new tabs.
-              IconButton(
-                onPressed: () =>
-                    controller.add(Tab(controller.tabs.length + 1)),
-                icon: const Icon(Icons.add),
-              ),
-            ],
-          ),
+        thumbnailDecoration: BoxDecoration(
+          borderRadius:
+              BorderRadius.circular(32.0), // Add rounded corners to thumbnails
         ),
-      );
+      ),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          mainAxisSize: MainAxisSize.max,
+          children: [
+            // A button to toggle between overview and expanded modes.
+            IconButton(
+              onPressed: controller.toggleMode,
+              icon: const Icon(Icons.auto_awesome_motion_outlined),
+            ),
+            // A button to dynamically add new tabs.
+            IconButton(
+              onPressed: () => controller.removeTabAt(1),
+              icon: const Icon(Icons.remove),
+            ),
+            // A button to dynamically add new tabs.
+            IconButton(
+              onPressed: () => controller.add(Tab(controller.tabs.length + 1)),
+              icon: const Icon(Icons.add),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class TabWidget extends StatelessWidget {
