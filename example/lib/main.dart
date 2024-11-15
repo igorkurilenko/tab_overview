@@ -26,7 +26,9 @@ class TabOverviewExample extends StatefulWidget {
 class TabOverviewExampleState extends State<TabOverviewExample> {
   // Step 1: Initialize a TabOverviewController with your tab type.
   // This controller will manage the state, including switching tabs, adding, and removing.
-  final controller = TabOverviewController<Tab>();
+  final controller = TabOverviewController<Tab>(
+    initialMode: TabOverviewMode.expanded,
+  );
 
   @override
   Widget build(BuildContext context) {

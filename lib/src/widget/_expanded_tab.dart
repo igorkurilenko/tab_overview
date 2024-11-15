@@ -64,7 +64,7 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
   Widget build(BuildContext context) {
     return PageView.builder(
       controller: pageController = PageController(
-        initialPage: controller.indexOfActiveTab(),
+        initialPage: controller.indexOfActiveTab() ?? 0,
         viewportFraction: kExpandedTabPageViewportFraction,
       ),
       scrollBehavior: widget.scrollBehavior,

@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.0.2]
+### Fixed
+- Resolved a bug where the `TabOverview` widget would cause an error when in expanded mode with no tabs present.
+
 ## [0.0.1]
 ### Added
 - Initial release of `tab_overview`, a customizable widget for managing tabs with smooth transitions and a thumbnail grid view.

@@ -228,7 +228,7 @@ class _TabOverviewState<T> extends State<TabOverview<T>>
         ),
         child: Stack(
           children: [
-            _TabThumbnailsGrid(
+            _TabThumbnailsGrid<T>(
               key: _thumbnailsGridKey,
               controller: controller,
               thumbnailsGridDelegate: thumbnailsGridDelegate,
@@ -244,7 +244,7 @@ class _TabOverviewState<T> extends State<TabOverview<T>>
                   widget.thumbnailsMotionAnimationCurve,
             ),
             if (expanded)
-              _ExpandedTab(
+              _ExpandedTab<T>(
                 key: _expandedTabKey,
                 controller: controller,
                 tabBuilder: widget.tabBuilder,

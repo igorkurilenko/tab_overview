@@ -65,7 +65,8 @@ class TabOverviewController<T> with _AnimationContexts<T>, _Listeners<T> {
   }
 
   /// Returns the index of the current active tab in the [tabs] list.
-  int indexOfActiveTab() => _model.indexOfTab(activeTab as T);
+  int? indexOfActiveTab() =>
+      activeTab != null ? _model.indexOfTab(activeTab as T) : null;
 
   /// Checks if the specified [tab] is currently active.
   ///
@@ -107,7 +108,8 @@ class TabOverviewController<T> with _AnimationContexts<T>, _Listeners<T> {
     _model.addTab(newTab, duration: duration);
     _notifyTabAdded(newTab);
 
-    _expandedTabState?.jumpToPage(indexOfActiveTab());
+    _ensureActiveTab();
+    _expandedTabState?.jumpToPage(indexOfActiveTab()!);
     _expandedTabState?.stateChanged();
 
     return true;
@@ -133,7 +135,7 @@ class TabOverviewController<T> with _AnimationContexts<T>, _Listeners<T> {
     _notifyTabRemoved(removedTab);
 
     if (removedTab != activeTab) {
-      _expandedTabState?.jumpToPage(indexOfActiveTab());
+      _expandedTabState?.jumpToPage(indexOfActiveTab()!);
       _expandedTabState?.stateChanged();
     }
 
@@ -264,6 +266,23 @@ class TabOverviewController<T> with _AnimationContexts<T>, _Listeners<T> {
     } else {
       _doCollapse(duration: duration, curve: curve);
     }
+  }
+
+  /// Disposes resources used by the controller.
+  void dispose() {
+    _expandAnimationContextsByTab.clear();
+    _collapseAnimationContextsByTab.clear();
+
+    _insertAnimationByTab.clear();
+    _removeAnimationByTab.clear();
+
+    _modeChangedListeners.clear();
+    _activeTabChangedListeners.clear();
+    _tabAddedListeners.clear();
+    _tabRemovedListeners.clear();
+    _offScreenThumbTabAddedListeners.clear();
+    _offscreenThumbTabRemovedListeners.clear();
+    _tabsReorderedListeners.clear();
   }
 
   void _reorderTabs(Permutations permutations) {
