@@ -15,8 +15,12 @@
 import 'package:flutter/widgets.dart';
 
 class AnimationContext<T> {
+  AnimationContext({this.duration, this.curve});
+
   Duration? duration;
+
   Curve? curve;
+
   final _animation = ProxyAnimation(kAlwaysDismissedAnimation);
 
   Animation<double> get animation => _animation;

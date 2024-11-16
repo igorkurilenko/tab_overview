@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.0.3]
+### Fixed
+- Flight animation creation for expanded initial mode.
+
 ## [0.0.2]
 ### Fixed
 - Resolved a bug where the `TabOverview` widget would cause an error when in expanded mode with no tabs present.

@@ -186,11 +186,16 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
     T tab,
   ) {
     final animationContext = controller._getTabExpandAnimationContext(tab) ??
-        controller._getTabCollapseAnimationContext(tab);
+        controller._getTabCollapseAnimationContext(tab) ??
+        controller._ensureTabCollapseAnimationContext(
+          tab,
+          duration: HeroHere.defaultFlightAnimationDuration,
+          curve: HeroHere.defaultFlightAnimationCurve,
+        );
 
     return AnimationController(
       vsync: vsync,
-      duration: animationContext!.duration,
+      duration: animationContext.duration,
     )..addStatusListener((status) {
         if (status == AnimationStatus.completed) {
           controller._expandAnimationCompleted(tab);
@@ -206,9 +211,14 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
     T tab,
   ) {
     final animationContext = controller._getTabExpandAnimationContext(tab) ??
-        controller._getTabCollapseAnimationContext(tab);
+        controller._getTabCollapseAnimationContext(tab) ??
+        controller._ensureTabCollapseAnimationContext(
+          tab,
+          duration: HeroHere.defaultFlightAnimationDuration,
+          curve: HeroHere.defaultFlightAnimationCurve,
+        );
 
-    return animationContext!.animation = CurvedAnimation(
+    return animationContext.animation = CurvedAnimation(
       parent: animationController,
       curve: animationContext.curve!,
     );

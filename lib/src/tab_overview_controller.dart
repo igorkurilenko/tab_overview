@@ -589,8 +589,10 @@ mixin _AnimationContexts<T> {
   Animation<double>? _removeTabRemoveAnimation(T tab) =>
       _removeAnimationByTab.remove(tab);
 
-  AnimationContext _ensureTabExpandAnimationContext(T tab) =>
-      _expandAnimationContextsByTab.putIfAbsent(tab, () => AnimationContext());
+  AnimationContext _ensureTabExpandAnimationContext(T tab,
+          {Duration? duration, Curve? curve}) =>
+      _expandAnimationContextsByTab.putIfAbsent(
+          tab, () => AnimationContext(duration: duration, curve: curve));
 
   bool _hasTabExpandAnimationContext(T tab) =>
       _expandAnimationContextsByTab[tab] != null;
@@ -604,9 +606,10 @@ mixin _AnimationContexts<T> {
   AnimationContext? _removeTabExpandAnimationContext(T tab) =>
       _expandAnimationContextsByTab.remove(tab);
 
-  AnimationContext _ensureTabCollapseAnimationContext(T tab) =>
+  AnimationContext _ensureTabCollapseAnimationContext(T tab,
+          {Duration? duration, Curve? curve}) =>
       _collapseAnimationContextsByTab.putIfAbsent(
-          tab, () => AnimationContext());
+          tab, () => AnimationContext(duration: duration, curve: curve));
 
   bool _hasTabCollapseAnimationContext(T tab) =>
       _collapseAnimationContextsByTab[tab] != null;
