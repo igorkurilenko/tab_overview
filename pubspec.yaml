@@ -2,7 +2,7 @@ name: tab_overview
 description: >
   A widget that enables smooth tab transitions with a grid view of 
   thumbnails for easy tab management and navigation.
-version: 0.0.3
+version: 0.0.4
 homepage: https://github.com/igorkurilenko/tab_overview
 
 environment:

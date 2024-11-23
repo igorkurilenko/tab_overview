@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.0.4]
+### Fixed
+- Fix tab activation.
+
 ## [0.0.3]
 ### Fixed
 - Flight animation creation for expanded initial mode.

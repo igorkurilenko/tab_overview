@@ -100,9 +100,12 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
             tag: removeButtonHeroTag(tab),
             key: expandedTabRemoveButtonHeroKey(tab),
             flightShuttleBuilder: _buildRemoveButtonHeroFlightShuttle,
-            child: Opacity(
-              opacity: 0,
-              child: widget.removeTabButtonBuilder(context, tab),
+            child: IgnorePointer(
+              ignoring: true,
+              child: Opacity(
+                opacity: 0,
+                child: widget.removeTabButtonBuilder(context, tab),
+              ),
             ),
           ),
       ],

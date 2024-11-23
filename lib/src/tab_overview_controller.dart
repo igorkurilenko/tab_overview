@@ -33,13 +33,23 @@ class TabOverviewController<T> with _AnimationContexts<T>, _Listeners<T> {
   TabOverviewController({
     List<T>? initialTabs,
     TabOverviewMode initialMode = TabOverviewMode.overview,
+    T? activeTab,
   })  : _mode = initialMode,
-        _model = _TabOverviewModel<T>(initialTabs: initialTabs);
+        _model = _TabOverviewModel<T>(initialTabs: initialTabs),
+        _activeTab = (initialTabs?.contains(activeTab) ?? false)
+            ? activeTab
+            : initialTabs?.first;
 
   /// The current display mode of the [TabOverview], either `overview` or `expanded`.
   ///
   /// In `overview` mode, tabs are shown as thumbnails; in `expanded` mode, the active tab is shown in detail.
   TabOverviewMode get mode => _mode;
+
+  /// Returns `true` if the current mode is [TabOverviewMode.expanded].
+  bool get expanded => mode == TabOverviewMode.expanded;
+
+  /// Returns `true` if the current mode is [TabOverviewMode.overview].
+  bool get overview => mode == TabOverviewMode.overview;
 
   _TabThumbnailsGridState? get _thumbnailsGridState =>
       _thumbnailsGridKey?.currentState;
@@ -56,10 +66,9 @@ class TabOverviewController<T> with _AnimationContexts<T>, _Listeners<T> {
     if (_activeTab == value) return;
 
     _activeTab = value;
-
     _notifyActiveTabChanged();
 
-    if (mode == TabOverviewMode.expanded) {
+    if (expanded) {
       _thumbnailsGridState?.stateChanged();
     }
   }
@@ -71,7 +80,7 @@ class TabOverviewController<T> with _AnimationContexts<T>, _Listeners<T> {
   /// Checks if the specified [tab] is currently active.
   ///
   /// Returns `true` if [tab] is the active tab.
-  bool isActiveTab(T tab) => tab == _activeTab;
+  bool isActiveTab(T tab) => tab == activeTab;
 
   /// List of all active tabs managed by this controller.
   List<T> get tabs => _model.tabs;
@@ -79,8 +88,7 @@ class TabOverviewController<T> with _AnimationContexts<T>, _Listeners<T> {
   /// Checks if a given [tab] is expanded.
   ///
   /// Returns `true` if the [tab] is active and the mode is `expanded`.
-  bool isTabExpanded(T tab) =>
-      mode == TabOverviewMode.expanded && isActiveTab(tab);
+  bool isTabExpanded(T tab) => expanded && isActiveTab(tab);
 
   /// Checks if the tab at a specified [index] is expanded.
   ///
@@ -108,7 +116,8 @@ class TabOverviewController<T> with _AnimationContexts<T>, _Listeners<T> {
     _model.addTab(newTab, duration: duration);
     _notifyTabAdded(newTab);
 
-    _ensureActiveTab();
+    activeTab ??= newTab;
+
     _expandedTabState?.jumpToPage(indexOfActiveTab()!);
     _expandedTabState?.stateChanged();
 
@@ -134,18 +143,29 @@ class TabOverviewController<T> with _AnimationContexts<T>, _Listeners<T> {
     final removedTab = _model.removeTabAt(index, duration: duration);
     _notifyTabRemoved(removedTab);
 
-    if (removedTab != activeTab) {
-      _expandedTabState?.jumpToPage(indexOfActiveTab()!);
-      _expandedTabState?.stateChanged();
-    }
+    final isActiveTabRemoved = isActiveTab(removedTab);
 
-    if (isTabExpanded(removedTab)) {
+    if (expanded && isActiveTabRemoved) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _collapseOffScreen(
+          removedTab,
           duration: duration,
           curve: HeroHere.defaultFlightAnimationCurve,
         );
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          activeTab = tabs.isNotEmpty
+              ? tabs[index < tabs.length ? index : index - 1]
+              : null;
+        });
       });
+    } else if (expanded && !isActiveTabRemoved) {
+      _expandedTabState?.jumpToPage(indexOfActiveTab()!);
+      _expandedTabState?.stateChanged();
+    } else if (isActiveTabRemoved) {
+      activeTab = tabs.isNotEmpty
+          ? tabs[index < tabs.length ? index : index - 1]
+          : null;
     }
 
     return removedTab;
@@ -160,14 +180,15 @@ class TabOverviewController<T> with _AnimationContexts<T>, _Listeners<T> {
   }) {
     if (_model.tabs.isEmpty) return;
 
-    if (mode == TabOverviewMode.expanded) {
+    if (expanded) {
       collapse(
         duration: duration,
         curve: curve,
       );
     } else {
+      final tab = activeTab ??= _model.tabs.last;
       expand(
-        _ensureActiveTab(),
+        tab,
         duration: duration,
         curve: curve,
       );
@@ -196,7 +217,7 @@ class TabOverviewController<T> with _AnimationContexts<T>, _Listeners<T> {
       throw ArgumentError('Tab $tab not found');
     }
 
-    if (mode == TabOverviewMode.expanded) {
+    if (expanded) {
       scrollToTab(
         tab,
         duration: duration,
@@ -236,7 +257,7 @@ class TabOverviewController<T> with _AnimationContexts<T>, _Listeners<T> {
     Duration duration = const Duration(milliseconds: 350),
     Curve curve = Curves.easeInOut,
   }) {
-    if (mode == TabOverviewMode.expanded) {
+    if (expanded) {
       _expandedTabState!.animateToPage(
         index,
         duration: duration,
@@ -259,17 +280,21 @@ class TabOverviewController<T> with _AnimationContexts<T>, _Listeners<T> {
     Duration duration = HeroHere.defaultFlightAnimationDuration,
     Curve curve = Curves.easeInOut,
   }) {
-    if (mode == TabOverviewMode.overview) return;
+    if (overview) return;
 
-    if (_thumbnailsGridState!.thumbOffScreen(activeTab)) {
-      _collapseOffScreen(duration: duration, curve: curve);
+    final tab = activeTab as T;
+
+    if (_thumbnailsGridState!.thumbOffScreen(tab)) {
+      _collapseOffScreen(tab, duration: duration, curve: curve);
     } else {
-      _doCollapse(duration: duration, curve: curve);
+      _doCollapse(tab, duration: duration, curve: curve);
     }
   }
 
   /// Disposes resources used by the controller.
   void dispose() {
+    _activeTab = null;
+
     _expandAnimationContextsByTab.clear();
     _collapseAnimationContextsByTab.clear();
 
@@ -318,25 +343,27 @@ class TabOverviewController<T> with _AnimationContexts<T>, _Listeners<T> {
     _notifyModeChanged(_mode);
   }
 
-  void _collapseOffScreen({
+  void _collapseOffScreen(
+    T tab, {
     required Duration duration,
     required Curve curve,
   }) {
-    if (_model.addOffScreenThumbTab(activeTab as T)) {
-      _notifyOffScreenThumbTabAdded(activeTab as T);
+    if (_model.addOffScreenThumbTab(tab)) {
+      _notifyOffScreenThumbTabAdded(tab);
       _thumbnailsGridState?.stateChanged();
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _doCollapse(duration: duration, curve: curve);
+      _doCollapse(tab, duration: duration, curve: curve);
     });
   }
 
-  void _doCollapse({
+  void _doCollapse(
+    T tab, {
     required Duration duration,
     required Curve curve,
   }) {
-    _ensureTabCollapseAnimationContext(activeTab as T)
+    _ensureTabCollapseAnimationContext(tab)
       ..duration = duration
       ..curve = curve;
 
@@ -409,17 +436,6 @@ class TabOverviewController<T> with _AnimationContexts<T>, _Listeners<T> {
     }
 
     _thumbnailsGridState?.stateChanged();
-  }
-
-  T _ensureActiveTab() {
-    assert(_model.tabs.isNotEmpty,
-        'Failed to ensure active tab because model has no tabs');
-
-    if (activeTab == null || !_model.containsTab(activeTab as T)) {
-      activeTab = _model.tabs.last;
-    }
-
-    return activeTab as T;
   }
 
   void _handleExpandedTabPageChanged(int page) {
