@@ -6,6 +6,7 @@
 
 ### Changed
 - Require Dart 3.13 and Flutter 3.47.
+- Require animated_reorderable 1.5.0 and hero_here 1.1.0, so thumbnails keep their state while they move and tab transitions stay in place when the overview isn't at the screen's top-left corner.
 - Update the example to the current Flutter templates.
 
 ## [0.0.4]
