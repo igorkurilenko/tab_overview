@@ -214,7 +214,7 @@ class _TabOverviewState<T> extends State<TabOverview<T>>
   );
 
   @override
-  Widget buildExtraSmall(BuildContext context) => const Placeholder();
+  Widget buildExtraSmall(BuildContext context) => buildSmall(context);
 
   void _handleModeChanged(TabOverviewMode _) => setState(() {});
 
