@@ -5,10 +5,10 @@ packages:
     dependency: transitive
     description:
       name: animated_reorderable
-      sha256: "941a12385b1178b75290a0cb07c119c221065207a9e545abbf30b0716978cf6b"
+      sha256: "53bb314aedaa66f38b05b6485eb21be851bbc5de41c7ff36d1f4c0de026d9090"
       url: "https://pub.dev"
     source: hosted
-    version: "1.4.2"
+    version: "1.5.0"
   async:
     dependency: transitive
     description:
@@ -79,10 +79,10 @@ packages:
     dependency: transitive
     description:
       name: hero_here
-      sha256: a42d62cb645877dd14dc4b8980e45e79e71a7a694cae6e533695457345d44228
+      sha256: "542b8ab2459a93de36e4804e6346c3e928cca1d51488ea0d5cd49dd440e1cfce"
       url: "https://pub.dev"
     source: hosted
-    version: "1.0.1"
+    version: "1.1.0"
   leak_tracker:
     dependency: transitive
     description:
