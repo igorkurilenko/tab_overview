@@ -70,16 +70,16 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
 
   Duration? get activeTabHeroAnimationDuration {
     if (controller.activeTab == null) return null;
-    final heroAnimationContext = controller
-            ._getTabExpandAnimationContext(controller.activeTab as T) ??
+    final heroAnimationContext =
+        controller._getTabExpandAnimationContext(controller.activeTab as T) ??
         controller._getTabCollapseAnimationContext(controller.activeTab as T);
     return heroAnimationContext?.duration;
   }
 
   Curve? get activeTabHeroAnimationCurve {
     if (controller.activeTab == null) return null;
-    final heroAnimationContext = controller
-            ._getTabExpandAnimationContext(controller.activeTab as T) ??
+    final heroAnimationContext =
+        controller._getTabExpandAnimationContext(controller.activeTab as T) ??
         controller._getTabCollapseAnimationContext(controller.activeTab as T);
     return heroAnimationContext?.curve;
   }
@@ -100,62 +100,47 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
     required Duration duration,
     required Curve curve,
   }) {
-    scrollController.animateTo(
-      offset,
-      duration: duration,
-      curve: curve,
-    );
+    scrollController.animateTo(offset, duration: duration, curve: curve);
   }
 
   void jumpTo(double offset) {
     scrollController.jumpTo(offset);
   }
 
-  void addTab(
-    T tab, {
-    required Duration duration,
-  }) {
-    thumbsGridState!.insertItem(
-      model.indexOfTab(tab),
-      (context, index, animation) {
-        if (animation.status != AnimationStatus.completed) {
-          controller._putTabInsertAnimation(tab, animation);
+  void addTab(T tab, {required Duration duration}) {
+    thumbsGridState!.insertItem(model.indexOfTab(tab), (
+      context,
+      index,
+      animation,
+    ) {
+      if (animation.status != AnimationStatus.completed) {
+        controller._putTabInsertAnimation(tab, animation);
+      }
+
+      animation.addStatusListener((status) {
+        if (status == AnimationStatus.completed) {
+          controller._removeTabInsertAnimation(tab);
         }
+      });
 
-        animation.addStatusListener((status) {
-          if (status == AnimationStatus.completed) {
-            controller._removeTabInsertAnimation(tab);
-          }
-        });
-
-        return _buildThumb(context, model[index]);
-      },
-      duration: duration,
-    );
+      return _buildThumb(context, model[index]);
+    }, duration: duration);
   }
 
-  void removeTab(
-    int index,
-    T removedTab, {
-    required Duration duration,
-  }) {
-    thumbsGridState!.removeItem(
-      index,
-      (context, animation) {
-        if (animation.status != AnimationStatus.dismissed) {
-          controller._putTabRemoveAnimation(removedTab, animation);
+  void removeTab(int index, T removedTab, {required Duration duration}) {
+    thumbsGridState!.removeItem(index, (context, animation) {
+      if (animation.status != AnimationStatus.dismissed) {
+        controller._putTabRemoveAnimation(removedTab, animation);
+      }
+
+      animation.addStatusListener((status) {
+        if (animation.status == AnimationStatus.dismissed) {
+          controller._removeTabRemoveAnimation(removedTab);
         }
+      });
 
-        animation.addStatusListener((status) {
-          if (animation.status == AnimationStatus.dismissed) {
-            controller._removeTabRemoveAnimation(removedTab);
-          }
-        });
-
-        return _buildThumb(context, removedTab);
-      },
-      duration: duration,
-    );
+      return _buildThumb(context, removedTab);
+    }, duration: duration);
   }
 
   @override
@@ -178,13 +163,15 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
       behavior: widget.scrollBehavior ?? ScrollConfiguration.of(context),
       child: AnimatedScale(
         scale: thumbsGridScale,
-        duration: activeTabHeroAnimationDuration ??
+        duration:
+            activeTabHeroAnimationDuration ??
             HeroHere.defaultFlightAnimationDuration,
         curve:
             activeTabHeroAnimationCurve ?? HeroHere.defaultFlightAnimationCurve,
         child: AnimatedOpacity(
           opacity: thumbsGridOpacity,
-          duration: activeTabHeroAnimationDuration ??
+          duration:
+              activeTabHeroAnimationDuration ??
               HeroHere.defaultFlightAnimationDuration,
           curve: controller.mode == TabOverviewMode.expanded
               ? Curves.fastOutSlowIn.flipped
@@ -258,23 +245,23 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
       flightAnimationControllerFactory: (vsync, duration) {
         final animationContext =
             controller._getTabExpandAnimationContext(tab) ??
-                controller._getTabCollapseAnimationContext(tab);
+            controller._getTabCollapseAnimationContext(tab);
         return AnimationController(
           vsync: vsync,
           duration: animationContext!.duration,
         )..addStatusListener((status) {
-            if (status == AnimationStatus.completed) {
-              controller._collapseAnimationCompleted(tab);
-            }
-            if (status == AnimationStatus.dismissed) {
-              controller._collapseAnimationDismissed(tab);
-            }
-          });
+          if (status == AnimationStatus.completed) {
+            controller._collapseAnimationCompleted(tab);
+          }
+          if (status == AnimationStatus.dismissed) {
+            controller._collapseAnimationDismissed(tab);
+          }
+        });
       },
       flightAnimationFactory: (animationController) {
         final animationContext =
             controller._getTabExpandAnimationContext(tab) ??
-                controller._getTabCollapseAnimationContext(tab);
+            controller._getTabCollapseAnimationContext(tab);
         return animationContext!.animation = CurvedAnimation(
           parent: animationController,
           curve: animationContext.curve!,
@@ -297,7 +284,8 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
       children: [
         for (var tab in model.offScreenThumbTabs)
           Positioned(
-            top: model.containsTab(tab) &&
+            top:
+                model.containsTab(tab) &&
                     getThumbScrollOffset(model.indexOfTab(tab)) <
                         scrollController.position.pixels
                 ? 0
@@ -330,23 +318,23 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
       flightAnimationControllerFactory: (vsync, duration) {
         final animationContext =
             controller._getTabExpandAnimationContext(tab) ??
-                controller._getTabCollapseAnimationContext(tab);
+            controller._getTabCollapseAnimationContext(tab);
         return AnimationController(
           vsync: vsync,
           duration: animationContext!.duration,
         )..addStatusListener((status) {
-            if (status == AnimationStatus.completed) {
-              controller._collapseOffScreenAnimationCompleted(tab);
-            }
-            if (status == AnimationStatus.dismissed) {
-              controller._collapseOffScreenAnimationDismissed(tab);
-            }
-          });
+          if (status == AnimationStatus.completed) {
+            controller._collapseOffScreenAnimationCompleted(tab);
+          }
+          if (status == AnimationStatus.dismissed) {
+            controller._collapseOffScreenAnimationDismissed(tab);
+          }
+        });
       },
       flightAnimationFactory: (animationController) {
         final animationContext =
             controller._getTabExpandAnimationContext(tab) ??
-                controller._getTabCollapseAnimationContext(tab);
+            controller._getTabCollapseAnimationContext(tab);
         return animationContext!.animation = CurvedAnimation(
           parent: animationController,
           curve: animationContext.curve!,
@@ -409,21 +397,16 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
   }
 
   Widget _maybeAnimateScaleAndFade(Widget widget, T tab) {
-    final animation = controller._getTabRemoveAnimation(tab) ??
+    final animation =
+        controller._getTabRemoveAnimation(tab) ??
         controller._getTabInsertAnimation(tab);
 
     return animation != null ? _animateScaleAndFade(animation, widget) : widget;
   }
 
-  Widget _animateScaleAndFade(
-    Animation<double> animation,
-    Widget widget,
-  ) =>
+  Widget _animateScaleAndFade(Animation<double> animation, Widget widget) =>
       ScaleTransition(
         scale: animation,
-        child: FadeTransition(
-          opacity: animation,
-          child: widget,
-        ),
+        child: FadeTransition(opacity: animation, child: widget),
       );
 }

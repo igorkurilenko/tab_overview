@@ -22,14 +22,16 @@ mixin Responsiveness {
   BoxConstraints? constraints;
 
   Widget build(BuildContext context) {
-    return LayoutBuilder(builder: (context, constraints) {
-      this.constraints = constraints;
-      double width = constraints.maxWidth;
-      if (width > large) return buildLarge(context);
-      if (width > medium) return buildMedium(context);
-      if (width > small) return buildSmall(context);
-      return buildExtraSmall(context);
-    });
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        this.constraints = constraints;
+        double width = constraints.maxWidth;
+        if (width > large) return buildLarge(context);
+        if (width > medium) return buildMedium(context);
+        if (width > small) return buildSmall(context);
+        return buildExtraSmall(context);
+      },
+    );
   }
 
   Widget buildLarge(BuildContext context);
