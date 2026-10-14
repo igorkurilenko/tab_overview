@@ -14,7 +14,7 @@
 
 // TODO: debug removing during expanding
 
-library tab_overview;
+library;
 
 import 'dart:collection';
 import 'dart:math';
@@ -138,16 +138,16 @@ class TabOverview<T> extends StatefulWidget {
     this.scrollBehavior,
     Decoration? thumbnailDecoration,
     Decoration? expandedTabDecoration,
-  })  : controller = controller ?? TabOverviewController<T>(),
-        thumbnailDecoration = thumbnailDecoration ?? const BoxDecoration(),
-        expandedTabDecoration = expandedTabDecoration ?? const BoxDecoration(),
-        tabThumbnailBuilder = tabThumbnailBuilder ??
-            ((context, tab) => FittedTab(child: tabBuilder(context, tab))) {
-    this.removeTabButtonBuilder = removeTabButtonBuilder ??
-        ((context, tab) => RemoveTabButton(
-              controller: this.controller,
-              tab: tab,
-            ));
+  }) : controller = controller ?? TabOverviewController<T>(),
+       thumbnailDecoration = thumbnailDecoration ?? const BoxDecoration(),
+       expandedTabDecoration = expandedTabDecoration ?? const BoxDecoration(),
+       tabThumbnailBuilder =
+           tabThumbnailBuilder ??
+           ((context, tab) => FittedTab(child: tabBuilder(context, tab))) {
+    this.removeTabButtonBuilder =
+        removeTabButtonBuilder ??
+        ((context, tab) =>
+            RemoveTabButton(controller: this.controller, tab: tab));
   }
 
   @override
@@ -179,81 +179,77 @@ class _TabOverviewState<T> extends State<TabOverview<T>>
 
   @override
   Widget buildLarge(BuildContext context) => _build(
-        context,
-        widget.thumbnailsGridDelegate ??
-            SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 4,
-              childAspectRatio: constraints!.maxWidth / constraints!.maxHeight,
-              mainAxisSpacing: kDefaultThumbnailsGridMainAxisSpacing,
-              crossAxisSpacing: kDefaultThumbnailsGridCrossAxisSpacing,
-            ),
-      );
+    context,
+    widget.thumbnailsGridDelegate ??
+        SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 4,
+          childAspectRatio: constraints!.maxWidth / constraints!.maxHeight,
+          mainAxisSpacing: kDefaultThumbnailsGridMainAxisSpacing,
+          crossAxisSpacing: kDefaultThumbnailsGridCrossAxisSpacing,
+        ),
+  );
 
   @override
   Widget buildMedium(BuildContext context) => _build(
-        context,
-        widget.thumbnailsGridDelegate ??
-            SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              childAspectRatio: constraints!.maxWidth / constraints!.maxHeight,
-              mainAxisSpacing: kDefaultThumbnailsGridMainAxisSpacing,
-              crossAxisSpacing: kDefaultThumbnailsGridCrossAxisSpacing,
-            ),
-      );
+    context,
+    widget.thumbnailsGridDelegate ??
+        SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 3,
+          childAspectRatio: constraints!.maxWidth / constraints!.maxHeight,
+          mainAxisSpacing: kDefaultThumbnailsGridMainAxisSpacing,
+          crossAxisSpacing: kDefaultThumbnailsGridCrossAxisSpacing,
+        ),
+  );
 
   @override
   Widget buildSmall(BuildContext context) => _build(
-        context,
-        widget.thumbnailsGridDelegate ??
-            const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              childAspectRatio: 0.7,
-              mainAxisSpacing: kDefaultThumbnailsGridMainAxisSpacing,
-              crossAxisSpacing: kDefaultThumbnailsGridCrossAxisSpacing,
-            ),
-      );
+    context,
+    widget.thumbnailsGridDelegate ??
+        const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          childAspectRatio: 0.7,
+          mainAxisSpacing: kDefaultThumbnailsGridMainAxisSpacing,
+          crossAxisSpacing: kDefaultThumbnailsGridCrossAxisSpacing,
+        ),
+  );
 
   @override
-  Widget buildExtraSmall(BuildContext context) => const Placeholder();
+  Widget buildExtraSmall(BuildContext context) => buildSmall(context);
 
   void _handleModeChanged(TabOverviewMode _) => setState(() {});
 
   Widget _build(
     BuildContext context,
     SliverGridDelegate thumbnailsGridDelegate,
-  ) =>
-      HeroHereSwitcher(
-        layoutBuilder: (child, sky) => Stack(
-          children: [child, sky],
+  ) => HeroHereSwitcher(
+    layoutBuilder: (child, sky) => Stack(children: [child, sky]),
+    child: Stack(
+      children: [
+        _TabThumbnailsGrid<T>(
+          key: _thumbnailsGridKey,
+          controller: controller,
+          thumbnailsGridDelegate: thumbnailsGridDelegate,
+          tabThumbBuilder: widget.tabThumbnailBuilder,
+          removeTabButtonBuilder: widget.removeTabButtonBuilder,
+          thumbnailDecoration: widget.thumbnailDecoration,
+          expandedTabDecoration: widget.expandedTabDecoration,
+          scrollBehavior: widget.scrollBehavior,
+          thumbnailsGridPadding: widget.thumbnailsGridPadding,
+          thumbnailsMotionAnimationDuration:
+              widget.thumbnailsMotionAnimationDuration,
+          thumbnailsMotionAnimationCurve: widget.thumbnailsMotionAnimationCurve,
         ),
-        child: Stack(
-          children: [
-            _TabThumbnailsGrid<T>(
-              key: _thumbnailsGridKey,
-              controller: controller,
-              thumbnailsGridDelegate: thumbnailsGridDelegate,
-              tabThumbBuilder: widget.tabThumbnailBuilder,
-              removeTabButtonBuilder: widget.removeTabButtonBuilder,
-              thumbnailDecoration: widget.thumbnailDecoration,
-              expandedTabDecoration: widget.expandedTabDecoration,
-              scrollBehavior: widget.scrollBehavior,
-              thumbnailsGridPadding: widget.thumbnailsGridPadding,
-              thumbnailsMotionAnimationDuration:
-                  widget.thumbnailsMotionAnimationDuration,
-              thumbnailsMotionAnimationCurve:
-                  widget.thumbnailsMotionAnimationCurve,
-            ),
-            if (expanded)
-              _ExpandedTab<T>(
-                key: _expandedTabKey,
-                controller: controller,
-                tabBuilder: widget.tabBuilder,
-                removeTabButtonBuilder: widget.removeTabButtonBuilder,
-                scrollBehavior: widget.scrollBehavior,
-                thumbnailDecoration: widget.thumbnailDecoration,
-                expandedTabDecoration: widget.expandedTabDecoration,
-              ),
-          ],
-        ),
-      );
+        if (expanded)
+          _ExpandedTab<T>(
+            key: _expandedTabKey,
+            controller: controller,
+            tabBuilder: widget.tabBuilder,
+            removeTabButtonBuilder: widget.removeTabButtonBuilder,
+            scrollBehavior: widget.scrollBehavior,
+            thumbnailDecoration: widget.thumbnailDecoration,
+            expandedTabDecoration: widget.expandedTabDecoration,
+          ),
+      ],
+    ),
+  );
 }

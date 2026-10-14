@@ -53,11 +53,7 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
     required Duration duration,
     required Curve curve,
   }) {
-    pageController.animateToPage(
-      index,
-      duration: duration,
-      curve: curve,
-    );
+    pageController.animateToPage(index, duration: duration, curve: curve);
   }
 
   @override
@@ -165,7 +161,8 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
   }
 
   Widget _maybeAnimateScaleAndFade(Widget tabWidget, T tab) {
-    final animation = controller._getTabRemoveAnimation(tab) ??
+    final animation =
+        controller._getTabRemoveAnimation(tab) ??
         controller._getTabInsertAnimation(tab);
 
     return animation != null
@@ -176,10 +173,7 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
   Widget _animateScaleAndFade(Animation<double> animation, Widget expandedTab) {
     return ScaleTransition(
       scale: animation,
-      child: FadeTransition(
-        opacity: animation,
-        child: expandedTab,
-      ),
+      child: FadeTransition(opacity: animation, child: expandedTab),
     );
   }
 
@@ -188,7 +182,8 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
     Duration duration,
     T tab,
   ) {
-    final animationContext = controller._getTabExpandAnimationContext(tab) ??
+    final animationContext =
+        controller._getTabExpandAnimationContext(tab) ??
         controller._getTabCollapseAnimationContext(tab) ??
         controller._ensureTabCollapseAnimationContext(
           tab,
@@ -200,20 +195,21 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
       vsync: vsync,
       duration: animationContext.duration,
     )..addStatusListener((status) {
-        if (status == AnimationStatus.completed) {
-          controller._expandAnimationCompleted(tab);
-        }
-        if (status == AnimationStatus.dismissed) {
-          controller._expandAnimationDismissed(tab);
-        }
-      });
+      if (status == AnimationStatus.completed) {
+        controller._expandAnimationCompleted(tab);
+      }
+      if (status == AnimationStatus.dismissed) {
+        controller._expandAnimationDismissed(tab);
+      }
+    });
   }
 
   Animation<double> _createTabHeroFligthAnimation(
     AnimationController animationController,
     T tab,
   ) {
-    final animationContext = controller._getTabExpandAnimationContext(tab) ??
+    final animationContext =
+        controller._getTabExpandAnimationContext(tab) ??
         controller._getTabCollapseAnimationContext(tab) ??
         controller._ensureTabCollapseAnimationContext(
           tab,
@@ -232,17 +228,13 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
     Animation<double> animation,
     HeroHere fromHero,
     HeroHere toHero,
-  ) =>
-      Stack(
-        children: [
-          FadeTransition(
-            opacity: ReverseAnimation(animation),
-            child: fromHero.child,
-          ),
-          FadeTransition(
-            opacity: animation,
-            child: toHero.child,
-          ),
-        ],
-      );
+  ) => Stack(
+    children: [
+      FadeTransition(
+        opacity: ReverseAnimation(animation),
+        child: fromHero.child,
+      ),
+      FadeTransition(opacity: animation, child: toHero.child),
+    ],
+  );
 }

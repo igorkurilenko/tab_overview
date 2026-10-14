@@ -1,5 +1,4 @@
 import 'dart:math';
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:tab_overview/tab_overview.dart';
@@ -12,9 +11,8 @@ class MainApp extends StatelessWidget {
   const MainApp({super.key});
 
   @override
-  Widget build(BuildContext context) => const MaterialApp(
-        home: TabOverviewExample(),
-      );
+  Widget build(BuildContext context) =>
+      const MaterialApp(home: TabOverviewExample());
 }
 
 class TabOverviewExample extends StatefulWidget {
@@ -51,12 +49,14 @@ class TabOverviewExampleState extends State<TabOverviewExample> {
           tab: tab,
           // Step 3: Toggle tab expansion or collapse when a thumbnail is tapped.
           onTap: () => controller.isTabExpanded(tab)
-              ? controller.collapse() // Collapse if expanded
+              ? controller
+                    .collapse() // Collapse if expanded
               : controller.expand(tab), // Expand on tap
         ),
         thumbnailDecoration: BoxDecoration(
-          borderRadius:
-              BorderRadius.circular(32.0), // Add rounded corners to thumbnails
+          borderRadius: BorderRadius.circular(
+            32.0,
+          ), // Add rounded corners to thumbnails
         ),
       ),
       floatingActionButton: Padding(
@@ -91,28 +91,22 @@ class TabWidget extends StatelessWidget {
   final Tab tab;
   final VoidCallback? onTap;
 
-  const TabWidget({
-    super.key,
-    required this.tab,
-    this.onTap,
-  });
+  const TabWidget({super.key, required this.tab, this.onTap});
 
   @override
   Widget build(BuildContext context) => GestureDetector(
-        onTap: onTap,
-        child: Container(
-          color: Colors.grey.shade300,
-          child: Center(
-            child: Text(
-              '$tab',
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 60,
-                  ),
-            ),
-          ),
+    onTap: onTap,
+    child: Container(
+      color: Colors.grey.shade300,
+      child: Center(
+        child: Text(
+          '$tab',
+          style: Theme.of(context).textTheme.bodyLarge
+              ?.copyWith(fontWeight: FontWeight.bold, fontSize: 60),
         ),
-      );
+      ),
+    ),
+  );
 }
 
 // A Tab model that implements RemovableTab and ReorderableTab.

@@ -17,19 +17,13 @@ import 'package:flutter/widgets.dart';
 class FittedTab<T> extends StatelessWidget {
   final Widget child;
 
-  const FittedTab({
-    super.key,
-    required this.child,
-  });
+  const FittedTab({super.key, required this.child});
 
   @override
   Widget build(BuildContext context) => FittedBox(
-        clipBehavior: Clip.hardEdge,
-        fit: BoxFit.fitWidth,
-        alignment: Alignment.center,
-        child: SizedBox.fromSize(
-          size: MediaQuery.of(context).size,
-          child: child,
-        ),
-      );
+    clipBehavior: Clip.hardEdge,
+    fit: BoxFit.fitWidth,
+    alignment: Alignment.center,
+    child: SizedBox.fromSize(size: MediaQuery.of(context).size, child: child),
+  );
 }

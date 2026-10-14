@@ -17,4 +17,7 @@ import 'package:flutter/widgets.dart';
 typedef ModelWidgetBuilder<T> = Widget Function(BuildContext context, T model);
 
 typedef ModelWidgetAnimatedBuilder<T> = Widget Function(
-    BuildContext context, T model, Animation<double> animation);
+  BuildContext context,
+  T model,
+  Animation<double> animation,
+);

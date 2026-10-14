@@ -19,9 +19,8 @@ class _TabOverviewModel<T> {
   final _offScreenThumbTabs = <T>{};
   GlobalKey<_TabThumbnailsGridState>? _thumbnailsGridKey;
 
-  _TabOverviewModel({
-    Iterable<T>? initialTabs,
-  }) : _tabs = List<T>.from(initialTabs ?? <T>[]);
+  _TabOverviewModel({Iterable<T>? initialTabs})
+    : _tabs = List<T>.from(initialTabs ?? <T>[]);
 
   _TabThumbnailsGridState? get _thumbnailsGridState =>
       _thumbnailsGridKey?.currentState;

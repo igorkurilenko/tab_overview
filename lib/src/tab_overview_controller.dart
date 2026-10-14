@@ -34,11 +34,11 @@ class TabOverviewController<T> with _AnimationContexts<T>, _Listeners<T> {
     List<T>? initialTabs,
     TabOverviewMode initialMode = TabOverviewMode.overview,
     T? activeTab,
-  })  : _mode = initialMode,
-        _model = _TabOverviewModel<T>(initialTabs: initialTabs),
-        _activeTab = (initialTabs?.contains(activeTab) ?? false)
-            ? activeTab
-            : initialTabs?.first;
+  }) : _mode = initialMode,
+       _model = _TabOverviewModel<T>(initialTabs: initialTabs),
+       _activeTab = (initialTabs?.contains(activeTab) ?? false)
+           ? activeTab
+           : initialTabs?.first;
 
   /// The current display mode of the [TabOverview], either `overview` or `expanded`.
   ///
@@ -107,10 +107,7 @@ class TabOverviewController<T> with _AnimationContexts<T>, _Listeners<T> {
   /// Adds a new tab and animates its appearance, if the tab does not already exist.
   ///
   /// Returns `true` if the tab was added successfully.
-  bool add(
-    T newTab, {
-    Duration duration = const Duration(milliseconds: 350),
-  }) {
+  bool add(T newTab, {Duration duration = const Duration(milliseconds: 350)}) {
     if (_model.containsTab(newTab)) return false;
 
     _model.addTab(newTab, duration: duration);
@@ -127,10 +124,7 @@ class TabOverviewController<T> with _AnimationContexts<T>, _Listeners<T> {
   /// Removes the specified [tab] and animates its removal.
   ///
   /// Optionally accepts a [duration] for the removal animation.
-  void remove(
-    T tab, {
-    Duration duration = const Duration(milliseconds: 350),
-  }) =>
+  void remove(T tab, {Duration duration = const Duration(milliseconds: 350)}) =>
       removeTabAt(tabs.indexOf(tab), duration: duration);
 
   /// Removes the tab at a specified [index] and animates its removal.
@@ -181,17 +175,10 @@ class TabOverviewController<T> with _AnimationContexts<T>, _Listeners<T> {
     if (_model.tabs.isEmpty) return;
 
     if (expanded) {
-      collapse(
-        duration: duration,
-        curve: curve,
-      );
+      collapse(duration: duration, curve: curve);
     } else {
       final tab = activeTab ??= _model.tabs.last;
-      expand(
-        tab,
-        duration: duration,
-        curve: curve,
-      );
+      expand(tab, duration: duration, curve: curve);
     }
   }
 
@@ -200,12 +187,7 @@ class TabOverviewController<T> with _AnimationContexts<T>, _Listeners<T> {
     int index, {
     Duration duration = HeroHere.defaultFlightAnimationDuration,
     Curve curve = Curves.easeInOut,
-  }) =>
-      expand(
-        _model[index],
-        duration: duration,
-        curve: curve,
-      );
+  }) => expand(_model[index], duration: duration, curve: curve);
 
   /// Expands a specified tab, switching the mode to `expanded`.
   void expand(
@@ -218,11 +200,7 @@ class TabOverviewController<T> with _AnimationContexts<T>, _Listeners<T> {
     }
 
     if (expanded) {
-      scrollToTab(
-        tab,
-        duration: duration,
-        curve: curve,
-      );
+      scrollToTab(tab, duration: duration, curve: curve);
       return;
     }
 
@@ -242,12 +220,7 @@ class TabOverviewController<T> with _AnimationContexts<T>, _Listeners<T> {
     T tab, {
     Duration duration = const Duration(milliseconds: 350),
     Curve curve = Curves.easeInOut,
-  }) =>
-      scrollToTabAt(
-        tabs.indexOf(tab),
-        duration: duration,
-        curve: curve,
-      );
+  }) => scrollToTabAt(tabs.indexOf(tab), duration: duration, curve: curve);
 
   /// Scrolls to the tab at the specified [index].
   ///
@@ -258,18 +231,10 @@ class TabOverviewController<T> with _AnimationContexts<T>, _Listeners<T> {
     Curve curve = Curves.easeInOut,
   }) {
     if (expanded) {
-      _expandedTabState!.animateToPage(
-        index,
-        duration: duration,
-        curve: curve,
-      );
+      _expandedTabState!.animateToPage(index, duration: duration, curve: curve);
     } else {
       final offset = _thumbnailsGridState!.getThumbScrollOffset(index);
-      _thumbnailsGridState!.animateTo(
-        offset,
-        duration: duration,
-        curve: curve,
-      );
+      _thumbnailsGridState!.animateTo(offset, duration: duration, curve: curve);
     }
   }
 
@@ -330,11 +295,7 @@ class TabOverviewController<T> with _AnimationContexts<T>, _Listeners<T> {
     });
   }
 
-  void _doExpand(
-    T tab, {
-    required Duration duration,
-    required Curve curve,
-  }) {
+  void _doExpand(T tab, {required Duration duration, required Curve curve}) {
     _ensureTabExpandAnimationContext(tab)
       ..duration = duration
       ..curve = curve;
@@ -358,11 +319,7 @@ class TabOverviewController<T> with _AnimationContexts<T>, _Listeners<T> {
     });
   }
 
-  void _doCollapse(
-    T tab, {
-    required Duration duration,
-    required Curve curve,
-  }) {
+  void _doCollapse(T tab, {required Duration duration, required Curve curve}) {
     _ensureTabCollapseAnimationContext(tab)
       ..duration = duration
       ..curve = curve;
@@ -418,7 +375,7 @@ class TabOverviewController<T> with _AnimationContexts<T>, _Listeners<T> {
     _thumbnailsGridState?.stateChanged();
   }
 
-  void _collapseOffScreenAnimationCompleted(tab) {
+  void _collapseOffScreenAnimationCompleted(T tab) {
     _removeTabCollapseAnimationContext(tab);
 
     if (_model.removeOffScreenThumbTab(tab)) {
@@ -428,7 +385,7 @@ class TabOverviewController<T> with _AnimationContexts<T>, _Listeners<T> {
     _thumbnailsGridState?.stateChanged();
   }
 
-  void _collapseOffScreenAnimationDismissed(tab) {
+  void _collapseOffScreenAnimationDismissed(T tab) {
     _removeTabCollapseAnimationContext(tab);
 
     if (_model.removeOffScreenThumbTab(tab)) {
@@ -605,10 +562,14 @@ mixin _AnimationContexts<T> {
   Animation<double>? _removeTabRemoveAnimation(T tab) =>
       _removeAnimationByTab.remove(tab);
 
-  AnimationContext _ensureTabExpandAnimationContext(T tab,
-          {Duration? duration, Curve? curve}) =>
-      _expandAnimationContextsByTab.putIfAbsent(
-          tab, () => AnimationContext(duration: duration, curve: curve));
+  AnimationContext _ensureTabExpandAnimationContext(
+    T tab, {
+    Duration? duration,
+    Curve? curve,
+  }) => _expandAnimationContextsByTab.putIfAbsent(
+    tab,
+    () => AnimationContext(duration: duration, curve: curve),
+  );
 
   bool _hasTabExpandAnimationContext(T tab) =>
       _expandAnimationContextsByTab[tab] != null;
@@ -622,10 +583,14 @@ mixin _AnimationContexts<T> {
   AnimationContext? _removeTabExpandAnimationContext(T tab) =>
       _expandAnimationContextsByTab.remove(tab);
 
-  AnimationContext _ensureTabCollapseAnimationContext(T tab,
-          {Duration? duration, Curve? curve}) =>
-      _collapseAnimationContextsByTab.putIfAbsent(
-          tab, () => AnimationContext(duration: duration, curve: curve));
+  AnimationContext _ensureTabCollapseAnimationContext(
+    T tab, {
+    Duration? duration,
+    Curve? curve,
+  }) => _collapseAnimationContextsByTab.putIfAbsent(
+    tab,
+    () => AnimationContext(duration: duration, curve: curve),
+  );
 
   bool _hasTabCollapseAnimationContext(T tab) =>
       _collapseAnimationContextsByTab[tab] != null;

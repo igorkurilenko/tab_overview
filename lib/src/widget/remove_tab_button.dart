@@ -26,26 +26,26 @@ class RemoveTabButton<T> extends StatelessWidget {
   });
 
   ButtonStyle get buttonStyle => ButtonStyle(
-        backgroundColor: WidgetStateProperty.all(
-          Colors.black.withOpacity(0.6),
-        ),
-      );
+    backgroundColor: WidgetStateProperty.all(
+      Colors.black.withValues(alpha: 0.6),
+    ),
+  );
 
-  Color get buttonColor => Colors.white.withOpacity(0.6);
+  Color get buttonColor => Colors.white.withValues(alpha: 0.6);
 
   @override
   Widget build(BuildContext context) => Align(
-        alignment: Alignment.topRight,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: IconButton.filled(
-            style: buttonStyle,
-            color: buttonColor,
-            onPressed: _handlePress,
-            icon: const Icon(Icons.close),
-          ),
-        ),
-      );
+    alignment: Alignment.topRight,
+    child: Padding(
+      padding: const EdgeInsets.all(16),
+      child: IconButton.filled(
+        style: buttonStyle,
+        color: buttonColor,
+        onPressed: _handlePress,
+        icon: const Icon(Icons.close),
+      ),
+    ),
+  );
 
   void _handlePress() => controller.remove(tab);
 }

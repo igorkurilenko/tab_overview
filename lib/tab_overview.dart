@@ -12,6 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-library tab_overview;
+library;
 
 export 'src/tab_overview.dart';
