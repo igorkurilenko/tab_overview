@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.0.5]
+### Fixed
+- Show the overview on screens narrower than 300 pixels; it showed a placeholder.
+
+### Changed
+- Require Dart 3.13 and Flutter 3.47.
+- Update the example to the current Flutter templates.
+
 ## [0.0.4]
 ### Fixed
 - Fix tab activation.
