@@ -27,11 +27,11 @@ class RemoveTabButton<T> extends StatelessWidget {
 
   ButtonStyle get buttonStyle => ButtonStyle(
         backgroundColor: WidgetStateProperty.all(
-          Colors.black.withOpacity(0.6),
+          Colors.black.withValues(alpha: 0.6),
         ),
       );
 
-  Color get buttonColor => Colors.white.withOpacity(0.6);
+  Color get buttonColor => Colors.white.withValues(alpha: 0.6);
 
   @override
   Widget build(BuildContext context) => Align(

@@ -418,7 +418,7 @@ class TabOverviewController<T> with _AnimationContexts<T>, _Listeners<T> {
     _thumbnailsGridState?.stateChanged();
   }
 
-  void _collapseOffScreenAnimationCompleted(tab) {
+  void _collapseOffScreenAnimationCompleted(T tab) {
     _removeTabCollapseAnimationContext(tab);
 
     if (_model.removeOffScreenThumbTab(tab)) {
@@ -428,7 +428,7 @@ class TabOverviewController<T> with _AnimationContexts<T>, _Listeners<T> {
     _thumbnailsGridState?.stateChanged();
   }
 
-  void _collapseOffScreenAnimationDismissed(tab) {
+  void _collapseOffScreenAnimationDismissed(T tab) {
     _removeTabCollapseAnimationContext(tab);
 
     if (_model.removeOffScreenThumbTab(tab)) {

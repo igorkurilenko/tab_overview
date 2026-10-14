@@ -14,7 +14,7 @@
 
 // TODO: debug removing during expanding
 
-library tab_overview;
+library;
 
 import 'dart:collection';
 import 'dart:math';
