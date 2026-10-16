@@ -91,6 +91,12 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
     return min(maxOffset, offset);
   }
 
+  @override
+  void dispose() {
+    scrollController.dispose();
+    super.dispose();
+  }
+
   void stateChanged() => setState(() {});
 
   var _revealActiveThumbScheduled = false;
