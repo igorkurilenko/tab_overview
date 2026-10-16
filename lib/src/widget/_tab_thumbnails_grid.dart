@@ -202,6 +202,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
           child: AnimatedReorderable.grid(
             key: thumbsGridKey,
             motionAnimationDuration: widget.thumbnailsMotionAnimationDuration,
+            motionAnimationCurve: widget.thumbnailsMotionAnimationCurve,
             keyGetter: (index) => ValueKey(model[index]),
             reorderableGetter: model.reorderableAt,
             onReorder: controller._reorderTabs,
