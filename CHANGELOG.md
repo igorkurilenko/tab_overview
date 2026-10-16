@@ -1,5 +1,9 @@
 # Changelog
 
+## [Unreleased]
+### Added
+- Export `FittedTab`, so a custom `tabThumbnailBuilder` can show a tab as the default thumbnail does: laid out at the overview's size and scaled to fit.
+
 ## [0.1.2]
 ### Fixed
 - Keep an added tab's state, such as its text, focus and scroll position, when its add animation ends. The first rebuild after the animation re-created the content of its thumbnail, or of its page if it was expanded right away.
