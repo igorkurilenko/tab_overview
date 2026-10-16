@@ -126,7 +126,7 @@ class TabOverview<T> extends StatefulWidget {
   /// - [thumbnailDecoration] and [expandedTabDecoration] allow styling for each mode.
   TabOverview.builder({
     super.key,
-    TabOverviewController<T>? controller,
+    required this.controller,
     required this.tabBuilder,
     ModelWidgetBuilder<T>? removeTabButtonBuilder,
     this.thumbnailsGridPadding,
@@ -137,16 +137,14 @@ class TabOverview<T> extends StatefulWidget {
     this.scrollBehavior,
     Decoration? thumbnailDecoration,
     Decoration? expandedTabDecoration,
-  }) : controller = controller ?? TabOverviewController<T>(),
-       thumbnailDecoration = thumbnailDecoration ?? const BoxDecoration(),
+  }) : thumbnailDecoration = thumbnailDecoration ?? const BoxDecoration(),
        expandedTabDecoration = expandedTabDecoration ?? const BoxDecoration(),
        tabThumbnailBuilder =
            tabThumbnailBuilder ??
            ((context, tab) => FittedTab(child: tabBuilder(context, tab))) {
     this.removeTabButtonBuilder =
         removeTabButtonBuilder ??
-        ((context, tab) =>
-            RemoveTabButton(controller: this.controller, tab: tab));
+        ((context, tab) => RemoveTabButton(controller: controller, tab: tab));
   }
 
   @override
