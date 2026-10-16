@@ -170,8 +170,7 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
     T tab,
   ) {
     final animationContext =
-        controller._getTabExpandAnimationContext(tab) ??
-        controller._getTabCollapseAnimationContext(tab) ??
+        controller._getTabFlightAnimationContext(tab) ??
         controller._ensureTabCollapseAnimationContext(
           tab,
           duration: HeroHere.defaultFlightAnimationDuration,
@@ -196,8 +195,7 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
     T tab,
   ) {
     final animationContext =
-        controller._getTabExpandAnimationContext(tab) ??
-        controller._getTabCollapseAnimationContext(tab) ??
+        controller._getTabFlightAnimationContext(tab) ??
         controller._ensureTabCollapseAnimationContext(
           tab,
           duration: HeroHere.defaultFlightAnimationDuration,

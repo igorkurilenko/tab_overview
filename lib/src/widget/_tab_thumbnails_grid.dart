@@ -70,17 +70,17 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
 
   Duration? get activeTabHeroAnimationDuration {
     if (controller.activeTab == null) return null;
-    final heroAnimationContext =
-        controller._getTabExpandAnimationContext(controller.activeTab as T) ??
-        controller._getTabCollapseAnimationContext(controller.activeTab as T);
+    final heroAnimationContext = controller._getTabFlightAnimationContext(
+      controller.activeTab as T,
+    );
     return heroAnimationContext?.duration;
   }
 
   Curve? get activeTabHeroAnimationCurve {
     if (controller.activeTab == null) return null;
-    final heroAnimationContext =
-        controller._getTabExpandAnimationContext(controller.activeTab as T) ??
-        controller._getTabCollapseAnimationContext(controller.activeTab as T);
+    final heroAnimationContext = controller._getTabFlightAnimationContext(
+      controller.activeTab as T,
+    );
     return heroAnimationContext?.curve;
   }
 
@@ -268,9 +268,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
       tag: tabHeroTag(tab),
       key: tabThumbHeroKey(tab),
       flightAnimationControllerFactory: (vsync, duration) {
-        final animationContext =
-            controller._getTabExpandAnimationContext(tab) ??
-            controller._getTabCollapseAnimationContext(tab);
+        final animationContext = controller._getTabFlightAnimationContext(tab);
         return AnimationController(
           vsync: vsync,
           duration: animationContext!.duration,
@@ -282,9 +280,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
         });
       },
       flightAnimationFactory: (animationController) {
-        final animationContext =
-            controller._getTabExpandAnimationContext(tab) ??
-            controller._getTabCollapseAnimationContext(tab);
+        final animationContext = controller._getTabFlightAnimationContext(tab);
         return animationContext!.animation = CurvedAnimation(
           parent: animationController,
           curve: animationContext.curve!,

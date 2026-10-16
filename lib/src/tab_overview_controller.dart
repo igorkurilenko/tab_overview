@@ -544,8 +544,10 @@ mixin _AnimationContexts<T> {
   bool _hasTabExpandAnimationContext(T tab) =>
       _expandAnimationContextsByTab[tab] != null;
 
-  AnimationContext? _getTabExpandAnimationContext(T tab) =>
-      _expandAnimationContextsByTab[tab];
+  // The context of the tab's flight, whether it expands or collapses.
+  AnimationContext? _getTabFlightAnimationContext(T tab) =>
+      _expandAnimationContextsByTab[tab] ??
+      _collapseAnimationContextsByTab[tab];
 
   Animation<double>? _getTabExpandAnimation(T tab) =>
       _expandAnimationContextsByTab[tab]?.animation;
@@ -564,9 +566,6 @@ mixin _AnimationContexts<T> {
 
   bool _hasTabCollapseAnimationContext(T tab) =>
       _collapseAnimationContextsByTab[tab] != null;
-
-  AnimationContext? _getTabCollapseAnimationContext(T tab) =>
-      _collapseAnimationContextsByTab[tab];
 
   Animation<double>? _getTabCollapseAnimation(T tab) =>
       _collapseAnimationContextsByTab[tab]?.animation;
