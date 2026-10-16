@@ -243,10 +243,10 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
 
     Widget thumb = widget.tabThumbBuilder(context, tab);
     thumb = _decorate(thumb, tab);
-    thumb = _maybeAnimateScaleAndFade(thumb, tab);
+    thumb = _scaleAndFade(thumb, tab);
 
     Widget removeButton = widget.removeTabButtonBuilder(context, tab);
-    removeButton = _maybeAnimateScaleAndFade(removeButton, tab);
+    removeButton = _scaleAndFade(removeButton, tab);
 
     return Stack(
       children: [
@@ -337,7 +337,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
   Widget _buildOffScreenThumb(BuildContext context, T tab) {
     Widget thumb = widget.tabThumbBuilder(context, tab);
     thumb = _decorate(thumb, tab);
-    thumb = _maybeAnimateScaleAndFade(thumb, tab);
+    thumb = _scaleAndFade(thumb, tab);
 
     return HeroMode(
       enabled: !controller.isTabExpanded(tab),
@@ -408,17 +408,17 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
     );
   }
 
-  Widget _maybeAnimateScaleAndFade(Widget widget, T tab) {
+  // The same widgets whether or not the tab is being added or removed, so
+  // its content keeps its State when the animation ends.
+  Widget _scaleAndFade(Widget widget, T tab) {
     final animation =
         controller._getTabRemoveAnimation(tab) ??
-        controller._getTabInsertAnimation(tab);
+        controller._getTabInsertAnimation(tab) ??
+        kAlwaysCompleteAnimation;
 
-    return animation != null ? _animateScaleAndFade(animation, widget) : widget;
+    return ScaleTransition(
+      scale: animation,
+      child: FadeTransition(opacity: animation, child: widget),
+    );
   }
-
-  Widget _animateScaleAndFade(Animation<double> animation, Widget widget) =>
-      ScaleTransition(
-        scale: animation,
-        child: FadeTransition(opacity: animation, child: widget),
-      );
 }

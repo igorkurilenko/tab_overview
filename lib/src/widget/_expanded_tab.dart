@@ -88,7 +88,7 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
   Widget _buildExpandedTab(BuildContext context, T tab) {
     Widget tabWidget = FittedTab(child: widget.tabBuilder(context, tab));
     tabWidget = _decorate(tabWidget, tab);
-    tabWidget = _maybeAnimateScaleAndFade(tabWidget, tab);
+    tabWidget = _scaleAndFade(tabWidget, tab);
 
     return Stack(
       children: [
@@ -150,20 +150,17 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
     );
   }
 
-  Widget _maybeAnimateScaleAndFade(Widget tabWidget, T tab) {
+  // The same widgets whether or not the tab is being added or removed, so
+  // its content keeps its State when the animation ends.
+  Widget _scaleAndFade(Widget tabWidget, T tab) {
     final animation =
         controller._getTabRemoveAnimation(tab) ??
-        controller._getTabInsertAnimation(tab);
+        controller._getTabInsertAnimation(tab) ??
+        kAlwaysCompleteAnimation;
 
-    return animation != null
-        ? _animateScaleAndFade(animation, tabWidget)
-        : tabWidget;
-  }
-
-  Widget _animateScaleAndFade(Animation<double> animation, Widget expandedTab) {
     return ScaleTransition(
       scale: animation,
-      child: FadeTransition(opacity: animation, child: expandedTab),
+      child: FadeTransition(opacity: animation, child: tabWidget),
     );
   }
 
