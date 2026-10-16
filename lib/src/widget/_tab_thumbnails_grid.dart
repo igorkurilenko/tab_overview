@@ -91,6 +91,12 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
     return min(maxOffset, offset);
   }
 
+  @override
+  void dispose() {
+    scrollController.dispose();
+    super.dispose();
+  }
+
   void stateChanged() => setState(() {});
 
   var _revealActiveThumbScheduled = false;
@@ -196,6 +202,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
           child: AnimatedReorderable.grid(
             key: thumbsGridKey,
             motionAnimationDuration: widget.thumbnailsMotionAnimationDuration,
+            motionAnimationCurve: widget.thumbnailsMotionAnimationCurve,
             keyGetter: (index) => ValueKey(model[index]),
             reorderableGetter: model.reorderableAt,
             onReorder: controller._reorderTabs,
