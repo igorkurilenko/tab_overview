@@ -40,4 +40,35 @@ void main() {
       isTrue,
     );
   });
+
+  group('shows the expanded tab on every frame', () {
+    Future<void> expand(WidgetTester tester) async {
+      final controller = TabOverviewController<int>(initialTabs: [0, 1, 2]);
+      await tester.pumpWidget(overview(controller));
+      controller.expand(1);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('while the keyboard opens', (tester) async {
+      addTearDown(tester.view.reset);
+      await expand(tester);
+      for (var frame = 1; frame <= 15; frame++) {
+        tester.view.viewInsets = FakeViewPadding(bottom: 20.0 * frame);
+        await tester.pump(const Duration(milliseconds: 16));
+        expect(find.byType(PageView), findsOneWidget, reason: 'frame $frame');
+      }
+    });
+
+    testWidgets('while the window resizes', (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(1200, 800);
+      addTearDown(tester.view.reset);
+      await expand(tester);
+      for (var frame = 1; frame <= 15; frame++) {
+        tester.view.physicalSize = Size(1200 - 40.0 * frame, 800);
+        await tester.pump(const Duration(milliseconds: 16));
+        expect(find.byType(PageView), findsOneWidget, reason: 'frame $frame');
+      }
+    });
+  });
 }
