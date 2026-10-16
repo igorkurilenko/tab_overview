@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.1.0]
 ### Fixed
 - Follow a new `controller` given to the overview. The overview showed the new tabs, but `expand` and `toggleMode` failed with a null check, and the old controller still drove it.
 - Collapse a tab whose hash code is the same as another tab's. It failed with a null check, and the other tab's thumbnail stayed hidden.
