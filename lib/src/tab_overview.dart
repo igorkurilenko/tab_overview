@@ -163,15 +163,40 @@ class _TabOverviewState<T> extends State<TabOverview<T>>
   @override
   void initState() {
     super.initState();
+    _attach(controller);
+  }
+
+  @override
+  void didUpdateWidget(TabOverview<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != controller) {
+      _detach(oldWidget.controller);
+      _attach(controller);
+    }
+  }
+
+  @override
+  void dispose() {
+    _detach(controller);
+    super.dispose();
+  }
+
+  void _attach(TabOverviewController<T> controller) {
     controller._setThumbnailsGridKey(_thumbnailsGridKey);
     controller._setExpandedTabKey(_expandedTabKey);
     controller.addModeChangedListener(_handleModeChanged);
   }
 
-  @override
-  void dispose() {
+  void _detach(TabOverviewController<T> controller) {
     controller.removeModeChangedListener(_handleModeChanged);
-    super.dispose();
+    // A new overview may have taken the controller over already, such as
+    // when this one is replaced by one with another key.
+    if (controller._thumbnailsGridKey == _thumbnailsGridKey) {
+      controller._setThumbnailsGridKey(null);
+    }
+    if (controller._expandedTabKey == _expandedTabKey) {
+      controller._setExpandedTabKey(null);
+    }
   }
 
   void _handleModeChanged(TabOverviewMode _) => setState(() {});
