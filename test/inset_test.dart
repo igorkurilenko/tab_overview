@@ -70,6 +70,9 @@ void main() {
         await tester.pump(const Duration(milliseconds: 16));
         start = content(38)
             .evaluate()
+            // The page the tab lands on is laid out, hidden, from the frame
+            // of the switch, before the flight starts.
+            .where((e) => e.findAncestorWidgetOfExactType<PageView>() == null)
             .map((element) => tester.getRect(find.byWidget(element.widget)))
             .where((rect) => rect.isFinite && !rect.isEmpty)
             .firstOrNull;
