@@ -340,39 +340,8 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
       tab: tab,
       builder: (context) => HeroMode(
         enabled: !controller.isTabExpanded(tab),
-        child: _buildOffScreenThumbHero(thumb, tab),
+        child: _buildThumbHero(thumb, tab),
       ),
-    );
-  }
-
-  Widget _buildOffScreenThumbHero(Widget thumb, T tab) {
-    return HeroHere(
-      tag: tabHeroTag(tab),
-      key: tabThumbHeroKey(tab),
-      flightAnimationControllerFactory: (vsync, duration) {
-        final animationContext =
-            controller._getTabExpandAnimationContext(tab) ??
-            controller._getTabCollapseAnimationContext(tab);
-        return AnimationController(
-          vsync: vsync,
-          duration: animationContext!.duration,
-        )..addStatusListener((status) {
-          if (status == AnimationStatus.completed ||
-              status == AnimationStatus.dismissed) {
-            controller._collapseFlightEnded(tab);
-          }
-        });
-      },
-      flightAnimationFactory: (animationController) {
-        final animationContext =
-            controller._getTabExpandAnimationContext(tab) ??
-            controller._getTabCollapseAnimationContext(tab);
-        return animationContext!.animation = CurvedAnimation(
-          parent: animationController,
-          curve: animationContext.curve!,
-        );
-      },
-      child: thumb,
     );
   }
 
