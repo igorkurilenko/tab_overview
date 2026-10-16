@@ -256,17 +256,9 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
 
     return Stack(
       children: [
-        Positioned.fill(
-          child: HeroMode(
-            enabled: !model.containsOffScreenThumbTab(tab),
-            child: _buildThumbHero(thumb, tab),
-          ),
-        ),
+        Positioned.fill(child: _buildThumbHero(thumb, tab)),
         if (model.removable(tab))
-          HeroMode(
-            enabled: !model.containsOffScreenThumbTab(tab),
-            child: _buildThumbRemoveButtonHero(removeButton, tab),
-          ),
+          _buildThumbRemoveButtonHero(removeButton, tab),
       ],
     );
   }
