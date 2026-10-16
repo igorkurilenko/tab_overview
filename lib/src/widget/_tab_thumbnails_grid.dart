@@ -95,6 +95,25 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
 
   void stateChanged() => setState(() {});
 
+  var _revealActiveThumbScheduled = false;
+
+  // A relayout while expanded, such as a window resize, can move the active
+  // thumb off screen. Collapse would then fly the tab off screen too.
+  void _scheduleRevealActiveThumb() {
+    if (_revealActiveThumbScheduled || !controller.expanded) return;
+    _revealActiveThumbScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _revealActiveThumbScheduled = false;
+      final tab = controller.activeTab;
+      if (!mounted || !controller.expanded || tab == null) return;
+      if (controller._hasTabExpandAnimationContext(tab) ||
+          controller._hasTabCollapseAnimationContext(tab)) {
+        return;
+      }
+      if (thumbOffScreen(tab)) controller._jumpToThumb(tab);
+    });
+  }
+
   void animateTo(
     double offset, {
     required Duration duration,
@@ -193,7 +212,10 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
               padding: widget.thumbnailsGridPadding,
               gridDelegate: SliverGridLayoutNotifier(
                 gridDelegate: gridDelegate,
-                onLayout: (layout) => _thumbsGridLayout = layout,
+                onLayout: (layout) {
+                  _thumbsGridLayout = layout;
+                  _scheduleRevealActiveThumb();
+                },
               ),
               itemCount: model.tabCount,
               itemBuilder: (context, index) =>
