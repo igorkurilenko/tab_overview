@@ -38,11 +38,26 @@ class _ExpandedTab<T> extends StatefulWidget {
 
 class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
     with HeroTabHelper<T> {
-  late PageController pageController;
+  late final PageController pageController;
 
   _TabOverviewModel<T> get model => controller._model;
 
   TabOverviewController<T> get controller => widget.controller;
+
+  @override
+  void initState() {
+    super.initState();
+    pageController = PageController(
+      initialPage: controller.indexOfActiveTab() ?? 0,
+      viewportFraction: kExpandedTabPageViewportFraction,
+    );
+  }
+
+  @override
+  void dispose() {
+    pageController.dispose();
+    super.dispose();
+  }
 
   void jumpToPage(int page) => pageController.jumpToPage(page);
 
@@ -59,10 +74,7 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
   @override
   Widget build(BuildContext context) {
     return PageView.builder(
-      controller: pageController = PageController(
-        initialPage: controller.indexOfActiveTab() ?? 0,
-        viewportFraction: kExpandedTabPageViewportFraction,
-      ),
+      controller: pageController,
       scrollBehavior: widget.scrollBehavior,
       onPageChanged: controller._handleExpandedTabPageChanged,
       itemCount: model.tabCount,
