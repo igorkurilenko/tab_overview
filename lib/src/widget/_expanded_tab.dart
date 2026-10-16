@@ -33,7 +33,7 @@ class _ExpandedTab<T> extends StatefulWidget {
   });
 
   @override
-  State<_ExpandedTab> createState() => _ExpandedTabState<T>();
+  State<_ExpandedTab<T>> createState() => _ExpandedTabState<T>();
 }
 
 class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
@@ -99,7 +99,7 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
             flightAnimationControllerFactory: (vsync, duration) =>
                 _createTabHeroFlightAnimationController(vsync, duration, tab),
             flightAnimationFactory: (animationController) =>
-                _createTabHeroFligthAnimation(animationController, tab),
+                _createTabHeroFlightAnimation(animationController, tab),
             child: tabWidget,
           ),
         ),
@@ -191,7 +191,7 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
     });
   }
 
-  Animation<double> _createTabHeroFligthAnimation(
+  Animation<double> _createTabHeroFlightAnimation(
     AnimationController animationController,
     T tab,
   ) {

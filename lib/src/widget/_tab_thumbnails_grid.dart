@@ -19,7 +19,7 @@ class _TabThumbnailsGrid<T> extends StatefulWidget {
   final ModelWidgetBuilder<T> removeTabButtonBuilder;
   final EdgeInsets? thumbnailsGridPadding;
   final SliverGridDelegate thumbnailsGridDelegate;
-  final ModelWidgetBuilder<T> tabThumbBuilder;
+  final ModelWidgetBuilder<T> tabThumbnailBuilder;
   final Duration thumbnailsMotionAnimationDuration;
   final Curve thumbnailsMotionAnimationCurve;
   final ScrollBehavior? scrollBehavior;
@@ -32,7 +32,7 @@ class _TabThumbnailsGrid<T> extends StatefulWidget {
     required this.removeTabButtonBuilder,
     this.thumbnailsGridPadding,
     required this.thumbnailsGridDelegate,
-    required this.tabThumbBuilder,
+    required this.tabThumbnailBuilder,
     required this.thumbnailsMotionAnimationDuration,
     required this.thumbnailsMotionAnimationCurve,
     this.scrollBehavior,
@@ -41,7 +41,7 @@ class _TabThumbnailsGrid<T> extends StatefulWidget {
   });
 
   @override
-  State<_TabThumbnailsGrid> createState() => _TabThumbnailsGridState<T>();
+  State<_TabThumbnailsGrid<T>> createState() => _TabThumbnailsGridState<T>();
 }
 
 class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
@@ -247,7 +247,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
       return Container();
     }
 
-    Widget thumb = widget.tabThumbBuilder(context, tab);
+    Widget thumb = widget.tabThumbnailBuilder(context, tab);
     thumb = _decorate(thumb, tab);
     thumb = _scaleAndFade(thumb, tab);
 
@@ -333,7 +333,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
   }
 
   Widget _buildOffScreenThumb(BuildContext context, T tab) {
-    Widget thumb = widget.tabThumbBuilder(context, tab);
+    Widget thumb = widget.tabThumbnailBuilder(context, tab);
     thumb = _decorate(thumb, tab);
     thumb = _scaleAndFade(thumb, tab);
 

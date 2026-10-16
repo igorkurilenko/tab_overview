@@ -269,7 +269,7 @@ class TabOverviewController<T> with _AnimationContexts<T>, _Listeners<T> {
     _tabAddedListeners.clear();
     _tabRemovedListeners.clear();
     _offScreenThumbTabAddedListeners.clear();
-    _offscreenThumbTabRemovedListeners.clear();
+    _offScreenThumbTabRemovedListeners.clear();
     _tabsReorderedListeners.clear();
   }
 
@@ -440,7 +440,7 @@ mixin _Listeners<T> {
   final _tabAddedListeners = <TabAddedListener<T>>[];
   final _tabRemovedListeners = <TabRemovedListener<T>>[];
   final _offScreenThumbTabAddedListeners = <TabAddedListener<T>>[];
-  final _offscreenThumbTabRemovedListeners = <TabRemovedListener<T>>[];
+  final _offScreenThumbTabRemovedListeners = <TabRemovedListener<T>>[];
   final _tabsReorderedListeners = <TabsReorderedListener>[];
 
   void addModeChangedListener(ModeChangedListener listener) =>
@@ -477,13 +477,13 @@ mixin _Listeners<T> {
       _offScreenThumbTabAddedListeners.add(listener);
 
   void addOffScreenThumbTabRemovedListener(TabRemovedListener<T> listener) =>
-      _offscreenThumbTabRemovedListeners.add(listener);
+      _offScreenThumbTabRemovedListeners.add(listener);
 
   void removeOffScreenThumbTabAddedListener(TabAddedListener<T> listener) =>
       _offScreenThumbTabAddedListeners.remove(listener);
 
   void removeOffScreenThumbTabRemovedListener(TabRemovedListener<T> listener) =>
-      _offscreenThumbTabRemovedListeners.remove(listener);
+      _offScreenThumbTabRemovedListeners.remove(listener);
 
   void _notifyModeChanged(TabOverviewMode mode) {
     for (var listener in _modeChangedListeners) {
@@ -516,7 +516,7 @@ mixin _Listeners<T> {
   }
 
   void _notifyOffScreenThumbTabRemoved(T removedTab) {
-    for (var listener in _offscreenThumbTabRemovedListeners) {
+    for (var listener in _offScreenThumbTabRemovedListeners) {
       listener(removedTab);
     }
   }

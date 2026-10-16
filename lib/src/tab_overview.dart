@@ -148,7 +148,7 @@ class TabOverview<T> extends StatefulWidget {
   }
 
   @override
-  State<TabOverview> createState() => _TabOverviewState<T>();
+  State<TabOverview<T>> createState() => _TabOverviewState<T>();
 }
 
 class _TabOverviewState<T> extends State<TabOverview<T>> {
@@ -240,7 +240,7 @@ class _TabOverviewState<T> extends State<TabOverview<T>> {
             key: _thumbnailsGridKey,
             controller: controller,
             thumbnailsGridDelegate: _thumbnailsGridDelegateFor(constraints),
-            tabThumbBuilder: widget.tabThumbnailBuilder,
+            tabThumbnailBuilder: widget.tabThumbnailBuilder,
             removeTabButtonBuilder: widget.removeTabButtonBuilder,
             thumbnailDecoration: widget.thumbnailDecoration,
             expandedTabDecoration: widget.expandedTabDecoration,
