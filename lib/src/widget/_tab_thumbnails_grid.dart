@@ -344,52 +344,30 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
     );
   }
 
+  // The same widgets in every phase. A change of widget type here would
+  // re-create the tab content's State, losing its text, focus and scroll
+  // position on the first rebuild after a flight.
   Widget _decorate(Widget thumb, T tab) {
+    final Animation<Decoration> decoration;
     if (controller._hasTabExpandAnimationContext(tab)) {
-      return _applyAnimatedDecorationOnExpand(thumb, tab);
+      decoration = DecorationTween(
+        begin: widget.thumbnailDecoration,
+        end: widget.expandedTabDecoration,
+      ).animate(controller._getTabExpandAnimation(tab)!);
+    } else if (controller._hasTabCollapseAnimationContext(tab)) {
+      decoration = DecorationTween(
+        begin: widget.expandedTabDecoration,
+        end: widget.thumbnailDecoration,
+      ).animate(controller._getTabCollapseAnimation(tab)!);
+    } else {
+      decoration = AlwaysStoppedAnimation(widget.thumbnailDecoration);
     }
 
-    if (controller._hasTabCollapseAnimationContext(tab)) {
-      return _applyAnimatedDecorationOnCollapse(thumb, tab);
-    }
-
-    return Container(
-      clipBehavior: Clip.antiAlias,
-      decoration: widget.thumbnailDecoration,
-      child: thumb,
-    );
-  }
-
-  Widget _applyAnimatedDecorationOnExpand(Widget thumb, T tab) {
-    final animation = controller._getTabExpandAnimation(tab)!;
-    final decorationAnimation = DecorationTween(
-      begin: widget.thumbnailDecoration,
-      end: widget.expandedTabDecoration,
-    ).animate(animation);
-
     return AnimatedBuilder(
-      animation: decorationAnimation,
+      animation: decoration,
       builder: (context, child) => Container(
         clipBehavior: Clip.antiAlias,
-        decoration: decorationAnimation.value,
-        child: child,
-      ),
-      child: thumb,
-    );
-  }
-
-  Widget _applyAnimatedDecorationOnCollapse(Widget thumb, T tab) {
-    final animation = controller._getTabCollapseAnimation(tab)!;
-    final decorationAnimation = DecorationTween(
-      begin: widget.expandedTabDecoration,
-      end: widget.thumbnailDecoration,
-    ).animate(animation);
-
-    return AnimatedBuilder(
-      animation: decorationAnimation,
-      builder: (context, child) => Container(
-        clipBehavior: Clip.antiAlias,
-        decoration: decorationAnimation.value,
+        decoration: decoration.value,
         child: child,
       ),
       child: thumb,
