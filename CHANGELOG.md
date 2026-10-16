@@ -5,7 +5,7 @@
 - Keep an added tab's state, such as its text, focus and scroll position, when its add animation ends. The first rebuild after the animation re-created the content of its thumbnail, or of its page if it was expanded right away.
 
 ### Changed
-- Paint a flying tab's content once, not on each frame of the flight. During an expand or a collapse, it painted on 20 of the flight's 21 frames; now it paints twice, once in the flight and once where it lands.
+- Stop repainting a flying tab's content on each frame of the flight. During an expand or a collapse, it painted on 20 of the flight's 21 frames; now it paints twice, once as the flight starts and once where it lands.
 - Rebuild only the thumbnails that a swipe between expanded tabs changes, not all of them.
 
 ## [0.1.1]
