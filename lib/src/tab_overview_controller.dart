@@ -66,11 +66,9 @@ class TabOverviewController<T> with _AnimationContexts<T>, _Listeners<T> {
     if (_activeTab == value) return;
 
     _activeTab = value;
+    // Each thumbnail listens, and rebuilds if its tab expanded or stopped
+    // being expanded.
     _notifyActiveTabChanged();
-
-    if (expanded) {
-      _thumbnailsGridState?.stateChanged();
-    }
   }
 
   /// Returns the index of the current active tab in the [tabs] list.

@@ -232,7 +232,13 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
     );
   }
 
-  Widget _buildThumb(BuildContext context, T tab) {
+  Widget _buildThumb(BuildContext context, T tab) => _TabExpandedBuilder<T>(
+    controller: controller,
+    tab: tab,
+    builder: (context) => _buildThumbOrEmptyCell(context, tab),
+  );
+
+  Widget _buildThumbOrEmptyCell(BuildContext context, T tab) {
     if (controller.isTabExpanded(tab)) {
       return Container();
     }
@@ -339,9 +345,13 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
     thumb = _decorate(thumb, tab);
     thumb = _scaleAndFade(thumb, tab);
 
-    return HeroMode(
-      enabled: !controller.isTabExpanded(tab),
-      child: _buildOffScreenThumbHero(thumb, tab),
+    return _TabExpandedBuilder<T>(
+      controller: controller,
+      tab: tab,
+      builder: (context) => HeroMode(
+        enabled: !controller.isTabExpanded(tab),
+        child: _buildOffScreenThumbHero(thumb, tab),
+      ),
     );
   }
 
@@ -420,5 +430,61 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
       scale: animation,
       child: FadeTransition(opacity: animation, child: widget),
     );
+  }
+}
+
+/// Builds again when whether [tab] is expanded changes, as when a swipe in
+/// expanded mode changes the active tab, without the rest of the grid.
+class _TabExpandedBuilder<T> extends StatefulWidget {
+  final TabOverviewController<T> controller;
+  final T tab;
+  final WidgetBuilder builder;
+
+  const _TabExpandedBuilder({
+    required this.controller,
+    required this.tab,
+    required this.builder,
+  });
+
+  @override
+  State<_TabExpandedBuilder<T>> createState() => _TabExpandedBuilderState<T>();
+}
+
+class _TabExpandedBuilderState<T> extends State<_TabExpandedBuilder<T>> {
+  late bool _expanded;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addActiveTabChangedListener(_handleActiveTabChanged);
+  }
+
+  @override
+  void didUpdateWidget(_TabExpandedBuilder<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller.removeActiveTabChangedListener(
+        _handleActiveTabChanged,
+      );
+      widget.controller.addActiveTabChangedListener(_handleActiveTabChanged);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeActiveTabChangedListener(_handleActiveTabChanged);
+    super.dispose();
+  }
+
+  void _handleActiveTabChanged() {
+    if (widget.controller.isTabExpanded(widget.tab) != _expanded) {
+      setState(() {});
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    _expanded = widget.controller.isTabExpanded(widget.tab);
+    return widget.builder(context);
   }
 }
