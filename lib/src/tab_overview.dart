@@ -198,6 +198,9 @@ class _TabOverviewState<T> extends State<TabOverview<T>>
 
   @override
   Widget build(BuildContext context) => HeroHereSwitcher(
+    // Only a mode change moves the heroes. Any other rebuild, such as the
+    // parent's, shows the new child in place, with no snapshot.
+    switchKey: controller.mode,
     // Tabs and their flights take the overview's size, not the screen's.
     layoutBuilder: (child, sky) => LayoutBuilder(
       builder: (context, constraints) => TabContentSize(
