@@ -275,11 +275,9 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
           vsync: vsync,
           duration: animationContext!.duration,
         )..addStatusListener((status) {
-          if (status == AnimationStatus.completed) {
-            controller._collapseAnimationCompleted(tab);
-          }
-          if (status == AnimationStatus.dismissed) {
-            controller._collapseAnimationDismissed(tab);
+          if (status == AnimationStatus.completed ||
+              status == AnimationStatus.dismissed) {
+            controller._collapseFlightEnded(tab);
           }
         });
       },
@@ -359,11 +357,9 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
           vsync: vsync,
           duration: animationContext!.duration,
         )..addStatusListener((status) {
-          if (status == AnimationStatus.completed) {
-            controller._collapseOffScreenAnimationCompleted(tab);
-          }
-          if (status == AnimationStatus.dismissed) {
-            controller._collapseOffScreenAnimationDismissed(tab);
+          if (status == AnimationStatus.completed ||
+              status == AnimationStatus.dismissed) {
+            controller._collapseFlightEnded(tab);
           }
         });
       },

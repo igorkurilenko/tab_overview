@@ -353,37 +353,9 @@ class TabOverviewController<T> with _AnimationContexts<T>, _Listeners<T> {
     }
   }
 
-  void _collapseAnimationCompleted(T tab) {
-    _removeTabCollapseAnimationContext(tab);
-
-    if (_model.removeOffScreenThumbTab(tab)) {
-      _notifyOffScreenThumbTabRemoved(tab);
-    }
-
-    _thumbnailsGridState?.stateChanged();
-  }
-
-  void _collapseAnimationDismissed(T tab) {
-    _removeTabCollapseAnimationContext(tab);
-
-    if (_model.removeOffScreenThumbTab(tab)) {
-      _notifyOffScreenThumbTabRemoved(tab);
-    }
-
-    _thumbnailsGridState?.stateChanged();
-  }
-
-  void _collapseOffScreenAnimationCompleted(T tab) {
-    _removeTabCollapseAnimationContext(tab);
-
-    if (_model.removeOffScreenThumbTab(tab)) {
-      _notifyOffScreenThumbTabRemoved(tab);
-    }
-
-    _thumbnailsGridState?.stateChanged();
-  }
-
-  void _collapseOffScreenAnimationDismissed(T tab) {
+  // Whether it completed or was turned around, and whether the tab landed
+  // in its cell or in a stand-in for one off screen.
+  void _collapseFlightEnded(T tab) {
     _removeTabCollapseAnimationContext(tab);
 
     if (_model.removeOffScreenThumbTab(tab)) {
