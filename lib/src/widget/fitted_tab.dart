@@ -14,7 +14,14 @@
 
 import 'package:flutter/widgets.dart';
 
-class FittedTab<T> extends StatelessWidget {
+/// Lays [child] out at the size of the `TabOverview` it's in, and scales it
+/// to the width of the space it's given, cropping what doesn't fit, as the
+/// default `tabThumbnailBuilder` does with each tab's content.
+///
+/// Use it in a custom `tabThumbnailBuilder` to show a tab as the default
+/// thumbnail does, with something of your own around it or on top of it.
+class FittedTab extends StatelessWidget {
+  /// The tab's content, such as what `tabBuilder` builds.
   final Widget child;
 
   const FittedTab({super.key, required this.child});

@@ -81,8 +81,8 @@ class TabOverview<T> extends StatefulWidget {
 
   /// Builder function for generating a thumbnail widget for each tab in overview mode.
   ///
-  /// This function allows customization of each tab’s appearance in the overview grid,
-  /// by wrapping the main content of the tab with a [FittedTab].
+  /// This function allows customization of each tab’s appearance in the overview grid.
+  /// By default, it shows what [tabBuilder] builds in a [FittedTab].
   final ModelWidgetBuilder<T> tabThumbnailBuilder;
 
   /// Duration of the animation for transitions within the thumbnails grid.
