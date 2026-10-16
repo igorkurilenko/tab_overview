@@ -249,10 +249,14 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
 
     Widget thumb = widget.tabThumbnailBuilder(context, tab);
     thumb = _decorate(thumb, tab);
-    thumb = _scaleAndFade(thumb, tab);
+    thumb = _TabPresence<T>(controller: controller, tab: tab, child: thumb);
 
     Widget removeButton = widget.removeTabButtonBuilder(context, tab);
-    removeButton = _scaleAndFade(removeButton, tab);
+    removeButton = _TabPresence<T>(
+      controller: controller,
+      tab: tab,
+      child: removeButton,
+    );
 
     return Stack(
       children: [
@@ -329,7 +333,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
   Widget _buildOffScreenThumb(BuildContext context, T tab) {
     Widget thumb = widget.tabThumbnailBuilder(context, tab);
     thumb = _decorate(thumb, tab);
-    thumb = _scaleAndFade(thumb, tab);
+    thumb = _TabPresence<T>(controller: controller, tab: tab, child: thumb);
 
     return _TabExpandedBuilder<T>(
       controller: controller,
@@ -341,49 +345,14 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
     );
   }
 
-  // The same widgets in every phase. A change of widget type here would
-  // re-create the tab content's State, losing its text, focus and scroll
-  // position on the first rebuild after a flight.
-  Widget _decorate(Widget thumb, T tab) {
-    final Animation<Decoration> decoration;
-    if (controller._hasTabExpandAnimationContext(tab)) {
-      decoration = DecorationTween(
-        begin: widget.thumbnailDecoration,
-        end: widget.expandedTabDecoration,
-      ).animate(controller._getTabExpandAnimation(tab)!);
-    } else if (controller._hasTabCollapseAnimationContext(tab)) {
-      decoration = DecorationTween(
-        begin: widget.expandedTabDecoration,
-        end: widget.thumbnailDecoration,
-      ).animate(controller._getTabCollapseAnimation(tab)!);
-    } else {
-      decoration = AlwaysStoppedAnimation(widget.thumbnailDecoration);
-    }
-
-    return AnimatedBuilder(
-      animation: decoration,
-      builder: (context, child) => Container(
-        clipBehavior: Clip.antiAlias,
-        decoration: decoration.value,
-        child: child,
-      ),
-      child: thumb,
-    );
-  }
-
-  // The same widgets whether or not the tab is being added or removed, so
-  // its content keeps its State when the animation ends.
-  Widget _scaleAndFade(Widget widget, T tab) {
-    final animation =
-        controller._getTabRemoveAnimation(tab) ??
-        controller._getTabInsertAnimation(tab) ??
-        kAlwaysCompleteAnimation;
-
-    return ScaleTransition(
-      scale: animation,
-      child: FadeTransition(opacity: animation, child: widget),
-    );
-  }
+  Widget _decorate(Widget thumb, T tab) => _TabDecoration<T>(
+    controller: controller,
+    tab: tab,
+    thumbnailDecoration: widget.thumbnailDecoration,
+    expandedTabDecoration: widget.expandedTabDecoration,
+    idleDecoration: widget.thumbnailDecoration,
+    child: thumb,
+  );
 }
 
 /// Builds again when whether [tab] is expanded changes, as when a swipe in

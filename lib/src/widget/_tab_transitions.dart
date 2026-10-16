@@ -1,0 +1,98 @@
+// Copyright 2024 Igor Kurilenko
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+part of '../tab_overview.dart';
+
+/// Decorates a tab's thumbnail or page with [idleDecoration] or, while the
+/// tab flies, with a decoration that animates between the thumbnail's and
+/// the expanded tab's.
+///
+/// The same widgets in every phase. A change of widget type here would
+/// re-create the tab content's State, losing its text, focus and scroll
+/// position on the first rebuild after a flight.
+class _TabDecoration<T> extends StatelessWidget {
+  final TabOverviewController<T> controller;
+  final T tab;
+  final Decoration thumbnailDecoration;
+  final Decoration expandedTabDecoration;
+  final Decoration idleDecoration;
+  final Widget child;
+
+  const _TabDecoration({
+    required this.controller,
+    required this.tab,
+    required this.thumbnailDecoration,
+    required this.expandedTabDecoration,
+    required this.idleDecoration,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final Animation<Decoration> decoration;
+    if (controller._hasTabExpandAnimationContext(tab)) {
+      decoration = DecorationTween(
+        begin: thumbnailDecoration,
+        end: expandedTabDecoration,
+      ).animate(controller._getTabExpandAnimation(tab)!);
+    } else if (controller._hasTabCollapseAnimationContext(tab)) {
+      decoration = DecorationTween(
+        begin: expandedTabDecoration,
+        end: thumbnailDecoration,
+      ).animate(controller._getTabCollapseAnimation(tab)!);
+    } else {
+      decoration = AlwaysStoppedAnimation(idleDecoration);
+    }
+
+    return AnimatedBuilder(
+      animation: decoration,
+      builder: (context, child) => Container(
+        clipBehavior: Clip.antiAlias,
+        decoration: decoration.value,
+        child: child,
+      ),
+      child: child,
+    );
+  }
+}
+
+/// Scales and fades a tab's thumbnail, page or remove button in as the tab
+/// is added, and out as it's removed.
+///
+/// The same widgets whether or not the tab is being added or removed, so
+/// its content keeps its State when the animation ends.
+class _TabPresence<T> extends StatelessWidget {
+  final TabOverviewController<T> controller;
+  final T tab;
+  final Widget child;
+
+  const _TabPresence({
+    required this.controller,
+    required this.tab,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final animation =
+        controller._getTabRemoveAnimation(tab) ??
+        controller._getTabInsertAnimation(tab) ??
+        kAlwaysCompleteAnimation;
+
+    return ScaleTransition(
+      scale: animation,
+      child: FadeTransition(opacity: animation, child: child),
+    );
+  }
+}

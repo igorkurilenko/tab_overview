@@ -35,6 +35,7 @@ part '_tab_overview_model.dart';
 part 'tab_overview_controller.dart';
 part 'widget/_tab_thumbnails_grid.dart';
 part 'widget/_expanded_tab.dart';
+part 'widget/_tab_transitions.dart';
 
 const kExpandedTabPageViewportFraction = 1.1;
 const kDefaultThumbnailsGridCrossAxisSpacing = 8.0;
