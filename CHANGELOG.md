@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.1.1]
+### Changed
+- Require hero_here 1.5.0. Expanding or collapsing a tab no longer shows a screenshot of the overview for a frame, and the tab starts to fly a frame sooner.
+
 ## [0.1.0]
 ### Fixed
 - Follow a new `controller` given to the overview. The overview showed the new tabs, but `expand` and `toggleMode` failed with a null check, and the old controller still drove it.
