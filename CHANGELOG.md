@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.0.6]
 ### Fixed
 - Keep an expanded tab's state, such as its text, focus and scroll position, the first time something rebuilds it after it expands, such as the keyboard opening or a `setState` above the overview. It was re-created.
 - Collapse to the tab's thumbnail after a window resize while expanded. The tab flew off the screen, and the overview showed other tabs.
