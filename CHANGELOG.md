@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.1.2]
 ### Fixed
 - Keep an added tab's state, such as its text, focus and scroll position, when its add animation ends. The first rebuild after the animation re-created the content of its thumbnail, or of its page if it was expanded right away.
 
