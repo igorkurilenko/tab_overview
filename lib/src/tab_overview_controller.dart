@@ -529,8 +529,8 @@ mixin _Listeners<T> {
 }
 
 mixin _AnimationContexts<T> {
-  final _expandAnimationContextsByTab = <T, AnimationContext<T>>{};
-  final _collapseAnimationContextsByTab = <T, AnimationContext<T>>{};
+  final _expandAnimationContextsByTab = <T, AnimationContext>{};
+  final _collapseAnimationContextsByTab = <T, AnimationContext>{};
   final _insertAnimationByTab = <T, Animation<double>>{};
   final _removeAnimationByTab = <T, Animation<double>>{};
 

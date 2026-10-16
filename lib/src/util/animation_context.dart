@@ -14,7 +14,7 @@
 
 import 'package:flutter/widgets.dart';
 
-class AnimationContext<T> {
+class AnimationContext {
   AnimationContext({this.duration, this.curve});
 
   Duration? duration;
