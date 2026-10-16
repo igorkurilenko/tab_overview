@@ -1,5 +1,15 @@
 # Changelog
 
+## [Unreleased]
+### Fixed
+- Follow a new `controller` given to the overview. The overview showed the new tabs, but `expand` and `toggleMode` failed with a null check, and the old controller still drove it.
+- Collapse a tab whose hash code is the same as another tab's. It failed with a null check, and the other tab's thumbnail stayed hidden.
+- Move thumbnails along `thumbnailsMotionAnimationCurve`. It was ignored.
+- Keep one `PageController` while a tab is expanded, rather than a new one on each build, and dispose it, and the grid's `ScrollController`, when they're no longer needed. Neither was disposed.
+
+### Changed
+- **Breaking:** `TabOverview.builder` requires a `controller`. Without one, the overview created its own on each rebuild, which nothing could add tabs to, so it was always empty.
+
 ## [0.0.6]
 ### Fixed
 - Keep an expanded tab's state, such as its text, focus and scroll position, the first time something rebuilds it after it expands, such as the keyboard opening or a `setState` above the overview. It was re-created.
