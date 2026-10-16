@@ -84,8 +84,6 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
     return heroAnimationContext?.curve;
   }
 
-  Size get screenSize => MediaQuery.sizeOf(context);
-
   double getThumbScrollOffset(int index) {
     final maxOffset = scrollController.position.maxScrollExtent;
     final offset =
@@ -301,7 +299,14 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
     );
   }
 
-  Widget _buildOffScreenThumbs() {
+  // The overview's own size, not the screen's, so the stand-ins sit at its
+  // top and bottom centre wherever it is placed.
+  Widget _buildOffScreenThumbs() => LayoutBuilder(
+    builder: (context, constraints) =>
+        _buildOffScreenThumbsIn(constraints.biggest),
+  );
+
+  Widget _buildOffScreenThumbsIn(Size overviewSize) {
     return Stack(
       children: [
         for (var tab in model.offScreenThumbTabs)
@@ -311,8 +316,8 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
                     getThumbScrollOffset(model.indexOfTab(tab)) <
                         scrollController.position.pixels
                 ? 0
-                : screenSize.height,
-            left: screenSize.width / 2,
+                : overviewSize.height,
+            left: overviewSize.width / 2,
             child: SizedBox.fromSize(
               size: Size.zero,
               child: _buildOffScreenThumb(context, tab),

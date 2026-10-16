@@ -198,7 +198,13 @@ class _TabOverviewState<T> extends State<TabOverview<T>>
 
   @override
   Widget build(BuildContext context) => HeroHereSwitcher(
-    layoutBuilder: (child, sky) => Stack(children: [child, sky]),
+    // Tabs and their flights take the overview's size, not the screen's.
+    layoutBuilder: (child, sky) => LayoutBuilder(
+      builder: (context, constraints) => TabContentSize(
+        size: constraints.biggest,
+        child: Stack(children: [child, sky]),
+      ),
+    ),
     child: Stack(
       children: [
         // Only the grid depends on the overview's size. So a window resize
