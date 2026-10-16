@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.1.3]
 ### Added
 - Export `FittedTab`, so a custom `tabThumbnailBuilder` can show a tab as the default thumbnail does: laid out at the overview's size and scaled to fit.
 
