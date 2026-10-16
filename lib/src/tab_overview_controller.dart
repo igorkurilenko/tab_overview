@@ -146,22 +146,23 @@ class TabOverviewController<T> with _AnimationContexts<T>, _Listeners<T> {
         );
 
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          activeTab = tabs.isNotEmpty
-              ? tabs[index < tabs.length ? index : index - 1]
-              : null;
+          activeTab = _neighbourOfRemovedTabAt(index);
         });
       });
     } else if (expanded && !isActiveTabRemoved) {
       _expandedTabState?.jumpToPage(indexOfActiveTab()!);
       _expandedTabState?.stateChanged();
     } else if (isActiveTabRemoved) {
-      activeTab = tabs.isNotEmpty
-          ? tabs[index < tabs.length ? index : index - 1]
-          : null;
+      activeTab = _neighbourOfRemovedTabAt(index);
     }
 
     return removedTab;
   }
+
+  // The tab that took the removed tab's place, or the one before it if the
+  // removed tab was the last.
+  T? _neighbourOfRemovedTabAt(int index) =>
+      tabs.isNotEmpty ? tabs[index < tabs.length ? index : index - 1] : null;
 
   /// Toggles between `overview` and `expanded` modes for the active tab.
   ///
