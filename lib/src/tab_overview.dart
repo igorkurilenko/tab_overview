@@ -23,7 +23,6 @@ import 'package:animated_reorderable/animated_reorderable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:hero_here/hero_here.dart';
-import 'package:tab_overview/src/util/responsiveness.dart';
 import 'package:tab_overview/src/widget/remove_tab_button.dart';
 
 import 'util/animation_context.dart';
@@ -155,7 +154,7 @@ class TabOverview<T> extends StatefulWidget {
 }
 
 class _TabOverviewState<T> extends State<TabOverview<T>>
-    with Responsiveness, TickerProviderStateMixin {
+    with TickerProviderStateMixin {
   final _thumbnailsGridKey = GlobalKey<_TabThumbnailsGridState<T>>();
   final _expandedTabKey = GlobalKey<_ExpandedTabState<T>>();
 
@@ -177,67 +176,59 @@ class _TabOverviewState<T> extends State<TabOverview<T>>
     super.dispose();
   }
 
-  @override
-  Widget buildLarge(BuildContext context) => _build(
-    context,
-    widget.thumbnailsGridDelegate ??
-        SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 4,
-          childAspectRatio: constraints!.maxWidth / constraints!.maxHeight,
+  void _handleModeChanged(TabOverviewMode _) => setState(() {});
+
+  // Wider than 900: 4 columns, wider than 600: 3, otherwise 2.
+  SliverGridDelegate _thumbnailsGridDelegateFor(BoxConstraints constraints) =>
+      widget.thumbnailsGridDelegate ??
+      switch (constraints.maxWidth) {
+        > 600 => SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: constraints.maxWidth > 900 ? 4 : 3,
+          childAspectRatio: constraints.maxWidth / constraints.maxHeight,
           mainAxisSpacing: kDefaultThumbnailsGridMainAxisSpacing,
           crossAxisSpacing: kDefaultThumbnailsGridCrossAxisSpacing,
         ),
-  );
-
-  @override
-  Widget buildMedium(BuildContext context) => _build(
-    context,
-    widget.thumbnailsGridDelegate ??
-        SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 3,
-          childAspectRatio: constraints!.maxWidth / constraints!.maxHeight,
-          mainAxisSpacing: kDefaultThumbnailsGridMainAxisSpacing,
-          crossAxisSpacing: kDefaultThumbnailsGridCrossAxisSpacing,
-        ),
-  );
-
-  @override
-  Widget buildSmall(BuildContext context) => _build(
-    context,
-    widget.thumbnailsGridDelegate ??
-        const SliverGridDelegateWithFixedCrossAxisCount(
+        _ => const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
           childAspectRatio: 0.7,
           mainAxisSpacing: kDefaultThumbnailsGridMainAxisSpacing,
           crossAxisSpacing: kDefaultThumbnailsGridCrossAxisSpacing,
         ),
-  );
+      };
 
   @override
-  Widget buildExtraSmall(BuildContext context) => buildSmall(context);
-
-  void _handleModeChanged(TabOverviewMode _) => setState(() {});
-
-  Widget _build(
-    BuildContext context,
-    SliverGridDelegate thumbnailsGridDelegate,
-  ) => HeroHereSwitcher(
-    layoutBuilder: (child, sky) => Stack(children: [child, sky]),
+  Widget build(BuildContext context) => HeroHereSwitcher(
+    // Only a mode change moves the heroes. Any other rebuild, such as the
+    // parent's, shows the new child in place, with no snapshot.
+    switchKey: controller.mode,
+    // Tabs and their flights take the overview's size, not the screen's.
+    layoutBuilder: (child, sky) => LayoutBuilder(
+      builder: (context, constraints) => TabContentSize(
+        size: constraints.biggest,
+        child: Stack(children: [child, sky]),
+      ),
+    ),
     child: Stack(
       children: [
-        _TabThumbnailsGrid<T>(
-          key: _thumbnailsGridKey,
-          controller: controller,
-          thumbnailsGridDelegate: thumbnailsGridDelegate,
-          tabThumbBuilder: widget.tabThumbnailBuilder,
-          removeTabButtonBuilder: widget.removeTabButtonBuilder,
-          thumbnailDecoration: widget.thumbnailDecoration,
-          expandedTabDecoration: widget.expandedTabDecoration,
-          scrollBehavior: widget.scrollBehavior,
-          thumbnailsGridPadding: widget.thumbnailsGridPadding,
-          thumbnailsMotionAnimationDuration:
-              widget.thumbnailsMotionAnimationDuration,
-          thumbnailsMotionAnimationCurve: widget.thumbnailsMotionAnimationCurve,
+        // Only the grid depends on the overview's size. So a window resize
+        // or the keyboard rebuilds the grid, not the switcher, which would
+        // run a switch and hide the tabs behind a snapshot.
+        LayoutBuilder(
+          builder: (context, constraints) => _TabThumbnailsGrid<T>(
+            key: _thumbnailsGridKey,
+            controller: controller,
+            thumbnailsGridDelegate: _thumbnailsGridDelegateFor(constraints),
+            tabThumbBuilder: widget.tabThumbnailBuilder,
+            removeTabButtonBuilder: widget.removeTabButtonBuilder,
+            thumbnailDecoration: widget.thumbnailDecoration,
+            expandedTabDecoration: widget.expandedTabDecoration,
+            scrollBehavior: widget.scrollBehavior,
+            thumbnailsGridPadding: widget.thumbnailsGridPadding,
+            thumbnailsMotionAnimationDuration:
+                widget.thumbnailsMotionAnimationDuration,
+            thumbnailsMotionAnimationCurve:
+                widget.thumbnailsMotionAnimationCurve,
+          ),
         ),
         if (expanded)
           _ExpandedTab<T>(

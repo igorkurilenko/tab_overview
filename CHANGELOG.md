@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.0.6]
+### Fixed
+- Keep an expanded tab's state, such as its text, focus and scroll position, the first time something rebuilds it after it expands, such as the keyboard opening or a `setState` above the overview. It was re-created.
+- Collapse to the tab's thumbnail after a window resize while expanded. The tab flew off the screen, and the overview showed other tabs.
+- Size tabs by the overview, not the screen. Under an app bar, an expanded tab was cropped; beside a sidebar, it was letterboxed; and off-screen tabs flew in from outside the overview.
+
+### Changed
+- Require hero_here 1.4.1.
+- Lay tab content out at the overview's size. Under a `Scaffold`, it now shrinks when the keyboard opens, like any other body, so content with a fixed height can overflow.
+- Show the tabs on every frame while the window resizes, while the keyboard opens and when the overview's parent rebuilds. Only a change between overview and expanded runs a hero switch, which shows a snapshot for a frame.
+
 ## [0.0.5]
 ### Fixed
 - Show the overview on screens narrower than 300 pixels; it showed a placeholder.

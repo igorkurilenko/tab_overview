@@ -24,6 +24,23 @@ class FittedTab<T> extends StatelessWidget {
     clipBehavior: Clip.hardEdge,
     fit: BoxFit.fitWidth,
     alignment: Alignment.center,
-    child: SizedBox.fromSize(size: MediaQuery.of(context).size, child: child),
+    child: SizedBox.fromSize(
+      size: TabContentSize.maybeOf(context) ?? MediaQuery.sizeOf(context),
+      child: child,
+    ),
   );
+}
+
+/// The size of the `TabOverview` that tabs are in. [FittedTab] lays its
+/// child out at this size, so tabs match the overview rather than the screen.
+class TabContentSize extends InheritedWidget {
+  final Size size;
+
+  const TabContentSize({super.key, required this.size, required super.child});
+
+  static Size? maybeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<TabContentSize>()?.size;
+
+  @override
+  bool updateShouldNotify(TabContentSize oldWidget) => size != oldWidget.size;
 }

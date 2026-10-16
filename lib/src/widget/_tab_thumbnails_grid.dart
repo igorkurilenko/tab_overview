@@ -84,8 +84,6 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
     return heroAnimationContext?.curve;
   }
 
-  Size get screenSize => MediaQuery.sizeOf(context);
-
   double getThumbScrollOffset(int index) {
     final maxOffset = scrollController.position.maxScrollExtent;
     final offset =
@@ -94,6 +92,25 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
   }
 
   void stateChanged() => setState(() {});
+
+  var _revealActiveThumbScheduled = false;
+
+  // A relayout while expanded, such as a window resize, can move the active
+  // thumb off screen. Collapse would then fly the tab off screen too.
+  void _scheduleRevealActiveThumb() {
+    if (_revealActiveThumbScheduled || !controller.expanded) return;
+    _revealActiveThumbScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _revealActiveThumbScheduled = false;
+      final tab = controller.activeTab;
+      if (!mounted || !controller.expanded || tab == null) return;
+      if (controller._hasTabExpandAnimationContext(tab) ||
+          controller._hasTabCollapseAnimationContext(tab)) {
+        return;
+      }
+      if (thumbOffScreen(tab)) controller._jumpToThumb(tab);
+    });
+  }
 
   void animateTo(
     double offset, {
@@ -193,7 +210,10 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
               padding: widget.thumbnailsGridPadding,
               gridDelegate: SliverGridLayoutNotifier(
                 gridDelegate: gridDelegate,
-                onLayout: (layout) => _thumbsGridLayout = layout,
+                onLayout: (layout) {
+                  _thumbsGridLayout = layout;
+                  _scheduleRevealActiveThumb();
+                },
               ),
               itemCount: model.tabCount,
               itemBuilder: (context, index) =>
@@ -279,7 +299,14 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
     );
   }
 
-  Widget _buildOffScreenThumbs() {
+  // The overview's own size, not the screen's, so the stand-ins sit at its
+  // top and bottom centre wherever it is placed.
+  Widget _buildOffScreenThumbs() => LayoutBuilder(
+    builder: (context, constraints) =>
+        _buildOffScreenThumbsIn(constraints.biggest),
+  );
+
+  Widget _buildOffScreenThumbsIn(Size overviewSize) {
     return Stack(
       children: [
         for (var tab in model.offScreenThumbTabs)
@@ -289,8 +316,8 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
                     getThumbScrollOffset(model.indexOfTab(tab)) <
                         scrollController.position.pixels
                 ? 0
-                : screenSize.height,
-            left: screenSize.width / 2,
+                : overviewSize.height,
+            left: overviewSize.width / 2,
             child: SizedBox.fromSize(
               size: Size.zero,
               child: _buildOffScreenThumb(context, tab),
@@ -344,52 +371,30 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
     );
   }
 
+  // The same widgets in every phase. A change of widget type here would
+  // re-create the tab content's State, losing its text, focus and scroll
+  // position on the first rebuild after a flight.
   Widget _decorate(Widget thumb, T tab) {
+    final Animation<Decoration> decoration;
     if (controller._hasTabExpandAnimationContext(tab)) {
-      return _applyAnimatedDecorationOnExpand(thumb, tab);
+      decoration = DecorationTween(
+        begin: widget.thumbnailDecoration,
+        end: widget.expandedTabDecoration,
+      ).animate(controller._getTabExpandAnimation(tab)!);
+    } else if (controller._hasTabCollapseAnimationContext(tab)) {
+      decoration = DecorationTween(
+        begin: widget.expandedTabDecoration,
+        end: widget.thumbnailDecoration,
+      ).animate(controller._getTabCollapseAnimation(tab)!);
+    } else {
+      decoration = AlwaysStoppedAnimation(widget.thumbnailDecoration);
     }
 
-    if (controller._hasTabCollapseAnimationContext(tab)) {
-      return _applyAnimatedDecorationOnCollapse(thumb, tab);
-    }
-
-    return Container(
-      clipBehavior: Clip.antiAlias,
-      decoration: widget.thumbnailDecoration,
-      child: thumb,
-    );
-  }
-
-  Widget _applyAnimatedDecorationOnExpand(Widget thumb, T tab) {
-    final animation = controller._getTabExpandAnimation(tab)!;
-    final decorationAnimation = DecorationTween(
-      begin: widget.thumbnailDecoration,
-      end: widget.expandedTabDecoration,
-    ).animate(animation);
-
     return AnimatedBuilder(
-      animation: decorationAnimation,
+      animation: decoration,
       builder: (context, child) => Container(
         clipBehavior: Clip.antiAlias,
-        decoration: decorationAnimation.value,
-        child: child,
-      ),
-      child: thumb,
-    );
-  }
-
-  Widget _applyAnimatedDecorationOnCollapse(Widget thumb, T tab) {
-    final animation = controller._getTabCollapseAnimation(tab)!;
-    final decorationAnimation = DecorationTween(
-      begin: widget.expandedTabDecoration,
-      end: widget.thumbnailDecoration,
-    ).animate(animation);
-
-    return AnimatedBuilder(
-      animation: decorationAnimation,
-      builder: (context, child) => Container(
-        clipBehavior: Clip.antiAlias,
-        decoration: decorationAnimation.value,
+        decoration: decoration.value,
         child: child,
       ),
       child: thumb,
