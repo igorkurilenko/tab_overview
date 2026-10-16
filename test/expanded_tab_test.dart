@@ -74,6 +74,21 @@ void main() {
       expect(shown(2), findsOneWidget);
     });
 
+    testWidgets('collapses to the overview when it is removed', (tester) async {
+      final controller = await expand(tester, 1);
+
+      controller.remove(1);
+      await tester.pumpAndSettle();
+
+      expect(controller.mode, TabOverviewMode.overview);
+      expect(controller.tabs, [0, 2, 3]);
+      expect(controller.activeTab, 2);
+      expect(find.text('T1'), findsNothing);
+      for (final tab in [0, 2, 3]) {
+        expect(find.text('T$tab').hitTestable(), findsOneWidget);
+      }
+    });
+
     testWidgets('stays on screen when a tab is added', (tester) async {
       final controller = await expand(tester, 2);
 

@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.2]
+### Fixed
+- Keep an added tab's state, such as its text, focus and scroll position, when its add animation ends. The first rebuild after the animation re-created the content of its thumbnail, or of its page if it was expanded right away.
+
+### Changed
+- Stop repainting a flying tab's content on each frame of the flight. During an expand or a collapse, it painted on 20 of the flight's 21 frames; now it paints twice, once as the flight starts and once where it lands.
+- Rebuild only the thumbnails that a swipe between expanded tabs changes, not all of them.
+
 ## [0.1.1]
 ### Changed
 - Require hero_here 1.5.0. Expanding or collapsing a tab no longer shows a screenshot of the overview for a frame, and the tab starts to fly a frame sooner.

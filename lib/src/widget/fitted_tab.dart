@@ -26,7 +26,9 @@ class FittedTab<T> extends StatelessWidget {
     alignment: Alignment.center,
     child: SizedBox.fromSize(
       size: TabContentSize.maybeOf(context) ?? MediaQuery.sizeOf(context),
-      child: child,
+      // The tab is laid out at one size and only scaled, so a flight, which
+      // scales it on every frame, can reuse what it painted.
+      child: RepaintBoundary(child: child),
     ),
   );
 }
