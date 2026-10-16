@@ -151,8 +151,7 @@ class TabOverview<T> extends StatefulWidget {
   State<TabOverview> createState() => _TabOverviewState<T>();
 }
 
-class _TabOverviewState<T> extends State<TabOverview<T>>
-    with TickerProviderStateMixin {
+class _TabOverviewState<T> extends State<TabOverview<T>> {
   final _thumbnailsGridKey = GlobalKey<_TabThumbnailsGridState<T>>();
   final _expandedTabKey = GlobalKey<_ExpandedTabState<T>>();
 
