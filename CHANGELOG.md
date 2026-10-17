@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.1.11]
+### Added
+- `pullToCollapse`, off by default: pull the expanded tab down to collapse it, as in hero_here's show details example. The tab is pulled from the top of its vertical scroll view, or from anywhere on a tab without one. As it's pulled, it shrinks and its corners round toward the thumbnail's. Let go once it's pulled 50 pixels, or while it moves down fast, and it collapses from where it is, at the speed it had. Otherwise it goes back. The example turns it on.
+
 ## [0.1.10]
 ### Fixed
 - Removing a tab in the same event as expanding it from off screen no longer leaves the overview ignoring taps. The overview expanded the tab that took the removed one's place instead of staying put, and its grid ignored taps from then on, after a collapse too.
