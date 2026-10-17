@@ -60,6 +60,35 @@ void main() {
     });
   }
 
+  testWidgets('a tab removed and another added in the same event both show '
+      'as they should', (tester) async {
+    final controller = await pumpOverview(tester);
+
+    controller.remove(1);
+    controller.add(9);
+    await tester.pumpAndSettle();
+
+    expect(controller.tabs, [0, 2, 3, 9]);
+    expect(find.text('T1'), findsNothing);
+    for (final tab in controller.tabs) {
+      expect(find.text('T$tab').hitTestable(), findsOneWidget);
+    }
+  });
+
+  testWidgets('a tab added again in the same event as its removal shows', (
+    tester,
+  ) async {
+    final controller = await pumpOverview(tester);
+
+    controller.remove(1);
+    controller.add(1);
+    await tester.pumpAndSettle();
+
+    expect(controller.tabs, [0, 2, 3, 1]);
+    expect(find.text('T1').hitTestable(), findsOneWidget);
+    expect(scaleOf(tester, 1), 1);
+  });
+
   testWidgets('an added tab grows in while the parent rebuilds', (
     tester,
   ) async {

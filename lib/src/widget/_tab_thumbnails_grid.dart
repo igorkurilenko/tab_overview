@@ -243,16 +243,22 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
     onNotification: _handleScrollMetricsChanged,
     child: AnimatedReorderable.grid(
       key: thumbsGridKey,
-      motionAnimationDuration: overview.thumbnailsMotionAnimationDuration,
-      motionAnimationCurve: overview.thumbnailsMotionAnimationCurve,
       keyGetter: model.keyAt,
-      reorderableGetter: model.reorderableAt,
-      onReorder: controller._reorderTabs,
-      draggableGetter: (index) =>
-          model.removableAt(index) || model.reorderableAt(index),
-      swipeToRemoveDirectionGetter: (index) =>
-          model.removableAt(index) ? AxisDirection.left : null,
-      onSwipeToRemove: controller.removeTabAt,
+      motion: MotionOptions(
+        duration: overview.thumbnailsMotionAnimationDuration,
+        curve: overview.thumbnailsMotionAnimationCurve,
+      ),
+      reorder: ReorderOptions(
+        onReorder: controller._reorderTabs,
+        draggableGetter: (index) =>
+            model.removableAt(index) || model.reorderableAt(index),
+        reorderableGetter: model.reorderableAt,
+      ),
+      swipeToRemove: SwipeToRemoveOptions(
+        onSwipeToRemove: controller.removeTabAt,
+        directionGetter: (index) =>
+            model.removableAt(index) ? AxisDirection.left : null,
+      ),
       gridView: GridView.builder(
         clipBehavior: Clip.none,
         controller: scrollController,
