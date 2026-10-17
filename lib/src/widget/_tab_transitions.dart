@@ -15,8 +15,8 @@
 part of '../tab_overview.dart';
 
 /// Decorates a tab's thumbnail or page with [idleDecoration] or, while the
-/// tab flies, with a decoration that animates between the thumbnail's and
-/// the expanded tab's.
+/// tab flies, with a decoration between the thumbnail's and the expanded
+/// tab's, as far as the tab is between them.
 ///
 /// The same widgets in every phase. A change of widget type here would
 /// re-create the tab content's State, losing its text, focus and scroll
@@ -36,27 +36,19 @@ class _TabDecoration<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = overview.controller;
-    final Animation<Decoration> decoration;
-    if (controller._hasTabExpandAnimationContext(tab)) {
-      decoration = DecorationTween(
-        begin: overview.thumbnailDecoration,
-        end: overview.expandedTabDecoration,
-      ).animate(controller._getTabExpandAnimation(tab)!);
-    } else if (controller._hasTabCollapseAnimationContext(tab)) {
-      decoration = DecorationTween(
-        begin: overview.expandedTabDecoration,
-        end: overview.thumbnailDecoration,
-      ).animate(controller._getTabCollapseAnimation(tab)!);
-    } else {
-      decoration = AlwaysStoppedAnimation(idleDecoration);
-    }
+    final flight = overview.controller._tabFlights[tab];
 
     return AnimatedBuilder(
-      animation: decoration,
+      animation: flight?.animation ?? kAlwaysCompleteAnimation,
       builder: (context, child) => Container(
         clipBehavior: Clip.antiAlias,
-        decoration: decoration.value,
+        decoration: flight == null
+            ? idleDecoration
+            : Decoration.lerp(
+                overview.thumbnailDecoration,
+                overview.expandedTabDecoration,
+                flight.expansion,
+              ),
         child: child,
       ),
       child: child,

@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.4]
+### Fixed
+- Expanding a tab while it collapses, or collapsing it while it expands, no longer leaves the overview ignoring taps, or the expanded tab with the thumbnail's decoration. 0.1.0 had this when the turn came early in the flight; with hero_here 1.5.0 it came at any point. The same goes for expanding and collapsing in one go.
+
+### Changed
+- A tab turned around mid-flight now swings toward where it's sent, from where it is and at the speed it had, rather than going back along its path. Its decoration turns from what it shows, and the flight keeps its duration and curve.
+- Require hero_here 1.5.1, whose diverted flights slide along the overview's edge rather than out of it.
+
 ## [0.1.3]
 ### Added
 - Export `FittedTab`, so a custom `tabThumbnailBuilder` can show a tab as the default thumbnail does: laid out at the overview's size and scaled to fit.

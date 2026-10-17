@@ -94,10 +94,13 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
           child: HeroHere(
             tag: tabHeroTag(tab),
             key: expandedTabHeroKey(tab),
+            flightRedirect: HeroHereFlightRedirect.divert,
             flightAnimationControllerFactory: (vsync, duration) =>
-                _createTabHeroFlightAnimationController(vsync, duration, tab),
+                controller._createTabFlightController(tab, vsync, toPage: true),
             flightAnimationFactory: (animationController) =>
-                _createTabHeroFlightAnimation(animationController, tab),
+                controller._createTabFlightAnimation(tab, animationController),
+            forwardFlightAnimation: (animationController, {from}) =>
+                controller._runTabFlight(tab, animationController, from: from),
             child: tabWidget,
           ),
         ),
@@ -105,6 +108,7 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
           HeroHere(
             tag: removeButtonHeroTag(tab),
             key: expandedTabRemoveButtonHeroKey(tab),
+            flightRedirect: HeroHereFlightRedirect.divert,
             flightShuttleBuilder: _buildRemoveButtonHeroFlightShuttle,
             child: IgnorePointer(
               ignoring: true,
@@ -115,50 +119,6 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
             ),
           ),
       ],
-    );
-  }
-
-  AnimationController _createTabHeroFlightAnimationController(
-    TickerProvider vsync,
-    Duration duration,
-    T tab,
-  ) {
-    final animationContext =
-        controller._getTabFlightAnimationContext(tab) ??
-        controller._ensureTabCollapseAnimationContext(
-          tab,
-          duration: HeroHere.defaultFlightAnimationDuration,
-          curve: HeroHere.defaultFlightAnimationCurve,
-        );
-
-    return AnimationController(
-      vsync: vsync,
-      duration: animationContext.duration,
-    )..addStatusListener((status) {
-      if (status == AnimationStatus.completed) {
-        controller._expandAnimationCompleted(tab);
-      }
-      if (status == AnimationStatus.dismissed) {
-        controller._expandAnimationDismissed(tab);
-      }
-    });
-  }
-
-  Animation<double> _createTabHeroFlightAnimation(
-    AnimationController animationController,
-    T tab,
-  ) {
-    final animationContext =
-        controller._getTabFlightAnimationContext(tab) ??
-        controller._ensureTabCollapseAnimationContext(
-          tab,
-          duration: HeroHere.defaultFlightAnimationDuration,
-          curve: HeroHere.defaultFlightAnimationCurve,
-        );
-
-    return animationContext.animation = CurvedAnimation(
-      parent: animationController,
-      curve: animationContext.curve!,
     );
   }
 

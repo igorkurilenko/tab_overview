@@ -57,21 +57,11 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
       ? kThumbsGridOpacityWhenExpanded
       : 1.0;
 
-  Duration? get activeTabHeroAnimationDuration {
-    if (controller.activeTab == null) return null;
-    final heroAnimationContext = controller._getTabFlightAnimationContext(
-      controller.activeTab as T,
-    );
-    return heroAnimationContext?.duration;
-  }
+  Duration? get activeTabHeroAnimationDuration =>
+      controller._tabFlights[controller.activeTab]?.duration;
 
-  Curve? get activeTabHeroAnimationCurve {
-    if (controller.activeTab == null) return null;
-    final heroAnimationContext = controller._getTabFlightAnimationContext(
-      controller.activeTab as T,
-    );
-    return heroAnimationContext?.curve;
-  }
+  Curve? get activeTabHeroAnimationCurve =>
+      controller._tabFlights[controller.activeTab]?.curve;
 
   double getThumbScrollOffset(int index) {
     final maxOffset = scrollController.position.maxScrollExtent;
@@ -99,10 +89,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
       _revealActiveThumbScheduled = false;
       final tab = controller.activeTab;
       if (!mounted || !controller.expanded || tab == null) return;
-      if (controller._hasTabExpandAnimationContext(tab) ||
-          controller._hasTabCollapseAnimationContext(tab)) {
-        return;
-      }
+      if (controller._tabFlights.containsKey(tab)) return;
       if (thumbOffScreen(tab)) controller._jumpToThumb(tab);
     });
   }
@@ -258,25 +245,13 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
     return HeroHere(
       tag: tabHeroTag(tab),
       key: tabThumbHeroKey(tab),
-      flightAnimationControllerFactory: (vsync, duration) {
-        final animationContext = controller._getTabFlightAnimationContext(tab);
-        return AnimationController(
-          vsync: vsync,
-          duration: animationContext!.duration,
-        )..addStatusListener((status) {
-          if (status == AnimationStatus.completed ||
-              status == AnimationStatus.dismissed) {
-            controller._collapseFlightEnded(tab);
-          }
-        });
-      },
-      flightAnimationFactory: (animationController) {
-        final animationContext = controller._getTabFlightAnimationContext(tab);
-        return animationContext!.animation = CurvedAnimation(
-          parent: animationController,
-          curve: animationContext.curve!,
-        );
-      },
+      flightRedirect: HeroHereFlightRedirect.divert,
+      flightAnimationControllerFactory: (vsync, duration) =>
+          controller._createTabFlightController(tab, vsync, toPage: false),
+      flightAnimationFactory: (animationController) =>
+          controller._createTabFlightAnimation(tab, animationController),
+      forwardFlightAnimation: (animationController, {from}) =>
+          controller._runTabFlight(tab, animationController, from: from),
       child: thumb,
     );
   }
@@ -285,6 +260,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
     return HeroHere(
       tag: removeButtonHeroTag(tab),
       key: tabThumbRemoveButtonHeroKey(tab),
+      flightRedirect: HeroHereFlightRedirect.divert,
       child: removeButton,
     );
   }
