@@ -112,33 +112,15 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
       index,
       animation,
     ) {
-      if (animation.status != AnimationStatus.completed) {
-        controller._putTabInsertAnimation(tab, animation);
-      }
-
-      animation.addStatusListener((status) {
-        if (status == AnimationStatus.completed) {
-          controller._removeTabInsertAnimation(tab);
-        }
-      });
-
-      return _buildThumb(context, model[index]);
+      controller._trackTabInsertAnimation(tab, animation);
+      return _buildThumb(context, model[index], presence: animation);
     }, duration: duration);
   }
 
   void removeTab(int index, T removedTab, {required Duration duration}) {
     thumbsGridState!.removeItem(index, (context, animation) {
-      if (animation.status != AnimationStatus.dismissed) {
-        controller._putTabRemoveAnimation(removedTab, animation);
-      }
-
-      animation.addStatusListener((status) {
-        if (animation.status == AnimationStatus.dismissed) {
-          controller._removeTabRemoveAnimation(removedTab);
-        }
-      });
-
-      return _buildThumb(context, removedTab);
+      controller._trackTabRemoveAnimation(removedTab, animation);
+      return _buildThumb(context, removedTab, presence: animation);
     }, duration: duration);
   }
 
@@ -179,7 +161,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
             key: thumbsGridKey,
             motionAnimationDuration: overview.thumbnailsMotionAnimationDuration,
             motionAnimationCurve: overview.thumbnailsMotionAnimationCurve,
-            keyGetter: (index) => ValueKey(model[index]),
+            keyGetter: model.keyAt,
             reorderableGetter: model.reorderableAt,
             onReorder: controller._reorderTabs,
             draggableGetter: (index) =>
@@ -208,13 +190,22 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
     );
   }
 
-  Widget _buildThumb(BuildContext context, T tab) => _TabExpandedBuilder<T>(
+  // [presence] is the item's add or remove animation while that runs.
+  Widget _buildThumb(
+    BuildContext context,
+    T tab, {
+    Animation<double> presence = kAlwaysCompleteAnimation,
+  }) => _TabExpandedBuilder<T>(
     controller: controller,
     tab: tab,
-    builder: (context) => _buildThumbOrEmptyCell(context, tab),
+    builder: (context) => _buildThumbOrEmptyCell(context, tab, presence),
   );
 
-  Widget _buildThumbOrEmptyCell(BuildContext context, T tab) {
+  Widget _buildThumbOrEmptyCell(
+    BuildContext context,
+    T tab,
+    Animation<double> presence,
+  ) {
     if (controller.isTabExpanded(tab)) {
       return Container();
     }
@@ -223,13 +214,10 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
       return Container();
     }
 
-    final thumb = _buildThumbnail(context, tab);
-
-    Widget removeButton = overview.removeTabButtonBuilder(context, tab);
-    removeButton = _TabPresence<T>(
-      controller: controller,
-      tab: tab,
-      child: removeButton,
+    final thumb = _buildThumbnail(context, tab, presence);
+    final removeButton = _TabPresence(
+      animation: presence,
+      child: overview.removeTabButtonBuilder(context, tab),
     );
 
     return Stack(
@@ -294,7 +282,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
   }
 
   Widget _buildOffScreenThumb(BuildContext context, T tab) {
-    final thumb = _buildThumbnail(context, tab);
+    final thumb = _buildThumbnail(context, tab, controller._tabPresence(tab));
 
     return _TabExpandedBuilder<T>(
       controller: controller,
@@ -308,9 +296,12 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
 
   // What tabThumbnailBuilder builds, decorated, and scaled and faded in and
   // out as the tab is added and removed.
-  Widget _buildThumbnail(BuildContext context, T tab) => _TabPresence<T>(
-    controller: controller,
-    tab: tab,
+  Widget _buildThumbnail(
+    BuildContext context,
+    T tab,
+    Animation<double> presence,
+  ) => _TabPresence(
+    animation: presence,
     child: _TabDecoration<T>(
       overview: overview,
       tab: tab,

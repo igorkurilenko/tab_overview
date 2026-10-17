@@ -108,6 +108,7 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
   bool add(T newTab, {Duration duration = const Duration(milliseconds: 350)}) {
     if (_model.containsTab(newTab)) return false;
 
+    _forgetTabPresence(newTab);
     _model.addTab(newTab, duration: duration);
     _notifyTabAdded(newTab);
 
@@ -132,6 +133,7 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
     int index, {
     Duration duration = const Duration(milliseconds: 350),
   }) {
+    _forgetTabPresence(tabs[index]);
     final removedTab = _model.removeTabAt(index, duration: duration);
     _notifyTabRemoved(removedTab);
 
@@ -569,21 +571,56 @@ mixin _TabAnimations<T> {
 
   bool isCollapsing(T tab) => !(_tabFlights[tab]?.toPage ?? true);
 
-  void _putTabInsertAnimation(T tab, Animation<double> animation) =>
-      _insertAnimationByTab[tab] = animation;
+  // The animation a tab's page or stand-in scales and fades with: the tab's
+  // add or remove animation while that runs. The grid gives each of its
+  // items its own, as a removed tab's item may animate out after the tab is
+  // added again.
+  Animation<double> _tabPresence(T tab) =>
+      _removeAnimationByTab[tab] ??
+      _insertAnimationByTab[tab] ??
+      kAlwaysCompleteAnimation;
 
-  Animation<double>? _getTabInsertAnimation(T tab) =>
-      _insertAnimationByTab[tab];
+  void _trackTabInsertAnimation(T tab, Animation<double> animation) =>
+      _trackTabPresence(
+        _insertAnimationByTab,
+        tab,
+        animation,
+        endsAt: AnimationStatus.completed,
+      );
 
-  Animation<double>? _removeTabInsertAnimation(T tab) =>
-      _insertAnimationByTab.remove(tab);
+  void _trackTabRemoveAnimation(T tab, Animation<double> animation) =>
+      _trackTabPresence(
+        _removeAnimationByTab,
+        tab,
+        animation,
+        endsAt: AnimationStatus.dismissed,
+      );
 
-  void _putTabRemoveAnimation(T tab, Animation<double> animation) =>
-      _removeAnimationByTab[tab] = animation;
+  // Keeps [animation] for the tab until it ends. The grid builds an item on
+  // every rebuild while it animates, so it may ask for the same animation
+  // many times.
+  void _trackTabPresence(
+    Map<T, Animation<double>> animations,
+    T tab,
+    Animation<double> animation, {
+    required AnimationStatus endsAt,
+  }) {
+    if (animation.status == endsAt || animations[tab] == animation) return;
+    animations[tab] = animation;
 
-  Animation<double>? _getTabRemoveAnimation(T tab) =>
-      _removeAnimationByTab[tab];
+    void handleStatus(AnimationStatus status) {
+      if (status != endsAt) return;
+      animation.removeStatusListener(handleStatus);
+      if (animations[tab] == animation) animations.remove(tab);
+    }
 
-  Animation<double>? _removeTabRemoveAnimation(T tab) =>
-      _removeAnimationByTab.remove(tab);
+    animation.addStatusListener(handleStatus);
+  }
+
+  // A tab added or removed is done with the animations it had, which may
+  // never end, as the grid's item can go before its animation does.
+  void _forgetTabPresence(T tab) {
+    _insertAnimationByTab.remove(tab);
+    _removeAnimationByTab.remove(tab);
+  }
 }
