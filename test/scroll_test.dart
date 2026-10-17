@@ -52,4 +52,32 @@ void main() {
     expect(controller.activeTab, 21);
     expect(find.text('T21').hitTestable(), findsOneWidget);
   });
+
+  testWidgets('removing a tab on its way to its page leaves the overview '
+      'where it was', (tester) async {
+    final controller = TabOverviewController<int>(
+      initialTabs: List.generate(40, (tab) => tab),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: TabOverview<int>.builder(
+          controller: controller,
+          tabBuilder: (context, tab) => Center(child: Text('T$tab')),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    controller.scrollToTab(20);
+    await tester.pumpAndSettle();
+    controller.expand(39);
+    for (var frame = 0; frame < 6; frame++) {
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+
+    controller.remove(39);
+    await tester.pumpAndSettle();
+
+    expect(controller.mode, TabOverviewMode.overview);
+    expect(find.text('T20').hitTestable(), findsOneWidget);
+  });
 }

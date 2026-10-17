@@ -418,7 +418,10 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
       flight.land();
     }
 
-    if (landedOnPage && (_thumbnailsGridState?.thumbOffScreen(tab) ?? false)) {
+    // A tab removed on its way to its page has no thumb to jump to.
+    if (landedOnPage &&
+        _model.containsTab(tab) &&
+        (_thumbnailsGridState?.thumbOffScreen(tab) ?? false)) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _jumpToThumb(tab);
         WidgetsBinding.instance.addPostFrameCallback((_) {
