@@ -66,10 +66,19 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>> with HeroTabHelper {
       scrollBehavior: overview.scrollBehavior,
       onPageChanged: controller._handleExpandedTabPageChanged,
       itemCount: model.tabCount,
-      itemBuilder: (context, index) => FractionallySizedBox(
-        widthFactor: 1 / pageController.viewportFraction,
-        child: _buildExpandedTab(context, model.entryAt(index)),
-      ),
+      itemBuilder: (context, index) {
+        final entry = model.entryAt(index);
+        return FractionallySizedBox(
+          widthFactor: 1 / pageController.viewportFraction,
+          // Around the remove button's hero too, so its flight sets off
+          // from where the pull left the page.
+          child: _PullToCollapse<T>(
+            overview: overview,
+            entry: entry,
+            child: _buildExpandedTab(context, entry),
+          ),
+        );
+      },
     );
   }
 
@@ -80,6 +89,7 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>> with HeroTabHelper {
       overview: overview,
       entry: entry,
       idleDecoration: overview.expandedTabDecoration,
+      pull: entry.pull,
       child: tabWidget,
     );
     tabWidget = _TabPresence(

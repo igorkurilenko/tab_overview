@@ -61,6 +61,8 @@ class TabOverviewExampleState extends State<TabOverviewExample> {
             32.0,
           ), // Add rounded corners to thumbnails
         ),
+        // Pull the expanded tab down to collapse it.
+        pullToCollapse: true,
       ),
       floatingActionButton: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0),

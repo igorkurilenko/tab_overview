@@ -263,6 +263,27 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
   void collapse({
     Duration duration = HeroHere.defaultFlightAnimationDuration,
     Curve curve = Curves.easeInOut,
+  }) => _collapse(duration: duration, curve: curve);
+
+  // Collapses the active tab from where a pull left its page: [expansion] of
+  // the way from its thumbnail to its page, flung at [velocity], in flights
+  // a second.
+  void _collapseFromPull({
+    required double velocity,
+    required double expansion,
+  }) => _collapse(
+    duration: HeroHere.defaultFlightAnimationDuration,
+    curve: Curves.easeInOut,
+    // A fling the other way would land where it is at once.
+    velocity: max(0, velocity),
+    expansion: expansion,
+  );
+
+  void _collapse({
+    required Duration duration,
+    required Curve curve,
+    double? velocity,
+    double? expansion,
   }) {
     if (overview) return;
 
@@ -271,7 +292,13 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
     // An active tab removed while expanded collapses on its own.
     if (entry == null) return;
 
-    final flight = TabFlight(toPage: false, duration: duration, curve: curve);
+    final flight = TabFlight(
+      toPage: false,
+      duration: duration,
+      curve: curve,
+      velocity: velocity,
+      expansion: expansion,
+    );
     if (_thumbnailsGridState!.thumbOffScreen(tab)) {
       _collapseOffScreen(entry, flight);
     } else {
@@ -398,7 +425,10 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
     AnimationController controller,
   ) {
     final flight = entry.flight!;
-    final animation = CurvedAnimation(parent: controller, curve: flight.curve);
+    // A fling sets its own pace.
+    final animation = flight.velocity != null
+        ? controller
+        : CurvedAnimation(parent: controller, curve: flight.curve);
     flight.start(animation);
     return animation;
   }
@@ -409,8 +439,10 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
     AnimationController controller, {
     double? from,
   }) {
-    entry.flight?.setOff();
-    return controller.forward(from: from);
+    final velocity = entry.flight?.setOff();
+    return velocity != null
+        ? controller.fling(velocity: velocity)
+        : controller.forward(from: from);
   }
 
   // However the flight ended: landed, or stopped by a switch that left no

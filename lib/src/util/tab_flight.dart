@@ -23,15 +23,27 @@ import 'package:flutter/widgets.dart';
 /// rather than starting another, so one flight may have several runs, each
 /// from where the tab is to where it's asked to go. All of them take the
 /// [duration] and [curve] the flight was first asked with.
+///
+/// A tab's page pulled to collapse it sets off part of the way to its
+/// thumbnail, at the `expansion` it's given, and flings its first run at
+/// [velocity], with no curve, rather than over [duration].
 class TabFlight {
-  TabFlight({required bool toPage, required this.duration, required this.curve})
-    : _toPage = toPage,
-      _headsToPage = !toPage,
-      _expansionAtSetOff = toPage ? 0 : 1;
+  TabFlight({
+    required bool toPage,
+    required this.duration,
+    required this.curve,
+    this.velocity,
+    double? expansion,
+  }) : _toPage = toPage,
+       _headsToPage = !toPage,
+       _expansionAtSetOff = expansion ?? (toPage ? 0 : 1);
 
   final Duration duration;
 
   final Curve curve;
+
+  /// How fast the first run sets off, in runs a second, if it's flung.
+  final double? velocity;
 
   bool _toPage;
 
@@ -40,6 +52,8 @@ class TabFlight {
   double _expansionAtSetOff;
 
   var _started = false;
+
+  var _runs = 0;
 
   final _animation = ProxyAnimation(kAlwaysDismissedAnimation);
 
@@ -71,9 +85,12 @@ class TabFlight {
   }
 
   /// Starts a run toward where the tab is asked to go, from where it is.
-  void setOff() {
+  /// Returns the speed to fling it at: the flight's [velocity], if any, on
+  /// its first run.
+  double? setOff() {
     _expansionAtSetOff = expansion;
     _headsToPage = _toPage;
+    return _runs++ == 0 ? velocity : null;
   }
 
   /// Lands where it headed, to wait for the next switch to start a flight

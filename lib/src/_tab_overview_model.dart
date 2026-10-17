@@ -113,6 +113,12 @@ class _TabEntry<T> extends ChangeNotifier {
   /// and stand-in scale and fade with. Grid items get their own.
   Animation<double>? presence;
 
+  /// How far the tab's page is pulled toward collapsing it, from 0 to 1.
+  ///
+  /// Kept here rather than by the page, as a flight may build its shuttle
+  /// from the page's hero after the page is gone.
+  final pull = ValueNotifier<double>(0);
+
   _TabEntry(this.tab);
 
   /// The tab's flight between its thumbnail and its page, from when it's

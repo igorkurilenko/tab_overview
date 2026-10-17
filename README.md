@@ -10,6 +10,7 @@
 - **Overview and Expanded Modes**: Users can view all tabs in a grid format (overview mode) or expand a selected tab for a detailed view.
 - **Reorderable and Removable Tabs**: Drag-and-drop reordering and tap-to-remove functionality provide a natural tab management experience.
 - **Customizable Animations and Layouts**: Fine-tune animation duration, curve, grid layout, and decorations for thumbnails and expanded views.
+- **Pull to Collapse**: Optionally, pull the expanded tab down to collapse it into its thumbnail, with `pullToCollapse: true`.
 
 ## Installation
 
@@ -197,6 +198,12 @@ You can also override this default layout by providing a custom `thumbnailsGridD
 Style your tabs with the following properties:
 - **thumbnailDecoration**: Apply decoration to each thumbnail in overview mode.
 - **expandedTabDecoration**: Apply decoration to the expanded view of a tab.
+
+### Pull to Collapse
+
+With `pullToCollapse: true`, the expanded tab can be pulled down to collapse it, as in hero_here's show details example. It's pulled from the top of its vertical scroll view, or from anywhere on a tab without one. As it's pulled, it shrinks and its corners round toward `thumbnailDecoration`'s. Let go once it's pulled 50 pixels, or while it moves down fast, and it collapses into its thumbnail from where it is, at the speed it had. Otherwise it goes back.
+
+It's off by default, as a `RefreshIndicator` at the top of a tab reads the same pull.
 
 ## License
 

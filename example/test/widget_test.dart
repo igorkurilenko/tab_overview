@@ -1,6 +1,7 @@
 import 'package:example/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:tab_overview/tab_overview.dart';
 
 void main() {
   testWidgets('adds tabs and shows them in the overview', (tester) async {
@@ -35,5 +36,24 @@ void main() {
     await tester.tap(find.byIcon(Icons.add));
     await tester.pumpAndSettle();
     expect(find.text('3'), findsOneWidget);
+  });
+
+  testWidgets('pulls the expanded tab down to collapse it', (tester) async {
+    await tester.pumpWidget(const MainApp());
+    await tester.tap(find.byIcon(Icons.add));
+    await tester.pumpAndSettle();
+    final controller = tester
+        .state<TabOverviewExampleState>(find.byType(TabOverviewExample))
+        .controller;
+    expect(controller.mode, TabOverviewMode.expanded);
+
+    await tester.timedDrag(
+      find.byType(PageView),
+      const Offset(0, 150),
+      const Duration(seconds: 1),
+    );
+    await tester.pumpAndSettle();
+
+    expect(controller.mode, TabOverviewMode.overview);
   });
 }
