@@ -14,7 +14,6 @@
 
 library;
 
-import 'dart:async';
 import 'dart:collection';
 import 'dart:math';
 
@@ -122,11 +121,6 @@ class TabOverview<T> extends StatefulWidget {
   /// decoration turns toward [thumbnailDecoration]. Let go once it's pulled
   /// 50 pixels, or while it moves down fast, and it collapses from where it
   /// is, at the speed it had. Otherwise it goes back.
-  ///
-  /// On the web, a trackpad's two-finger swipe down pulls it too. The browser
-  /// doesn't tell when the fingers lift, so the swipe lets go when its
-  /// scrolling pauses, and until then swiping back up takes the pull back. A
-  /// mouse wheel doesn't pull it.
   ///
   /// Off by default, as a `RefreshIndicator` at the top of a tab reads the
   /// same pull.
