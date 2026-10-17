@@ -70,6 +70,20 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
     return min(maxOffset, offset);
   }
 
+  // The grid's items. A mode change or a flight rebuilds the rest of the
+  // grid, not them: a cell listens to what changes it. Built anew when the
+  // overview, or the delegate for its size, does.
+  Widget? _items;
+
+  @override
+  void didUpdateWidget(_TabThumbnailsGrid<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.overview != oldWidget.overview ||
+        widget.gridDelegate != oldWidget.gridDelegate) {
+      _items = null;
+    }
+  }
+
   @override
   void dispose() {
     scrollController.dispose();
@@ -167,7 +181,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
             ignoring: controller.isAnyExpanding || controller.isAnyCollapsing,
             child: thumbs,
           ),
-          child: _buildThumbs(widget.gridDelegate),
+          child: _buildThumbs(),
         ),
         // Needed to support hero transition
         // if the thumb is off-screen and not rendered.
@@ -179,7 +193,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
     );
   }
 
-  Widget _buildThumbs(SliverGridDelegate gridDelegate) {
+  Widget _buildThumbs() {
     return ScrollConfiguration(
       behavior: overview.scrollBehavior ?? ScrollConfiguration.of(context),
       child: AnimatedScale(
@@ -197,38 +211,40 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
           curve: controller.mode == TabOverviewMode.expanded
               ? Curves.fastOutSlowIn.flipped
               : Curves.fastOutSlowIn,
-          child: AnimatedReorderable.grid(
-            key: thumbsGridKey,
-            motionAnimationDuration: overview.thumbnailsMotionAnimationDuration,
-            motionAnimationCurve: overview.thumbnailsMotionAnimationCurve,
-            keyGetter: model.keyAt,
-            reorderableGetter: model.reorderableAt,
-            onReorder: controller._reorderTabs,
-            draggableGetter: (index) =>
-                model.removableAt(index) || model.reorderableAt(index),
-            swipeToRemoveDirectionGetter: (index) =>
-                model.removableAt(index) ? AxisDirection.left : null,
-            onSwipeToRemove: controller.removeTabAt,
-            gridView: GridView.builder(
-              clipBehavior: Clip.none,
-              controller: scrollController,
-              padding: overview.thumbnailsGridPadding,
-              gridDelegate: SliverGridLayoutNotifier(
-                gridDelegate: gridDelegate,
-                onLayout: (layout) {
-                  _thumbsGridLayout = layout;
-                  _scheduleRevealActiveThumb();
-                },
-              ),
-              itemCount: model.tabCount,
-              itemBuilder: (context, index) =>
-                  _buildThumb(context, model.entryAt(index)),
-            ),
-          ),
+          child: _items ??= _buildItems(),
         ),
       ),
     );
   }
+
+  Widget _buildItems() => AnimatedReorderable.grid(
+    key: thumbsGridKey,
+    motionAnimationDuration: overview.thumbnailsMotionAnimationDuration,
+    motionAnimationCurve: overview.thumbnailsMotionAnimationCurve,
+    keyGetter: model.keyAt,
+    reorderableGetter: model.reorderableAt,
+    onReorder: controller._reorderTabs,
+    draggableGetter: (index) =>
+        model.removableAt(index) || model.reorderableAt(index),
+    swipeToRemoveDirectionGetter: (index) =>
+        model.removableAt(index) ? AxisDirection.left : null,
+    onSwipeToRemove: controller.removeTabAt,
+    gridView: GridView.builder(
+      clipBehavior: Clip.none,
+      controller: scrollController,
+      padding: overview.thumbnailsGridPadding,
+      gridDelegate: SliverGridLayoutNotifier(
+        gridDelegate: widget.gridDelegate,
+        onLayout: (layout) {
+          _thumbsGridLayout = layout;
+          _scheduleRevealActiveThumb();
+        },
+      ),
+      itemCount: model.tabCount,
+      itemBuilder: (context, index) =>
+          _buildThumb(context, model.entryAt(index)),
+    ),
+  );
 
   // [presence] is the item's add or remove animation while that runs.
   Widget _buildThumb(

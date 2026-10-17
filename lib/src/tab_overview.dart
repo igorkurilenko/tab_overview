@@ -199,23 +199,37 @@ class _TabOverviewState<T> extends State<TabOverview<T>> {
 
   void _handleModeChanged(TabOverviewMode _) => setState(() {});
 
+  BoxConstraints? _defaultGridDelegateConstraints;
+  SliverGridDelegate? _defaultGridDelegate;
+
+  // The same delegate for the same size, so a mode change, which builds the
+  // grid again, keeps its items.
+  SliverGridDelegate _thumbnailsGridDelegateFor(BoxConstraints constraints) {
+    if (widget.thumbnailsGridDelegate case final delegate?) return delegate;
+    if (constraints != _defaultGridDelegateConstraints) {
+      _defaultGridDelegateConstraints = constraints;
+      _defaultGridDelegate = _defaultThumbnailsGridDelegateFor(constraints);
+    }
+    return _defaultGridDelegate!;
+  }
+
   // Wider than 900: 4 columns, wider than 600: 3, otherwise 2.
-  SliverGridDelegate _thumbnailsGridDelegateFor(BoxConstraints constraints) =>
-      widget.thumbnailsGridDelegate ??
-      switch (constraints.maxWidth) {
-        > 600 => SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: constraints.maxWidth > 900 ? 4 : 3,
-          childAspectRatio: constraints.maxWidth / constraints.maxHeight,
-          mainAxisSpacing: kDefaultThumbnailsGridMainAxisSpacing,
-          crossAxisSpacing: kDefaultThumbnailsGridCrossAxisSpacing,
-        ),
-        _ => const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          childAspectRatio: 0.7,
-          mainAxisSpacing: kDefaultThumbnailsGridMainAxisSpacing,
-          crossAxisSpacing: kDefaultThumbnailsGridCrossAxisSpacing,
-        ),
-      };
+  SliverGridDelegate _defaultThumbnailsGridDelegateFor(
+    BoxConstraints constraints,
+  ) => switch (constraints.maxWidth) {
+    > 600 => SliverGridDelegateWithFixedCrossAxisCount(
+      crossAxisCount: constraints.maxWidth > 900 ? 4 : 3,
+      childAspectRatio: constraints.maxWidth / constraints.maxHeight,
+      mainAxisSpacing: kDefaultThumbnailsGridMainAxisSpacing,
+      crossAxisSpacing: kDefaultThumbnailsGridCrossAxisSpacing,
+    ),
+    _ => const SliverGridDelegateWithFixedCrossAxisCount(
+      crossAxisCount: 2,
+      childAspectRatio: 0.7,
+      mainAxisSpacing: kDefaultThumbnailsGridMainAxisSpacing,
+      crossAxisSpacing: kDefaultThumbnailsGridCrossAxisSpacing,
+    ),
+  };
 
   @override
   Widget build(BuildContext context) => HeroHereSwitcher(
