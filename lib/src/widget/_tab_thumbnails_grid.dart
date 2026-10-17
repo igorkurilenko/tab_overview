@@ -106,21 +106,25 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
     scrollController.jumpTo(offset);
   }
 
-  void addTab(T tab, {required Duration duration}) {
-    thumbsGridState!.insertItem(model.indexOfTab(tab), (
+  void addTab(_TabEntry<T> entry, {required Duration duration}) {
+    thumbsGridState!.insertItem(model.indexOfEntry(entry), (
       context,
       index,
       animation,
     ) {
-      controller._trackTabInsertAnimation(tab, animation);
-      return _buildThumb(context, model[index], presence: animation);
+      controller._trackTabInsertAnimation(entry.tab, animation);
+      return _buildThumb(context, model.entryAt(index), presence: animation);
     }, duration: duration);
   }
 
-  void removeTab(int index, T removedTab, {required Duration duration}) {
+  void removeTab(
+    int index,
+    _TabEntry<T> removed, {
+    required Duration duration,
+  }) {
     thumbsGridState!.removeItem(index, (context, animation) {
-      controller._trackTabRemoveAnimation(removedTab, animation);
-      return _buildThumb(context, removedTab, presence: animation);
+      controller._trackTabRemoveAnimation(removed.tab, animation);
+      return _buildThumb(context, removed, presence: animation);
     }, duration: duration);
   }
 
@@ -182,7 +186,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
               ),
               itemCount: model.tabCount,
               itemBuilder: (context, index) =>
-                  _buildThumb(context, model[index]),
+                  _buildThumb(context, model.entryAt(index)),
             ),
           ),
         ),
@@ -193,28 +197,29 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
   // [presence] is the item's add or remove animation while that runs.
   Widget _buildThumb(
     BuildContext context,
-    T tab, {
+    _TabEntry<T> entry, {
     Animation<double> presence = kAlwaysCompleteAnimation,
   }) => _TabExpandedBuilder<T>(
     controller: controller,
-    tab: tab,
-    builder: (context) => _buildThumbOrEmptyCell(context, tab, presence),
+    tab: entry.tab,
+    builder: (context) => _buildThumbOrEmptyCell(context, entry, presence),
   );
 
   Widget _buildThumbOrEmptyCell(
     BuildContext context,
-    T tab,
+    _TabEntry<T> entry,
     Animation<double> presence,
   ) {
+    final tab = entry.tab;
     if (controller.isTabExpanded(tab)) {
       return Container();
     }
 
-    if (model.containsOffScreenThumbTab(tab)) {
+    if (model.hasStandIn(entry)) {
       return Container();
     }
 
-    final thumb = _buildThumbnail(context, tab, presence);
+    final thumb = _buildThumbnail(context, entry, presence);
     final removeButton = _TabPresence(
       animation: presence,
       child: overview.removeTabButtonBuilder(context, tab),
@@ -222,24 +227,24 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
 
     return Stack(
       children: [
-        Positioned.fill(child: _buildThumbHero(thumb, tab)),
+        Positioned.fill(child: _buildThumbHero(thumb, entry)),
         if (model.removable(tab))
           _buildThumbRemoveButtonHero(removeButton, tab),
       ],
     );
   }
 
-  Widget _buildThumbHero(Widget thumb, T tab) {
+  Widget _buildThumbHero(Widget thumb, _TabEntry<T> entry) {
     return HeroHere(
-      tag: tabHeroTag(tab),
-      key: tabThumbHeroKey(tab),
+      tag: tabHeroTag(entry.tab),
+      key: tabThumbHeroKey(entry.tab),
       flightRedirect: HeroHereFlightRedirect.divert,
       flightAnimationControllerFactory: (vsync, duration) =>
-          controller._createTabFlightController(tab, vsync, toPage: false),
+          controller._createTabFlightController(entry, vsync, toPage: false),
       flightAnimationFactory: (animationController) =>
-          controller._createTabFlightAnimation(tab, animationController),
+          controller._createTabFlightAnimation(entry, animationController),
       forwardFlightAnimation: (animationController, {from}) =>
-          controller._runTabFlight(tab, animationController, from: from),
+          controller._runTabFlight(entry, animationController, from: from),
       child: thumb,
     );
   }
@@ -263,33 +268,35 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
   Widget _buildOffScreenThumbsIn(Size overviewSize) {
     return Stack(
       children: [
-        for (var tab in model.offScreenThumbTabs)
+        for (final entry in model.standIns)
           Positioned(
-            top:
-                model.containsTab(tab) &&
-                    getThumbScrollOffset(model.indexOfTab(tab)) <
-                        scrollController.position.pixels
-                ? 0
-                : overviewSize.height,
+            top: _isAbove(model.indexOfEntry(entry)) ? 0 : overviewSize.height,
             left: overviewSize.width / 2,
             child: SizedBox.fromSize(
               size: Size.zero,
-              child: _buildOffScreenThumb(context, tab),
+              child: _buildOffScreenThumb(context, entry),
             ),
           ),
       ],
     );
   }
 
-  Widget _buildOffScreenThumb(BuildContext context, T tab) {
-    final thumb = _buildThumbnail(context, tab, controller._tabPresence(tab));
+  // Whether the thumbnail at [index] is above the grid's viewport, rather
+  // than below it, or nowhere, as a removed tab's.
+  bool _isAbove(int index) =>
+      index != -1 &&
+      getThumbScrollOffset(index) < scrollController.position.pixels;
+
+  Widget _buildOffScreenThumb(BuildContext context, _TabEntry<T> entry) {
+    final tab = entry.tab;
+    final thumb = _buildThumbnail(context, entry, controller._tabPresence(tab));
 
     return _TabExpandedBuilder<T>(
       controller: controller,
       tab: tab,
       builder: (context) => HeroMode(
         enabled: !controller.isTabExpanded(tab),
-        child: _buildThumbHero(thumb, tab),
+        child: _buildThumbHero(thumb, entry),
       ),
     );
   }
@@ -298,15 +305,15 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
   // out as the tab is added and removed.
   Widget _buildThumbnail(
     BuildContext context,
-    T tab,
+    _TabEntry<T> entry,
     Animation<double> presence,
   ) => _TabPresence(
     animation: presence,
     child: _TabDecoration<T>(
       overview: overview,
-      tab: tab,
+      entry: entry,
       idleDecoration: overview.thumbnailDecoration,
-      child: overview.tabThumbnailBuilder(context, tab),
+      child: overview.tabThumbnailBuilder(context, entry.tab),
     ),
   );
 }

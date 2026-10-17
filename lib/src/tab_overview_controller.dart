@@ -134,7 +134,8 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
     Duration duration = const Duration(milliseconds: 350),
   }) {
     _forgetTabPresence(tabs[index]);
-    final removedTab = _model.removeTabAt(index, duration: duration);
+    final removed = _model.removeTabAt(index, duration: duration);
+    final removedTab = removed.tab;
     _notifyTabRemoved(removedTab);
 
     final isActiveTabRemoved = isActiveTab(removedTab);
@@ -142,7 +143,7 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
     if (expanded && isActiveTabRemoved) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _collapseOffScreen(
-          removedTab,
+          removed,
           duration: duration,
           curve: HeroHere.defaultFlightAnimationCurve,
         );
@@ -199,7 +200,8 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
     Duration duration = HeroHere.defaultFlightAnimationDuration,
     Curve curve = Curves.easeInOut,
   }) {
-    if (!_model.containsTab(tab)) {
+    final entry = _model.entryOf(tab);
+    if (entry == null) {
       throw ArgumentError('Tab $tab not found');
     }
 
@@ -211,9 +213,9 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
     activeTab = tab;
 
     if (_thumbnailsGridState!.thumbOffScreen(tab)) {
-      _expandOffScreen(tab, duration: duration, curve: curve);
+      _expandOffScreen(entry, duration: duration, curve: curve);
     } else {
-      _doExpand(tab, duration: duration, curve: curve);
+      _doExpand(entry, duration: duration, curve: curve);
     }
   }
 
@@ -254,11 +256,14 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
     if (overview) return;
 
     final tab = activeTab as T;
+    final entry = _model.entryOf(tab);
+    // An active tab removed while expanded collapses on its own.
+    if (entry == null) return;
 
     if (_thumbnailsGridState!.thumbOffScreen(tab)) {
-      _collapseOffScreen(tab, duration: duration, curve: curve);
+      _collapseOffScreen(entry, duration: duration, curve: curve);
     } else {
-      _doCollapse(tab, duration: duration, curve: curve);
+      _doCollapse(entry, duration: duration, curve: curve);
     }
   }
 
@@ -286,44 +291,52 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
   }
 
   void _expandOffScreen(
-    T tab, {
+    _TabEntry<T> entry, {
     required Duration duration,
     required Curve curve,
   }) {
-    if (_model.addOffScreenThumbTab(tab)) {
-      _notifyOffScreenThumbTabAdded(tab);
+    if (_model.addStandIn(entry)) {
+      _notifyOffScreenThumbTabAdded(entry.tab);
       _thumbnailsGridState?.stateChanged();
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _doExpand(tab, duration: duration, curve: curve);
+      _doExpand(entry, duration: duration, curve: curve);
     });
   }
 
-  void _doExpand(T tab, {required Duration duration, required Curve curve}) {
-    _askForTabFlight(tab, toPage: true, duration: duration, curve: curve);
+  void _doExpand(
+    _TabEntry<T> entry, {
+    required Duration duration,
+    required Curve curve,
+  }) {
+    _askForTabFlight(entry, toPage: true, duration: duration, curve: curve);
 
     _mode = TabOverviewMode.expanded;
     _notifyModeChanged(_mode);
   }
 
   void _collapseOffScreen(
-    T tab, {
+    _TabEntry<T> entry, {
     required Duration duration,
     required Curve curve,
   }) {
-    if (_model.addOffScreenThumbTab(tab)) {
-      _notifyOffScreenThumbTabAdded(tab);
+    if (_model.addStandIn(entry)) {
+      _notifyOffScreenThumbTabAdded(entry.tab);
       _thumbnailsGridState?.stateChanged();
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _doCollapse(tab, duration: duration, curve: curve);
+      _doCollapse(entry, duration: duration, curve: curve);
     });
   }
 
-  void _doCollapse(T tab, {required Duration duration, required Curve curve}) {
-    _askForTabFlight(tab, toPage: false, duration: duration, curve: curve);
+  void _doCollapse(
+    _TabEntry<T> entry, {
+    required Duration duration,
+    required Curve curve,
+  }) {
+    _askForTabFlight(entry, toPage: false, duration: duration, curve: curve);
 
     _mode = TabOverviewMode.overview;
     _notifyModeChanged(_mode);
@@ -332,11 +345,12 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
   // Asks for the tab to fly to its page or its thumbnail, in the flight the
   // coming switch starts, or in the flight it's in, which the switch diverts.
   void _askForTabFlight(
-    T tab, {
+    _TabEntry<T> entry, {
     required bool toPage,
     required Duration duration,
     required Curve curve,
   }) {
+    final tab = entry.tab;
     final flight = _tabFlights[tab];
     if (flight == null) {
       _tabFlights[tab] = TabFlight(
@@ -356,11 +370,11 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
   // hero it leaves, as the flight starts. [toPage] is whether that's the
   // tab's page, for a flight nobody asked for.
   AnimationController _createTabFlightController(
-    T tab,
+    _TabEntry<T> entry,
     TickerProvider vsync, {
     required bool toPage,
   }) {
-    final flight = _tabFlights[tab] ??= TabFlight(
+    final flight = _tabFlights[entry.tab] ??= TabFlight(
       toPage: toPage,
       duration: HeroHere.defaultFlightAnimationDuration,
       curve: HeroHere.defaultFlightAnimationCurve,
@@ -368,15 +382,15 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
     return TabFlightController(
       vsync: vsync,
       duration: flight.duration,
-      onDispose: () => _tabFlightEnded(tab, flight),
+      onDispose: () => _tabFlightEnded(entry, flight),
     );
   }
 
   Animation<double> _createTabFlightAnimation(
-    T tab,
+    _TabEntry<T> entry,
     AnimationController controller,
   ) {
-    final flight = _tabFlights[tab]!;
+    final flight = _tabFlights[entry.tab]!;
     final animation = CurvedAnimation(parent: controller, curve: flight.curve);
     flight.start(animation);
     return animation;
@@ -384,22 +398,23 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
 
   // Starts each run of the tab's flight: the first, and one on each divert.
   TickerFuture _runTabFlight(
-    T tab,
+    _TabEntry<T> entry,
     AnimationController controller, {
     double? from,
   }) {
-    _tabFlights[tab]?.setOff();
+    _tabFlights[entry.tab]?.setOff();
     return controller.forward(from: from);
   }
 
   // However the flight ended: landed, or stopped by a switch that left no
   // hero for it, or by the overview going away.
-  void _tabFlightEnded(T tab, TabFlight flight) {
+  void _tabFlightEnded(_TabEntry<T> entry, TabFlight flight) {
+    final tab = entry.tab;
     final landedOnPage = flight.headsToPage;
     var standInRemoved = false;
     if (flight.toPage == landedOnPage) {
       _tabFlights.remove(tab);
-      standInRemoved = _model.removeOffScreenThumbTab(tab);
+      standInRemoved = _model.removeStandIn(entry);
       if (standInRemoved) _notifyOffScreenThumbTabRemoved(tab);
     } else {
       // Asked elsewhere after the switch that sent it. The next switch

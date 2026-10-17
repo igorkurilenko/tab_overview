@@ -16,7 +16,7 @@ part of 'tab_overview.dart';
 
 class _TabOverviewModel<T> {
   final List<_TabEntry<T>> _entries;
-  final _offScreenThumbTabs = <T>{};
+  final _standIns = <_TabEntry<T>>{};
   GlobalKey<_TabThumbnailsGridState>? _thumbnailsGridKey;
 
   _TabOverviewModel({Iterable<T>? initialTabs})
@@ -29,11 +29,22 @@ class _TabOverviewModel<T> {
 
   int get tabCount => _entries.length;
 
-  List<T> get offScreenThumbTabs => UnmodifiableListView(_offScreenThumbTabs);
+  /// The tabs whose thumbnails are off screen, with a stand-in for a flight
+  /// to fly to or from. A removed tab may have one, which it flies to.
+  Iterable<_TabEntry<T>> get standIns => _standIns;
 
   int indexOfTab(T tab) => _entries.indexWhere((entry) => entry.tab == tab);
 
   bool containsTab(T tab) => indexOfTab(tab) != -1;
+
+  _TabEntry<T> entryAt(int index) => _entries[index];
+
+  _TabEntry<T>? entryOf(T tab) {
+    final index = indexOfTab(tab);
+    return index == -1 ? null : _entries[index];
+  }
+
+  int indexOfEntry(_TabEntry<T> entry) => _entries.indexOf(entry);
 
   /// The key of the grid's item for the tab at [index].
   Key keyAt(int index) => _entries[index].key;
@@ -47,31 +58,32 @@ class _TabOverviewModel<T> {
   bool removable(T tab) => tab is RemovableTab ? tab.removable : true;
 
   void addTab(T tab, {required Duration duration}) {
-    _entries.add(_TabEntry(tab));
-    _thumbnailsGridState?.addTab(tab, duration: duration);
+    final entry = _TabEntry(tab);
+    _entries.add(entry);
+    _thumbnailsGridState?.addTab(entry, duration: duration);
   }
 
-  T removeTabAt(int index, {required Duration duration}) {
-    final removedTab = _entries.removeAt(index).tab;
-    _thumbnailsGridState?.removeTab(index, removedTab, duration: duration);
+  _TabEntry<T> removeTabAt(int index, {required Duration duration}) {
+    final removed = _entries.removeAt(index);
+    _thumbnailsGridState?.removeTab(index, removed, duration: duration);
 
-    return removedTab;
+    return removed;
   }
 
   T operator [](int index) => _entries[index].tab;
 
   void reorderTabs(Permutations permutations) => permutations.apply(_entries);
 
-  bool addOffScreenThumbTab(T tab) => _offScreenThumbTabs.add(tab);
+  bool addStandIn(_TabEntry<T> entry) => _standIns.add(entry);
 
-  bool containsOffScreenThumbTab(T tab) => _offScreenThumbTabs.contains(tab);
+  bool hasStandIn(_TabEntry<T> entry) => _standIns.contains(entry);
 
-  bool removeOffScreenThumbTab(T tab) => _offScreenThumbTabs.remove(tab);
+  bool removeStandIn(_TabEntry<T> entry) => _standIns.remove(entry);
 }
 
-/// A tab, from when it's added until it's removed. A tab removed and added
-/// again is a new entry, so the grid tells its item from the removed one,
-/// which may still be animating out.
+/// A tab, from when it's added until it's removed and its last animation
+/// ends. A tab removed and added again is a new entry, so the grid tells its
+/// item from the removed one, which may still be animating out.
 class _TabEntry<T> {
   final T tab;
   final key = UniqueKey();
