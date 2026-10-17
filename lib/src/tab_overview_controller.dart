@@ -418,33 +418,18 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
       flight.land();
     }
 
-    // A tab removed on its way to its page has no thumb to jump to.
-    if (landedOnPage &&
-        _model.containsTab(tab) &&
-        (_thumbnailsGridState?.thumbOffScreen(tab) ?? false)) {
+    if (landedOnPage && (_thumbnailsGridState?.thumbOffScreen(tab) ?? false)) {
+      // After the frame: a flight also ends as the overview goes away.
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _jumpToThumb(tab);
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _jumpToThumb(tab);
-        });
+        _thumbnailsGridState?.jumpToThumb(tab);
       });
     }
   }
 
   void _handleExpandedTabPageChanged(int page) {
-    activeTab = _model[page];
-
-    _jumpToThumbAt(page);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _jumpToThumbAt(page);
-    });
-  }
-
-  void _jumpToThumb(T tab) => _jumpToThumbAt(_model.indexOfTab(tab));
-
-  void _jumpToThumbAt(int index) {
-    final grid = _thumbnailsGridState;
-    grid?.jumpTo(grid.getThumbScrollOffset(index));
+    final tab = _model[page];
+    activeTab = tab;
+    _thumbnailsGridState?.jumpToThumb(tab);
   }
 }
 

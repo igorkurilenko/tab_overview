@@ -101,12 +101,26 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
       _revealActiveThumbScheduled = false;
       final tab = controller.activeTab;
       if (!mounted || !controller.expanded || tab == null) return;
-      // An active tab removed while expanded has no thumb to reveal. It
-      // collapses on its own.
-      if (!model.containsTab(tab)) return;
       if (controller._flightOf(tab) != null) return;
-      if (thumbOffScreen(tab)) controller._jumpToThumb(tab);
+      if (thumbOffScreen(tab)) _jumpToThumbNow(tab);
     });
+  }
+
+  // Jumps to the tab's thumb now, and once more after the next layout. A
+  // tab added or removed in the same frame moves the thumb, and changes the
+  // grid's scroll extent only at that layout.
+  void jumpToThumb(T tab) {
+    _jumpToThumbNow(tab);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _jumpToThumbNow(tab);
+    });
+  }
+
+  // A tab no longer in the overview has no thumb, such as the expanded tab,
+  // removed, until its collapse starts.
+  void _jumpToThumbNow(T tab) {
+    final index = model.indexOfTab(tab);
+    if (index != -1) scrollController.jumpTo(getThumbScrollOffset(index));
   }
 
   void animateTo(
@@ -115,10 +129,6 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
     required Curve curve,
   }) {
     scrollController.animateTo(offset, duration: duration, curve: curve);
-  }
-
-  void jumpTo(double offset) {
-    scrollController.jumpTo(offset);
   }
 
   void addTab(_TabEntry<T> entry, {required Duration duration}) {
