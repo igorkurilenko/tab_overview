@@ -335,10 +335,8 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
   }
 
   Widget _decorate(Widget thumb, T tab) => _TabDecoration<T>(
-    controller: controller,
+    overview: overview,
     tab: tab,
-    thumbnailDecoration: overview.thumbnailDecoration,
-    expandedTabDecoration: overview.expandedTabDecoration,
     idleDecoration: overview.thumbnailDecoration,
     child: thumb,
   );

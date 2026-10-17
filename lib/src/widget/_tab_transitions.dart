@@ -22,34 +22,31 @@ part of '../tab_overview.dart';
 /// re-create the tab content's State, losing its text, focus and scroll
 /// position on the first rebuild after a flight.
 class _TabDecoration<T> extends StatelessWidget {
-  final TabOverviewController<T> controller;
+  final TabOverview<T> overview;
   final T tab;
-  final Decoration thumbnailDecoration;
-  final Decoration expandedTabDecoration;
   final Decoration idleDecoration;
   final Widget child;
 
   const _TabDecoration({
-    required this.controller,
+    required this.overview,
     required this.tab,
-    required this.thumbnailDecoration,
-    required this.expandedTabDecoration,
     required this.idleDecoration,
     required this.child,
   });
 
   @override
   Widget build(BuildContext context) {
+    final controller = overview.controller;
     final Animation<Decoration> decoration;
     if (controller._hasTabExpandAnimationContext(tab)) {
       decoration = DecorationTween(
-        begin: thumbnailDecoration,
-        end: expandedTabDecoration,
+        begin: overview.thumbnailDecoration,
+        end: overview.expandedTabDecoration,
       ).animate(controller._getTabExpandAnimation(tab)!);
     } else if (controller._hasTabCollapseAnimationContext(tab)) {
       decoration = DecorationTween(
-        begin: expandedTabDecoration,
-        end: thumbnailDecoration,
+        begin: overview.expandedTabDecoration,
+        end: overview.thumbnailDecoration,
       ).animate(controller._getTabCollapseAnimation(tab)!);
     } else {
       decoration = AlwaysStoppedAnimation(idleDecoration);

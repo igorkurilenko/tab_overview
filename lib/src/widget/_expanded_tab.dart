@@ -77,10 +77,8 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
   Widget _buildExpandedTab(BuildContext context, T tab) {
     Widget tabWidget = FittedTab(child: overview.tabBuilder(context, tab));
     tabWidget = _TabDecoration<T>(
-      controller: controller,
+      overview: overview,
       tab: tab,
-      thumbnailDecoration: overview.thumbnailDecoration,
-      expandedTabDecoration: overview.expandedTabDecoration,
       idleDecoration: overview.expandedTabDecoration,
       child: tabWidget,
     );
