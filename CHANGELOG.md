@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.9]
+### Fixed
+- Removing a tab other than the last and adding one in the same event, such as closing a tab and opening another in one handler, no longer throws `RangeError`s. Fixed in animated_reorderable 1.6.0.
+
+### Changed
+- Require animated_reorderable 1.6.0.
+
 ## [0.1.8]
 ### Fixed
 - Removing the expanded tab collapses to the tab that takes its place. Since 0.0.6, the overview scrolled to its top instead, leaving that tab off screen.
