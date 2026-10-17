@@ -155,19 +155,13 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
     scrollController.animateTo(offset, duration: duration, curve: curve);
   }
 
+  // The tab's thumb enters through _buildItemPresence.
   void addTab(_TabEntry<T> entry, {required Duration duration}) {
-    thumbsGridState!.insertItem(model.indexOfEntry(entry), (
-      context,
-      index,
-      animation,
-    ) {
-      controller._trackTabPresence(
-        entry,
-        animation,
-        endsAt: AnimationStatus.completed,
-      );
-      return _buildThumb(context, model.entryAt(index), presence: animation);
-    }, duration: duration);
+    thumbsGridState!.insertItem(
+      model.indexOfEntry(entry),
+      null,
+      duration: duration,
+    );
     _relayoutGrid();
   }
 
@@ -176,14 +170,15 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
     _TabEntry<T> removed, {
     required Duration duration,
   }) {
-    thumbsGridState!.removeItem(index, (context, animation) {
-      controller._trackTabPresence(
-        removed,
-        animation,
+    thumbsGridState!.removeItem(
+      index,
+      (context, animation) => _ItemPresence(
+        animation: animation,
         endsAt: AnimationStatus.dismissed,
-      );
-      return _buildThumb(context, removed, presence: animation);
-    }, duration: duration);
+        child: _buildThumb(context, removed),
+      ),
+      duration: duration,
+    );
     _relayoutGrid();
   }
 
@@ -259,6 +254,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
         directionGetter: (index) =>
             model.removableAt(index) ? AxisDirection.left : null,
       ),
+      insertTransition: _buildItemPresence,
       gridView: GridView.builder(
         clipBehavior: Clip.none,
         controller: scrollController,
@@ -271,16 +267,41 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
     ),
   );
 
-  // [presence] is the item's add or remove animation while that runs.
-  Widget _buildThumb(
-    BuildContext context,
-    _TabEntry<T> entry, {
-    Animation<double> presence = kAlwaysCompleteAnimation,
-  }) => _TabCellBuilder<T>(
-    controller: controller,
-    entry: entry,
-    builder: (context) => _buildThumbOrEmptyCell(context, entry, presence),
+  // Every item, a tab's thumb, enters through it: an added tab's with its
+  // add animation, and every other's with a completed one. The thumb picks
+  // the animation up, as it knows its tab, and the index is left alone.
+  Widget _buildItemPresence(
+    Widget child,
+    int index,
+    Animation<double> animation,
+  ) => _ItemPresence(
+    animation: animation,
+    endsAt: AnimationStatus.completed,
+    child: child,
   );
+
+  Widget _buildThumb(BuildContext context, _TabEntry<T> entry) =>
+      _TabCellBuilder<T>(
+        controller: controller,
+        entry: entry,
+        builder: (context) {
+          // The thumb's add or remove animation, while it runs, which the
+          // tab's page and stand-in scale and fade with too.
+          final presence = _ItemPresence.maybeOf(context);
+          if (presence != null) {
+            controller._trackTabPresence(
+              entry,
+              presence.animation,
+              endsAt: presence.endsAt,
+            );
+          }
+          return _buildThumbOrEmptyCell(
+            context,
+            entry,
+            presence?.animation ?? kAlwaysCompleteAnimation,
+          );
+        },
+      );
 
   Widget _buildThumbOrEmptyCell(
     BuildContext context,

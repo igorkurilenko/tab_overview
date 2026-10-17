@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.1.13]
+### Changed
+- Add tabs through animated_reorderable's `insertTransition`, rather than the `insertItem` builder, which animated_reorderable 1.6 deprecates and 2.0 removes. Tabs are added and removed as before.
+
 ## [0.1.12]
 ### Fixed
 - While tabs are reordered, a tab moved again just as its slide ends slides there, rather than jumping a slot without animating. Fixed in animated_reorderable 1.6.1.

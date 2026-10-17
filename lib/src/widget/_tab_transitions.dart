@@ -68,6 +68,30 @@ class _TabDecoration<T> extends StatelessWidget {
   }
 }
 
+/// Hands a grid item's add or remove animation, which [endsAt] ends, down to
+/// its thumb, whose thumbnail and remove button scale and fade with it.
+///
+/// animated_reorderable puts every item in the transition it enters with,
+/// around the item's subtree, and the remove builder puts the thumb of a
+/// tab being removed in one of its own, which the thumb finds first.
+class _ItemPresence extends InheritedWidget {
+  final Animation<double> animation;
+  final AnimationStatus endsAt;
+
+  const _ItemPresence({
+    required this.animation,
+    required this.endsAt,
+    required super.child,
+  });
+
+  static _ItemPresence? maybeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<_ItemPresence>();
+
+  @override
+  bool updateShouldNotify(_ItemPresence oldWidget) =>
+      animation != oldWidget.animation || endsAt != oldWidget.endsAt;
+}
+
 /// Scales and fades a tab's thumbnail, page or remove button with
 /// [animation], in as the tab is added, and out as it's removed.
 ///
