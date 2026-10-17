@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.1.7]
+### Changed
+- Rebuild only the thumbnail of the tab that expands or collapses, not every thumbnail. Expanding a tab rebuilt every other thumbnail once, and collapsing it rebuilt every thumbnail twice.
+
 ## [0.1.6]
 ### Fixed
 - A tab whose hash code changes while it flies, such as one whose equality follows a title that changes as its page loads, no longer leaves the overview ignoring taps.
