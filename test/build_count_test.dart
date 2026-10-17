@@ -71,4 +71,33 @@ void main() {
     }
     expect(rebuilt, isEmpty);
   });
+
+  testWidgets('a removal, then another tab\'s expand and collapse, shows '
+      'the tabs left', (tester) async {
+    // The grid keeps its items, and the count of tabs it was built with,
+    // through mode changes.
+    final controller = await pumpOverview(tester, tabCount: 4);
+
+    controller.remove(1);
+    await tester.pumpAndSettle();
+    controller.expand(2);
+    await tester.pumpAndSettle();
+    controller.collapse();
+    await tester.pumpAndSettle();
+
+    expect(controller.tabs, [0, 2, 3]);
+    expect(find.text('T1'), findsNothing);
+    for (final tab in [0, 2, 3]) {
+      expect(find.text('T$tab').hitTestable(), findsOneWidget);
+    }
+    expect(controller.isAnyExpanding || controller.isAnyCollapsing, isFalse);
+
+    controller.add(4);
+    await tester.pumpAndSettle();
+    controller.expand(4);
+    await tester.pumpAndSettle();
+    controller.collapse();
+    await tester.pumpAndSettle();
+    expect(find.text('T4').hitTestable(), findsOneWidget);
+  });
 }
