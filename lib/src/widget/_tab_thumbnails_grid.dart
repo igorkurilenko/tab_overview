@@ -353,8 +353,9 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
   );
 }
 
-/// Builds again when whether [tab] is expanded changes, as when a swipe in
-/// expanded mode changes the active tab, without the rest of the grid.
+/// Builds again when whether [tab] is expanded changes, as when the mode
+/// changes or a swipe in expanded mode changes the active tab, without the
+/// rest of the grid.
 class _TabExpandedBuilder<T> extends StatefulWidget {
   final TabOverviewController<T> controller;
   final T tab;
@@ -376,27 +377,35 @@ class _TabExpandedBuilderState<T> extends State<_TabExpandedBuilder<T>> {
   @override
   void initState() {
     super.initState();
-    widget.controller.addActiveTabChangedListener(_handleActiveTabChanged);
+    _listenTo(widget.controller);
   }
 
   @override
   void didUpdateWidget(_TabExpandedBuilder<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.controller != widget.controller) {
-      oldWidget.controller.removeActiveTabChangedListener(
-        _handleActiveTabChanged,
-      );
-      widget.controller.addActiveTabChangedListener(_handleActiveTabChanged);
+      _stopListeningTo(oldWidget.controller);
+      _listenTo(widget.controller);
     }
   }
 
   @override
   void dispose() {
-    widget.controller.removeActiveTabChangedListener(_handleActiveTabChanged);
+    _stopListeningTo(widget.controller);
     super.dispose();
   }
 
-  void _handleActiveTabChanged() {
+  void _listenTo(TabOverviewController<T> controller) => controller
+    ..addActiveTabChangedListener(_handleChange)
+    ..addModeChangedListener(_handleModeChanged);
+
+  void _stopListeningTo(TabOverviewController<T> controller) => controller
+    ..removeActiveTabChangedListener(_handleChange)
+    ..removeModeChangedListener(_handleModeChanged);
+
+  void _handleModeChanged(TabOverviewMode _) => _handleChange();
+
+  void _handleChange() {
     if (widget.controller.isTabExpanded(widget.tab) != _expanded) {
       setState(() {});
     }
