@@ -23,20 +23,20 @@ part of '../tab_overview.dart';
 /// position on the first rebuild after a flight.
 class _TabDecoration<T> extends StatelessWidget {
   final TabOverview<T> overview;
-  final T tab;
+  final _TabEntry<T> entry;
   final Decoration idleDecoration;
   final Widget child;
 
   const _TabDecoration({
     required this.overview,
-    required this.tab,
+    required this.entry,
     required this.idleDecoration,
     required this.child,
   });
 
   @override
   Widget build(BuildContext context) {
-    final flight = overview.controller._tabFlights[tab];
+    final flight = entry.flight;
 
     return AnimatedBuilder(
       animation: flight?.animation ?? kAlwaysCompleteAnimation,

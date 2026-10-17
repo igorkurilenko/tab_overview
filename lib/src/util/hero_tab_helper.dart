@@ -14,20 +14,22 @@
 
 import 'package:flutter/widgets.dart';
 
-// Tags and keys hold the tab itself, so they're equal exactly when the tabs
-// are, as the controller's tabs are, and never because hash codes collide.
-mixin HeroTabHelper<T> {
-  Object tabHeroTag(T tab) => (tab, 'tab');
+// Tags and keys hold the tab's entry, which is equal only to itself. So a
+// tab's heroes pair with each other only, whatever the tab's equality and
+// hash code do, and a tab removed and added again pairs with neither of its
+// old heroes.
+mixin HeroTabHelper {
+  Object tabHeroTag(Object entry) => (entry, 'tab');
 
-  Key tabThumbHeroKey(T tab) => ValueKey((tab, 'thumb'));
+  Key tabThumbHeroKey(Object entry) => ValueKey((entry, 'thumb'));
 
-  Key expandedTabHeroKey(T tab) => ValueKey((tab, 'expanded'));
+  Key expandedTabHeroKey(Object entry) => ValueKey((entry, 'expanded'));
 
-  Object removeButtonHeroTag(T tab) => (tab, 'remove button');
+  Object removeButtonHeroTag(Object entry) => (entry, 'remove button');
 
-  Key tabThumbRemoveButtonHeroKey(T tab) =>
-      ValueKey((tab, 'remove button thumb'));
+  Key tabThumbRemoveButtonHeroKey(Object entry) =>
+      ValueKey((entry, 'remove button thumb'));
 
-  Key expandedTabRemoveButtonHeroKey(T tab) =>
-      ValueKey((tab, 'remove button expanded'));
+  Key expandedTabRemoveButtonHeroKey(Object entry) =>
+      ValueKey((entry, 'remove button expanded'));
 }
