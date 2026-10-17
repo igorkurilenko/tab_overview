@@ -236,9 +236,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
       return Container();
     }
 
-    Widget thumb = overview.tabThumbnailBuilder(context, tab);
-    thumb = _decorate(thumb, tab);
-    thumb = _TabPresence<T>(controller: controller, tab: tab, child: thumb);
+    final thumb = _buildThumbnail(context, tab);
 
     Widget removeButton = overview.removeTabButtonBuilder(context, tab);
     removeButton = _TabPresence<T>(
@@ -320,9 +318,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
   }
 
   Widget _buildOffScreenThumb(BuildContext context, T tab) {
-    Widget thumb = overview.tabThumbnailBuilder(context, tab);
-    thumb = _decorate(thumb, tab);
-    thumb = _TabPresence<T>(controller: controller, tab: tab, child: thumb);
+    final thumb = _buildThumbnail(context, tab);
 
     return _TabExpandedBuilder<T>(
       controller: controller,
@@ -334,11 +330,17 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
     );
   }
 
-  Widget _decorate(Widget thumb, T tab) => _TabDecoration<T>(
-    overview: overview,
+  // What tabThumbnailBuilder builds, decorated, and scaled and faded in and
+  // out as the tab is added and removed.
+  Widget _buildThumbnail(BuildContext context, T tab) => _TabPresence<T>(
+    controller: controller,
     tab: tab,
-    idleDecoration: overview.thumbnailDecoration,
-    child: thumb,
+    child: _TabDecoration<T>(
+      overview: overview,
+      tab: tab,
+      idleDecoration: overview.thumbnailDecoration,
+      child: overview.tabThumbnailBuilder(context, tab),
+    ),
   );
 }
 
