@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.1.6]
+### Fixed
+- A tab whose hash code changes while it flies, such as one whose equality follows a title that changes as its page loads, no longer leaves the overview ignoring taps.
+- `scrollToTab` scrolls all the way to a tab just added on a new row. It stopped a row short.
+
 ## [0.1.5]
 ### Fixed
 - Show a tab that's added again while its removal still animates, as when a closed tab is brought back right away. It was in `tabs`, but its thumbnail never showed.
