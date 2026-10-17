@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.1.8]
+### Fixed
+- Removing the expanded tab collapses to the tab that takes its place. Since 0.0.6, the overview scrolled to its top instead, leaving that tab off screen.
+- Removing a tab while it expands from off screen leaves the overview where it was. It scrolled to the top.
+
 ## [0.1.7]
 ### Changed
 - Rebuild only the thumbnail of the tab that expands or collapses, not every thumbnail. Expanding a tab rebuilt every other thumbnail once, and collapsing it rebuilt every thumbnail twice.

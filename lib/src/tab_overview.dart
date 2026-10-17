@@ -25,7 +25,6 @@ import 'package:tab_overview/src/widget/remove_tab_button.dart';
 
 import 'util/tab_flight.dart';
 import 'util/hero_tab_helper.dart';
-import 'util/sliver_grid_delegate_decorator.dart';
 import 'util/model_widget_builder.dart';
 import 'widget/fitted_tab.dart';
 

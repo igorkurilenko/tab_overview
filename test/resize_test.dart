@@ -41,6 +41,27 @@ void main() {
     );
   });
 
+  testWidgets('collapses to the tab after the safe area grows', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(800, 600);
+    addTearDown(tester.view.reset);
+    final controller = TabOverviewController<int>(
+      initialTabs: List.generate(40, (i) => i),
+    );
+    await tester.pumpWidget(overview(controller));
+    controller.expand(7);
+    await tester.pumpAndSettle();
+
+    // The grid's padding follows the safe area, which pushes tab 7's thumb
+    // down past the grid's cache extent, so it's no longer built.
+    tester.view.padding = const FakeViewPadding(top: 450);
+    await tester.pumpAndSettle();
+    controller.collapse();
+    await tester.pumpAndSettle();
+
+    expect(find.text('T7').hitTestable(), findsOneWidget);
+  });
+
   group('shows the expanded tab on every frame', () {
     Future<void> expand(WidgetTester tester) async {
       final controller = TabOverviewController<int>(initialTabs: [0, 1, 2]);
