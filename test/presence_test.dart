@@ -112,4 +112,41 @@ void main() {
       greaterThan(15),
     );
   });
+
+  // Its add animation hands over to its remove animation, which the
+  // remove builder gives it.
+  for (final (added, removed) in [
+    ([4], 4),
+    ([4, 5], 4),
+  ]) {
+    testWidgets('tab $removed removed while it grows in, after adding '
+        '$added, shrinks away', (tester) async {
+      final controller = await pumpOverview(tester);
+      added.forEach(controller.add);
+      await pumpFrames(tester, 5);
+      expect(scaleOf(tester, removed), inExclusiveRange(0, 1));
+
+      controller.remove(removed);
+      final scales = <double>[];
+      for (var frame = 0; frame < 30; frame++) {
+        await tester.pump(const Duration(milliseconds: 16));
+        if (find.text('T$removed').evaluate().isEmpty) break;
+        scales.add(scaleOf(tester, removed));
+      }
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      for (var frame = 1; frame < scales.length; frame++) {
+        expect(scales[frame], lessThanOrEqualTo(scales[frame - 1]));
+      }
+      expect(find.text('T$removed'), findsNothing);
+      expect(controller.tabs, [
+        0,
+        1,
+        2,
+        3,
+        ...added.where((t) => t != removed),
+      ]);
+    });
+  }
 }
