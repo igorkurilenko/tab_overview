@@ -15,29 +15,16 @@
 part of '../tab_overview.dart';
 
 class _TabThumbnailsGrid<T> extends StatefulWidget {
-  final TabOverviewController<T> controller;
-  final ModelWidgetBuilder<T> removeTabButtonBuilder;
-  final EdgeInsets? thumbnailsGridPadding;
-  final SliverGridDelegate thumbnailsGridDelegate;
-  final ModelWidgetBuilder<T> tabThumbnailBuilder;
-  final Duration thumbnailsMotionAnimationDuration;
-  final Curve thumbnailsMotionAnimationCurve;
-  final ScrollBehavior? scrollBehavior;
-  final Decoration thumbnailDecoration;
-  final Decoration expandedTabDecoration;
+  final TabOverview<T> overview;
+
+  /// The overview's [TabOverview.thumbnailsGridDelegate], or the default
+  /// one for the overview's size.
+  final SliverGridDelegate gridDelegate;
 
   const _TabThumbnailsGrid({
     super.key,
-    required this.controller,
-    required this.removeTabButtonBuilder,
-    this.thumbnailsGridPadding,
-    required this.thumbnailsGridDelegate,
-    required this.tabThumbnailBuilder,
-    required this.thumbnailsMotionAnimationDuration,
-    required this.thumbnailsMotionAnimationCurve,
-    this.scrollBehavior,
-    required this.thumbnailDecoration,
-    required this.expandedTabDecoration,
+    required this.overview,
+    required this.gridDelegate,
   });
 
   @override
@@ -56,7 +43,9 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
 
   bool thumbOffScreenAt(int index) => !thumbsGridState!.isItemRendered(index);
 
-  TabOverviewController<T> get controller => widget.controller;
+  TabOverview<T> get overview => widget.overview;
+
+  TabOverviewController<T> get controller => overview.controller;
 
   AnimatedReorderableState? get thumbsGridState => thumbsGridKey.currentState;
 
@@ -172,7 +161,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
       children: [
         IgnorePointer(
           ignoring: controller.isAnyExpanding || controller.isAnyCollapsing,
-          child: _buildThumbs(widget.thumbnailsGridDelegate),
+          child: _buildThumbs(widget.gridDelegate),
         ),
         // Needed to support hero transition
         // if the thumb is off-screen and not rendered.
@@ -183,7 +172,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
 
   Widget _buildThumbs(SliverGridDelegate gridDelegate) {
     return ScrollConfiguration(
-      behavior: widget.scrollBehavior ?? ScrollConfiguration.of(context),
+      behavior: overview.scrollBehavior ?? ScrollConfiguration.of(context),
       child: AnimatedScale(
         scale: thumbsGridScale,
         duration:
@@ -201,8 +190,8 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
               : Curves.fastOutSlowIn,
           child: AnimatedReorderable.grid(
             key: thumbsGridKey,
-            motionAnimationDuration: widget.thumbnailsMotionAnimationDuration,
-            motionAnimationCurve: widget.thumbnailsMotionAnimationCurve,
+            motionAnimationDuration: overview.thumbnailsMotionAnimationDuration,
+            motionAnimationCurve: overview.thumbnailsMotionAnimationCurve,
             keyGetter: (index) => ValueKey(model[index]),
             reorderableGetter: model.reorderableAt,
             onReorder: controller._reorderTabs,
@@ -214,7 +203,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
             gridView: GridView.builder(
               clipBehavior: Clip.none,
               controller: scrollController,
-              padding: widget.thumbnailsGridPadding,
+              padding: overview.thumbnailsGridPadding,
               gridDelegate: SliverGridLayoutNotifier(
                 gridDelegate: gridDelegate,
                 onLayout: (layout) {
@@ -247,11 +236,11 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
       return Container();
     }
 
-    Widget thumb = widget.tabThumbnailBuilder(context, tab);
+    Widget thumb = overview.tabThumbnailBuilder(context, tab);
     thumb = _decorate(thumb, tab);
     thumb = _TabPresence<T>(controller: controller, tab: tab, child: thumb);
 
-    Widget removeButton = widget.removeTabButtonBuilder(context, tab);
+    Widget removeButton = overview.removeTabButtonBuilder(context, tab);
     removeButton = _TabPresence<T>(
       controller: controller,
       tab: tab,
@@ -331,7 +320,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
   }
 
   Widget _buildOffScreenThumb(BuildContext context, T tab) {
-    Widget thumb = widget.tabThumbnailBuilder(context, tab);
+    Widget thumb = overview.tabThumbnailBuilder(context, tab);
     thumb = _decorate(thumb, tab);
     thumb = _TabPresence<T>(controller: controller, tab: tab, child: thumb);
 
@@ -348,9 +337,9 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
   Widget _decorate(Widget thumb, T tab) => _TabDecoration<T>(
     controller: controller,
     tab: tab,
-    thumbnailDecoration: widget.thumbnailDecoration,
-    expandedTabDecoration: widget.expandedTabDecoration,
-    idleDecoration: widget.thumbnailDecoration,
+    thumbnailDecoration: overview.thumbnailDecoration,
+    expandedTabDecoration: overview.expandedTabDecoration,
+    idleDecoration: overview.thumbnailDecoration,
     child: thumb,
   );
 }

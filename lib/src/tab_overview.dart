@@ -239,30 +239,11 @@ class _TabOverviewState<T> extends State<TabOverview<T>> {
         LayoutBuilder(
           builder: (context, constraints) => _TabThumbnailsGrid<T>(
             key: _thumbnailsGridKey,
-            controller: controller,
-            thumbnailsGridDelegate: _thumbnailsGridDelegateFor(constraints),
-            tabThumbnailBuilder: widget.tabThumbnailBuilder,
-            removeTabButtonBuilder: widget.removeTabButtonBuilder,
-            thumbnailDecoration: widget.thumbnailDecoration,
-            expandedTabDecoration: widget.expandedTabDecoration,
-            scrollBehavior: widget.scrollBehavior,
-            thumbnailsGridPadding: widget.thumbnailsGridPadding,
-            thumbnailsMotionAnimationDuration:
-                widget.thumbnailsMotionAnimationDuration,
-            thumbnailsMotionAnimationCurve:
-                widget.thumbnailsMotionAnimationCurve,
+            overview: widget,
+            gridDelegate: _thumbnailsGridDelegateFor(constraints),
           ),
         ),
-        if (expanded)
-          _ExpandedTab<T>(
-            key: _expandedTabKey,
-            controller: controller,
-            tabBuilder: widget.tabBuilder,
-            removeTabButtonBuilder: widget.removeTabButtonBuilder,
-            scrollBehavior: widget.scrollBehavior,
-            thumbnailDecoration: widget.thumbnailDecoration,
-            expandedTabDecoration: widget.expandedTabDecoration,
-          ),
+        if (expanded) _ExpandedTab<T>(key: _expandedTabKey, overview: widget),
       ],
     ),
   );

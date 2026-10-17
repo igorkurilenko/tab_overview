@@ -15,22 +15,9 @@
 part of '../tab_overview.dart';
 
 class _ExpandedTab<T> extends StatefulWidget {
-  final TabOverviewController<T> controller;
-  final ModelWidgetBuilder<T> tabBuilder;
-  final ModelWidgetBuilder<T> removeTabButtonBuilder;
-  final ScrollBehavior? scrollBehavior;
-  final Decoration thumbnailDecoration;
-  final Decoration expandedTabDecoration;
+  final TabOverview<T> overview;
 
-  const _ExpandedTab({
-    super.key,
-    required this.controller,
-    required this.tabBuilder,
-    required this.removeTabButtonBuilder,
-    this.scrollBehavior,
-    required this.thumbnailDecoration,
-    required this.expandedTabDecoration,
-  });
+  const _ExpandedTab({super.key, required this.overview});
 
   @override
   State<_ExpandedTab<T>> createState() => _ExpandedTabState<T>();
@@ -42,7 +29,9 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
 
   _TabOverviewModel<T> get model => controller._model;
 
-  TabOverviewController<T> get controller => widget.controller;
+  TabOverview<T> get overview => widget.overview;
+
+  TabOverviewController<T> get controller => overview.controller;
 
   @override
   void initState() {
@@ -75,7 +64,7 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
   Widget build(BuildContext context) {
     return PageView.builder(
       controller: pageController,
-      scrollBehavior: widget.scrollBehavior,
+      scrollBehavior: overview.scrollBehavior,
       onPageChanged: controller._handleExpandedTabPageChanged,
       itemCount: model.tabCount,
       itemBuilder: (context, index) => FractionallySizedBox(
@@ -86,13 +75,13 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
   }
 
   Widget _buildExpandedTab(BuildContext context, T tab) {
-    Widget tabWidget = FittedTab(child: widget.tabBuilder(context, tab));
+    Widget tabWidget = FittedTab(child: overview.tabBuilder(context, tab));
     tabWidget = _TabDecoration<T>(
       controller: controller,
       tab: tab,
-      thumbnailDecoration: widget.thumbnailDecoration,
-      expandedTabDecoration: widget.expandedTabDecoration,
-      idleDecoration: widget.expandedTabDecoration,
+      thumbnailDecoration: overview.thumbnailDecoration,
+      expandedTabDecoration: overview.expandedTabDecoration,
+      idleDecoration: overview.expandedTabDecoration,
       child: tabWidget,
     );
     tabWidget = _TabPresence<T>(
@@ -123,7 +112,7 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
               ignoring: true,
               child: Opacity(
                 opacity: 0,
-                child: widget.removeTabButtonBuilder(context, tab),
+                child: overview.removeTabButtonBuilder(context, tab),
               ),
             ),
           ),
