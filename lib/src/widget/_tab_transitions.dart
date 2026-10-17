@@ -35,25 +35,29 @@ class _TabDecoration<T> extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final flight = entry.flight;
-
-    return AnimatedBuilder(
-      animation: flight?.animation ?? kAlwaysCompleteAnimation,
-      builder: (context, child) => Container(
-        clipBehavior: Clip.antiAlias,
-        decoration: flight == null
-            ? idleDecoration
-            : Decoration.lerp(
-                overview.thumbnailDecoration,
-                overview.expandedTabDecoration,
-                flight.expansion,
-              ),
+  Widget build(BuildContext context) => ListenableBuilder(
+    // A new flight, or the end of one.
+    listenable: entry,
+    builder: (context, child) {
+      final flight = entry.flight;
+      return AnimatedBuilder(
+        animation: flight?.animation ?? kAlwaysCompleteAnimation,
+        builder: (context, child) => Container(
+          clipBehavior: Clip.antiAlias,
+          decoration: flight == null
+              ? idleDecoration
+              : Decoration.lerp(
+                  overview.thumbnailDecoration,
+                  overview.expandedTabDecoration,
+                  flight.expansion,
+                ),
+          child: child,
+        ),
         child: child,
-      ),
-      child: child,
-    );
-  }
+      );
+    },
+    child: child,
+  );
 }
 
 /// Scales and fades a tab's thumbnail, page or remove button with

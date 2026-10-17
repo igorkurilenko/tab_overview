@@ -76,8 +76,6 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
     super.dispose();
   }
 
-  void stateChanged() => setState(() {});
-
   var _revealActiveThumbScheduled = false;
 
   // A relayout while expanded, such as a window resize, can move the active
@@ -163,13 +161,20 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        IgnorePointer(
-          ignoring: controller.isAnyExpanding || controller.isAnyCollapsing,
+        ListenableBuilder(
+          listenable: controller._flightsChanged,
+          builder: (context, thumbs) => IgnorePointer(
+            ignoring: controller.isAnyExpanding || controller.isAnyCollapsing,
+            child: thumbs,
+          ),
           child: _buildThumbs(widget.gridDelegate),
         ),
         // Needed to support hero transition
         // if the thumb is off-screen and not rendered.
-        _buildOffScreenThumbs(),
+        ListenableBuilder(
+          listenable: model.standInsChanged,
+          builder: (context, _) => _buildOffScreenThumbs(),
+        ),
       ],
     );
   }
@@ -230,9 +235,9 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
     BuildContext context,
     _TabEntry<T> entry, {
     Animation<double> presence = kAlwaysCompleteAnimation,
-  }) => _TabExpandedBuilder<T>(
+  }) => _TabCellBuilder<T>(
     controller: controller,
-    tab: entry.tab,
+    entry: entry,
     builder: (context) => _buildThumbOrEmptyCell(context, entry, presence),
   );
 
@@ -246,7 +251,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
       return Container();
     }
 
-    if (model.hasStandIn(entry)) {
+    if (entry.hasStandIn) {
       return Container();
     }
 
@@ -326,9 +331,9 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
       entry.presence ?? kAlwaysCompleteAnimation,
     );
 
-    return _TabExpandedBuilder<T>(
+    return _TabCellBuilder<T>(
       controller: controller,
-      tab: tab,
+      entry: entry,
       builder: (context) => HeroMode(
         enabled: !controller.isTabExpanded(tab),
         child: _buildThumbHero(thumb, entry),
@@ -353,67 +358,80 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
   );
 }
 
-/// Builds again when whether [tab] is expanded changes, as when the mode
-/// changes or a swipe in expanded mode changes the active tab, without the
-/// rest of the grid.
-class _TabExpandedBuilder<T> extends StatefulWidget {
+/// Builds again when whether its tab is expanded changes, as when the mode
+/// changes or a swipe in expanded mode changes the active tab, or whether
+/// the tab has a stand-in, without the rest of the grid.
+class _TabCellBuilder<T> extends StatefulWidget {
   final TabOverviewController<T> controller;
-  final T tab;
+  final _TabEntry<T> entry;
   final WidgetBuilder builder;
 
-  const _TabExpandedBuilder({
+  const _TabCellBuilder({
     required this.controller,
-    required this.tab,
+    required this.entry,
     required this.builder,
   });
 
   @override
-  State<_TabExpandedBuilder<T>> createState() => _TabExpandedBuilderState<T>();
+  State<_TabCellBuilder<T>> createState() => _TabCellBuilderState<T>();
 }
 
-class _TabExpandedBuilderState<T> extends State<_TabExpandedBuilder<T>> {
+class _TabCellBuilderState<T> extends State<_TabCellBuilder<T>> {
   late bool _expanded;
+  late bool _hasStandIn;
 
   @override
   void initState() {
     super.initState();
-    _listenTo(widget.controller);
+    _listenTo(widget.controller, widget.entry);
   }
 
   @override
-  void didUpdateWidget(_TabExpandedBuilder<T> oldWidget) {
+  void didUpdateWidget(_TabCellBuilder<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.controller != widget.controller) {
-      _stopListeningTo(oldWidget.controller);
-      _listenTo(widget.controller);
+    if (oldWidget.controller != widget.controller ||
+        oldWidget.entry != widget.entry) {
+      _stopListeningTo(oldWidget.controller, oldWidget.entry);
+      _listenTo(widget.controller, widget.entry);
     }
   }
 
   @override
   void dispose() {
-    _stopListeningTo(widget.controller);
+    _stopListeningTo(widget.controller, widget.entry);
     super.dispose();
   }
 
-  void _listenTo(TabOverviewController<T> controller) => controller
-    ..addActiveTabChangedListener(_handleChange)
-    ..addModeChangedListener(_handleModeChanged);
+  void _listenTo(TabOverviewController<T> controller, _TabEntry<T> entry) {
+    controller
+      ..addActiveTabChangedListener(_handleChange)
+      ..addModeChangedListener(_handleModeChanged);
+    entry.addListener(_handleChange);
+  }
 
-  void _stopListeningTo(TabOverviewController<T> controller) => controller
-    ..removeActiveTabChangedListener(_handleChange)
-    ..removeModeChangedListener(_handleModeChanged);
+  void _stopListeningTo(
+    TabOverviewController<T> controller,
+    _TabEntry<T> entry,
+  ) {
+    controller
+      ..removeActiveTabChangedListener(_handleChange)
+      ..removeModeChangedListener(_handleModeChanged);
+    entry.removeListener(_handleChange);
+  }
 
   void _handleModeChanged(TabOverviewMode _) => _handleChange();
 
   void _handleChange() {
-    if (widget.controller.isTabExpanded(widget.tab) != _expanded) {
+    if (widget.controller.isTabExpanded(widget.entry.tab) != _expanded ||
+        widget.entry.hasStandIn != _hasStandIn) {
       setState(() {});
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    _expanded = widget.controller.isTabExpanded(widget.tab);
+    _expanded = widget.controller.isTabExpanded(widget.entry.tab);
+    _hasStandIn = widget.entry.hasStandIn;
     return widget.builder(context);
   }
 }

@@ -17,6 +17,9 @@ part of 'tab_overview.dart';
 class _TabOverviewModel<T> {
   final List<_TabEntry<T>> _entries;
   final _standIns = <_TabEntry<T>>{};
+
+  /// Tells when a stand-in is added or removed.
+  final standInsChanged = _Notifier();
   GlobalKey<_TabThumbnailsGridState>? _thumbnailsGridKey;
 
   _TabOverviewModel({Iterable<T>? initialTabs})
@@ -74,11 +77,19 @@ class _TabOverviewModel<T> {
 
   void reorderTabs(Permutations permutations) => permutations.apply(_entries);
 
-  bool addStandIn(_TabEntry<T> entry) => _standIns.add(entry);
+  bool addStandIn(_TabEntry<T> entry) => _changeStandIn(entry, true);
 
-  bool hasStandIn(_TabEntry<T> entry) => _standIns.contains(entry);
+  bool hasStandIn(_TabEntry<T> entry) => entry.hasStandIn;
 
-  bool removeStandIn(_TabEntry<T> entry) => _standIns.remove(entry);
+  bool removeStandIn(_TabEntry<T> entry) => _changeStandIn(entry, false);
+
+  bool _changeStandIn(_TabEntry<T> entry, bool hasStandIn) {
+    final changed = hasStandIn ? _standIns.add(entry) : _standIns.remove(entry);
+    if (!changed) return false;
+    entry.hasStandIn = hasStandIn;
+    standInsChanged.notify();
+    return true;
+  }
 }
 
 /// A tab, from when it's added until it's removed and its last animation
@@ -87,19 +98,47 @@ class _TabOverviewModel<T> {
 ///
 /// Entries are told apart by identity, never by the tab's equality or hash
 /// code, which may change while the tab animates.
-class _TabEntry<T> {
+///
+/// Tells its listeners, such as the tab's cell and decorations, when its
+/// flight or its stand-in changes.
+class _TabEntry<T> extends ChangeNotifier {
   final T tab;
   final key = UniqueKey();
 
-  /// The tab's flight between its thumbnail and its page, from when it's
-  /// asked for until the tab lands.
-  TabFlight? flight;
+  TabFlight? _flight;
+
+  bool _hasStandIn = false;
 
   /// The tab's add or remove animation while it runs, which the tab's page
   /// and stand-in scale and fade with. Grid items get their own.
   Animation<double>? presence;
 
   _TabEntry(this.tab);
+
+  /// The tab's flight between its thumbnail and its page, from when it's
+  /// asked for until the tab lands.
+  TabFlight? get flight => _flight;
+
+  set flight(TabFlight? value) {
+    if (identical(_flight, value)) return;
+    _flight = value;
+    notifyListeners();
+  }
+
+  /// Whether the tab's thumbnail is off screen, with a stand-in for a flight
+  /// to fly to or from.
+  bool get hasStandIn => _hasStandIn;
+
+  set hasStandIn(bool value) {
+    if (_hasStandIn == value) return;
+    _hasStandIn = value;
+    notifyListeners();
+  }
+}
+
+/// A [ChangeNotifier] that whoever holds it tells when to notify.
+class _Notifier extends ChangeNotifier {
+  void notify() => notifyListeners();
 }
 
 /// Specifies the display mode of the [TabOverview].
