@@ -56,32 +56,20 @@ class _TabDecoration<T> extends StatelessWidget {
   }
 }
 
-/// Scales and fades a tab's thumbnail, page or remove button in as the tab
-/// is added, and out as it's removed.
+/// Scales and fades a tab's thumbnail, page or remove button with
+/// [animation], in as the tab is added, and out as it's removed.
 ///
 /// The same widgets whether or not the tab is being added or removed, so
 /// its content keeps its State when the animation ends.
-class _TabPresence<T> extends StatelessWidget {
-  final TabOverviewController<T> controller;
-  final T tab;
+class _TabPresence extends StatelessWidget {
+  final Animation<double> animation;
   final Widget child;
 
-  const _TabPresence({
-    required this.controller,
-    required this.tab,
-    required this.child,
-  });
+  const _TabPresence({required this.animation, required this.child});
 
   @override
-  Widget build(BuildContext context) {
-    final animation =
-        controller._getTabRemoveAnimation(tab) ??
-        controller._getTabInsertAnimation(tab) ??
-        kAlwaysCompleteAnimation;
-
-    return ScaleTransition(
-      scale: animation,
-      child: FadeTransition(opacity: animation, child: child),
-    );
-  }
+  Widget build(BuildContext context) => ScaleTransition(
+    scale: animation,
+    child: FadeTransition(opacity: animation, child: child),
+  );
 }

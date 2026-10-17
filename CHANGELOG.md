@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.1.5]
+### Fixed
+- Show a tab that's added again while its removal still animates, as when a closed tab is brought back right away. It was in `tabs`, but its thumbnail never showed.
+- Listen to a tab's add or remove animation once, rather than once more on every rebuild while it animated.
+- In the example, the minus button closes the active tab. It removed the second tab, and threw once only one was left. New tabs are numbered from a counter, so numbers don't repeat after a removal.
+
 ## [0.1.4]
 ### Fixed
 - Expanding a tab while it collapses, or collapsing it while it expands, no longer leaves the overview ignoring taps, or the expanded tab with the thumbnail's decoration. 0.1.0 had this when the turn came early in the flight; with hero_here 1.5.0 it came at any point. The same goes for expanding and collapsing in one go.

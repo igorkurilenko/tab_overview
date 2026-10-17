@@ -82,9 +82,8 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
       idleDecoration: overview.expandedTabDecoration,
       child: tabWidget,
     );
-    tabWidget = _TabPresence<T>(
-      controller: controller,
-      tab: tab,
+    tabWidget = _TabPresence(
+      animation: controller._tabPresence(tab),
       child: tabWidget,
     );
 

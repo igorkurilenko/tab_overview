@@ -15,25 +15,28 @@
 part of 'tab_overview.dart';
 
 class _TabOverviewModel<T> {
-  final List<T> _tabs;
+  final List<_TabEntry<T>> _entries;
   final _offScreenThumbTabs = <T>{};
   GlobalKey<_TabThumbnailsGridState>? _thumbnailsGridKey;
 
   _TabOverviewModel({Iterable<T>? initialTabs})
-    : _tabs = List<T>.from(initialTabs ?? <T>[]);
+    : _entries = [for (final tab in initialTabs ?? <T>[]) _TabEntry(tab)];
 
   _TabThumbnailsGridState? get _thumbnailsGridState =>
       _thumbnailsGridKey?.currentState;
 
-  List<T> get tabs => UnmodifiableListView(_tabs);
+  List<T> get tabs => UnmodifiableListView(_entries.map((entry) => entry.tab));
 
-  int get tabCount => _tabs.length;
+  int get tabCount => _entries.length;
 
   List<T> get offScreenThumbTabs => UnmodifiableListView(_offScreenThumbTabs);
 
-  int indexOfTab(T tab) => _tabs.indexOf(tab);
+  int indexOfTab(T tab) => _entries.indexWhere((entry) => entry.tab == tab);
 
-  bool containsTab(T tab) => _tabs.contains(tab);
+  bool containsTab(T tab) => indexOfTab(tab) != -1;
+
+  /// The key of the grid's item for the tab at [index].
+  Key keyAt(int index) => _entries[index].key;
 
   bool reorderableAt(int index) => reorderable(tabs[index]);
 
@@ -44,26 +47,36 @@ class _TabOverviewModel<T> {
   bool removable(T tab) => tab is RemovableTab ? tab.removable : true;
 
   void addTab(T tab, {required Duration duration}) {
-    _tabs.add(tab);
+    _entries.add(_TabEntry(tab));
     _thumbnailsGridState?.addTab(tab, duration: duration);
   }
 
   T removeTabAt(int index, {required Duration duration}) {
-    final removedTab = _tabs.removeAt(index);
+    final removedTab = _entries.removeAt(index).tab;
     _thumbnailsGridState?.removeTab(index, removedTab, duration: duration);
 
     return removedTab;
   }
 
-  T operator [](int index) => _tabs[index];
+  T operator [](int index) => _entries[index].tab;
 
-  void reorderTabs(Permutations permutations) => permutations.apply(_tabs);
+  void reorderTabs(Permutations permutations) => permutations.apply(_entries);
 
   bool addOffScreenThumbTab(T tab) => _offScreenThumbTabs.add(tab);
 
   bool containsOffScreenThumbTab(T tab) => _offScreenThumbTabs.contains(tab);
 
   bool removeOffScreenThumbTab(T tab) => _offScreenThumbTabs.remove(tab);
+}
+
+/// A tab, from when it's added until it's removed. A tab removed and added
+/// again is a new entry, so the grid tells its item from the removed one,
+/// which may still be animating out.
+class _TabEntry<T> {
+  final T tab;
+  final key = UniqueKey();
+
+  _TabEntry(this.tab);
 }
 
 /// Specifies the display mode of the [TabOverview].
