@@ -198,6 +198,55 @@ void main() {
     expect(flyingExpansion(tester), closeTo(turnedAt, 0.15));
   });
 
+  testWidgets('removing a tab in the same event as its expand leaves it '
+      'in the overview', (tester) async {
+    // Tab 1 is on screen, so its expand switches to its page at once. Tab 38
+    // is off screen, so its expand waits a frame for its stand-in.
+    for (final tab in [1, 38]) {
+      await tester.pumpWidget(const SizedBox());
+      final controller = await pumpOverview(tester, tabCount: 40);
+
+      controller.expand(tab);
+      controller.remove(tab);
+      await tester.pumpAndSettle();
+
+      expect(controller.mode, TabOverviewMode.overview, reason: '$tab');
+      expect(find.text('T$tab'), findsNothing, reason: '$tab');
+      expectNothingFlying(controller);
+      await expectTapOnThumbnailExpands(tester, controller);
+    }
+  });
+
+  testWidgets('removing the expanded tab before the overview is built '
+      'leaves nothing flying', (tester) async {
+    final controller = TabOverviewController<int>(
+      initialTabs: [0, 1, 2, 3],
+      initialMode: TabOverviewMode.expanded,
+      activeTab: 1,
+    );
+    controller.remove(1);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: TabOverview<int>.builder(
+          controller: controller,
+          tabBuilder: (context, tab) => GestureDetector(
+            onTap: () => controller.expand(tab),
+            child: ColoredBox(
+              color: Colors.white,
+              child: Center(child: Text('T$tab')),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(controller.mode, TabOverviewMode.overview);
+    expect(controller.activeTab, 2);
+    expectNothingFlying(controller);
+    await expectTapOnThumbnailExpands(tester, controller);
+  });
+
   testWidgets('a collapse in the same event as an expand cancels it', (
     tester,
   ) async {

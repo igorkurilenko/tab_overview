@@ -141,7 +141,13 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
 
     final isActiveTabRemoved = isActiveTab(removedTab);
 
-    if (expanded && isActiveTabRemoved) {
+    if (expanded && isActiveTabRemoved && _expandedTabState == null) {
+      // Removed before the overview built its page, so it has no page to
+      // collapse from. The overview goes back to the grid before it shows a
+      // page, and stays where it was.
+      _takeBackExpand(removed);
+      activeTab = _neighbourOfRemovedTabAt(index);
+    } else if (expanded && isActiveTabRemoved) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _collapseOffScreen(
           removed,
@@ -299,7 +305,12 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
     if (_model.addStandIn(entry)) _notifyOffScreenThumbTabAdded(entry.tab);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _doExpand(entry, duration: duration, curve: curve);
+      // A tab removed since stays in the overview.
+      if (_model.indexOfEntry(entry) == -1) {
+        _removeStandIn(entry);
+      } else {
+        _doExpand(entry, duration: duration, curve: curve);
+      }
     });
   }
 
@@ -311,6 +322,21 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
     _askForTabFlight(entry, toPage: true, duration: duration, curve: curve);
 
     _mode = TabOverviewMode.expanded;
+    _notifyModeChanged(_mode);
+  }
+
+  // Takes back the switch to the tab's page before the overview builds it:
+  // the tab stays on its thumbnail, or keeps flying back to it.
+  void _takeBackExpand(_TabEntry<T> entry) {
+    final flight = entry.flight;
+    if (flight != null && flight.started) {
+      flight.ask(toPage: false);
+    } else {
+      _setFlight(entry, null);
+      _removeStandIn(entry);
+    }
+
+    _mode = TabOverviewMode.overview;
     _notifyModeChanged(_mode);
   }
 
@@ -411,7 +437,7 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
     final landedOnPage = flight.headsToPage;
     if (flight.toPage == landedOnPage) {
       _setFlight(entry, null);
-      if (_model.removeStandIn(entry)) _notifyOffScreenThumbTabRemoved(tab);
+      _removeStandIn(entry);
     } else {
       // Asked elsewhere after the switch that sent it. The next switch
       // starts a flight for that, which needs the stand-in, if any.
@@ -424,6 +450,10 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
         _thumbnailsGridState?.jumpToThumb(tab);
       });
     }
+  }
+
+  void _removeStandIn(_TabEntry<T> entry) {
+    if (_model.removeStandIn(entry)) _notifyOffScreenThumbTabRemoved(entry.tab);
   }
 
   void _handleExpandedTabPageChanged(int page) {
