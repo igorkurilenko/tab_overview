@@ -19,7 +19,7 @@ part of 'tab_overview.dart';
 ///
 /// This controller provides methods to add, remove, reorder, and activate tabs, as well as listeners for changes
 /// in tab states, allowing detailed customization of the tab-switching experience.
-class TabOverviewController<T> with _AnimationContexts<T>, _Listeners<T> {
+class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
   TabOverviewMode _mode;
   T? _activeTab;
   final _TabOverviewModel<T> _model;
@@ -189,6 +189,9 @@ class TabOverviewController<T> with _AnimationContexts<T>, _Listeners<T> {
   }) => expand(_model[index], duration: duration, curve: curve);
 
   /// Expands a specified tab, switching the mode to `expanded`.
+  ///
+  /// A tab still flying back to its thumbnail turns toward its page from
+  /// where it is, over the duration and curve of the flight it's in.
   void expand(
     T tab, {
     Duration duration = HeroHere.defaultFlightAnimationDuration,
@@ -240,6 +243,8 @@ class TabOverviewController<T> with _AnimationContexts<T>, _Listeners<T> {
   /// Collapses the active tab, returning to `overview` mode and animating the change.
   ///
   /// Accepts optional [duration] and [curve] parameters to control the animation.
+  /// A tab still flying to its page turns toward its thumbnail from where it
+  /// is, over the duration and curve of the flight it's in.
   void collapse({
     Duration duration = HeroHere.defaultFlightAnimationDuration,
     Curve curve = Curves.easeInOut,
@@ -259,8 +264,7 @@ class TabOverviewController<T> with _AnimationContexts<T>, _Listeners<T> {
   void dispose() {
     _activeTab = null;
 
-    _expandAnimationContextsByTab.clear();
-    _collapseAnimationContextsByTab.clear();
+    _tabFlights.clear();
 
     _insertAnimationByTab.clear();
     _removeAnimationByTab.clear();
@@ -295,9 +299,7 @@ class TabOverviewController<T> with _AnimationContexts<T>, _Listeners<T> {
   }
 
   void _doExpand(T tab, {required Duration duration, required Curve curve}) {
-    _ensureTabExpandAnimationContext(tab)
-      ..duration = duration
-      ..curve = curve;
+    _askForTabFlight(tab, toPage: true, duration: duration, curve: curve);
 
     _mode = TabOverviewMode.expanded;
     _notifyModeChanged(_mode);
@@ -319,23 +321,96 @@ class TabOverviewController<T> with _AnimationContexts<T>, _Listeners<T> {
   }
 
   void _doCollapse(T tab, {required Duration duration, required Curve curve}) {
-    _ensureTabCollapseAnimationContext(tab)
-      ..duration = duration
-      ..curve = curve;
+    _askForTabFlight(tab, toPage: false, duration: duration, curve: curve);
 
     _mode = TabOverviewMode.overview;
     _notifyModeChanged(_mode);
   }
 
-  void _expandAnimationCompleted(T tab) {
-    _removeTabExpandAnimationContext(tab);
+  // Asks for the tab to fly to its page or its thumbnail, in the flight the
+  // coming switch starts, or in the flight it's in, which the switch diverts.
+  void _askForTabFlight(
+    T tab, {
+    required bool toPage,
+    required Duration duration,
+    required Curve curve,
+  }) {
+    final flight = _tabFlights[tab];
+    if (flight == null) {
+      _tabFlights[tab] = TabFlight(
+        toPage: toPage,
+        duration: duration,
+        curve: curve,
+      );
+    } else if (!flight.started && flight.headsToPage == toPage) {
+      // Asked back to where it is before the switch, which now won't come.
+      _tabFlights.remove(tab);
+    } else {
+      flight.ask(toPage: toPage);
+    }
+  }
 
-    if (_model.removeOffScreenThumbTab(tab)) {
-      _notifyOffScreenThumbTabRemoved(tab);
-      _thumbnailsGridState?.stateChanged();
+  // hero_here asks the hero the flight lands on for its controller, else the
+  // hero it leaves, as the flight starts. [toPage] is whether that's the
+  // tab's page, for a flight nobody asked for.
+  AnimationController _createTabFlightController(
+    T tab,
+    TickerProvider vsync, {
+    required bool toPage,
+  }) {
+    final flight = _tabFlights[tab] ??= TabFlight(
+      toPage: toPage,
+      duration: HeroHere.defaultFlightAnimationDuration,
+      curve: HeroHere.defaultFlightAnimationCurve,
+    );
+    return TabFlightController(
+      vsync: vsync,
+      duration: flight.duration,
+      onDispose: () => _tabFlightEnded(tab, flight),
+    );
+  }
+
+  Animation<double> _createTabFlightAnimation(
+    T tab,
+    AnimationController controller,
+  ) {
+    final flight = _tabFlights[tab]!;
+    final animation = CurvedAnimation(parent: controller, curve: flight.curve);
+    flight.start(animation);
+    return animation;
+  }
+
+  // Starts each run of the tab's flight: the first, and one on each divert.
+  TickerFuture _runTabFlight(
+    T tab,
+    AnimationController controller, {
+    double? from,
+  }) {
+    _tabFlights[tab]?.setOff();
+    return controller.forward(from: from);
+  }
+
+  // However the flight ended: landed, or stopped by a switch that left no
+  // hero for it, or by the overview going away.
+  void _tabFlightEnded(T tab, TabFlight flight) {
+    final landedOnPage = flight.headsToPage;
+    var standInRemoved = false;
+    if (flight.toPage == landedOnPage) {
+      _tabFlights.remove(tab);
+      standInRemoved = _model.removeOffScreenThumbTab(tab);
+      if (standInRemoved) _notifyOffScreenThumbTabRemoved(tab);
+    } else {
+      // Asked elsewhere after the switch that sent it. The next switch
+      // starts a flight for that, which needs the stand-in, if any.
+      flight.land();
     }
 
-    if (_thumbnailsGridState!.thumbOffScreen(tab)) {
+    final grid = _thumbnailsGridState;
+    // The grid ignores taps while a tab flies, and a thumbnail that landed
+    // shows its idle decoration.
+    if (!landedOnPage || standInRemoved) grid?.stateChanged();
+
+    if (landedOnPage && (grid?.thumbOffScreen(tab) ?? false)) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _jumpToThumb(tab);
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -343,27 +418,6 @@ class TabOverviewController<T> with _AnimationContexts<T>, _Listeners<T> {
         });
       });
     }
-  }
-
-  void _expandAnimationDismissed(T tab) {
-    _removeTabExpandAnimationContext(tab);
-
-    if (_model.removeOffScreenThumbTab(tab)) {
-      _notifyOffScreenThumbTabRemoved(tab);
-      _thumbnailsGridState?.stateChanged();
-    }
-  }
-
-  // Whether it completed or was turned around, and whether the tab landed
-  // in its cell or in a stand-in for one off screen.
-  void _collapseFlightEnded(T tab) {
-    _removeTabCollapseAnimationContext(tab);
-
-    if (_model.removeOffScreenThumbTab(tab)) {
-      _notifyOffScreenThumbTabRemoved(tab);
-    }
-
-    _thumbnailsGridState?.stateChanged();
   }
 
   void _handleExpandedTabPageChanged(int page) {
@@ -378,8 +432,8 @@ class TabOverviewController<T> with _AnimationContexts<T>, _Listeners<T> {
   void _jumpToThumb(T tab) => _jumpToThumbAt(_model.indexOfTab(tab));
 
   void _jumpToThumbAt(int index) {
-    final offset = _thumbnailsGridState!.getThumbScrollOffset(index);
-    _thumbnailsGridState!.jumpTo(offset);
+    final grid = _thumbnailsGridState;
+    grid?.jumpTo(grid.getThumbScrollOffset(index));
   }
 }
 
@@ -501,19 +555,19 @@ mixin _Listeners<T> {
   }
 }
 
-mixin _AnimationContexts<T> {
-  final _expandAnimationContextsByTab = <T, AnimationContext>{};
-  final _collapseAnimationContextsByTab = <T, AnimationContext>{};
+mixin _TabAnimations<T> {
+  final _tabFlights = <T, TabFlight>{};
   final _insertAnimationByTab = <T, Animation<double>>{};
   final _removeAnimationByTab = <T, Animation<double>>{};
 
-  bool get isAnyExpanding => _expandAnimationContextsByTab.isNotEmpty;
+  bool get isAnyExpanding => _tabFlights.values.any((flight) => flight.toPage);
 
-  bool get isAnyCollapsing => _collapseAnimationContextsByTab.isNotEmpty;
+  bool get isAnyCollapsing =>
+      _tabFlights.values.any((flight) => !flight.toPage);
 
-  bool isExpanding(T tab) => _expandAnimationContextsByTab.containsKey(tab);
+  bool isExpanding(T tab) => _tabFlights[tab]?.toPage ?? false;
 
-  bool isCollapsing(T tab) => _collapseAnimationContextsByTab.containsKey(tab);
+  bool isCollapsing(T tab) => !(_tabFlights[tab]?.toPage ?? true);
 
   void _putTabInsertAnimation(T tab, Animation<double> animation) =>
       _insertAnimationByTab[tab] = animation;
@@ -532,45 +586,4 @@ mixin _AnimationContexts<T> {
 
   Animation<double>? _removeTabRemoveAnimation(T tab) =>
       _removeAnimationByTab.remove(tab);
-
-  AnimationContext _ensureTabExpandAnimationContext(
-    T tab, {
-    Duration? duration,
-    Curve? curve,
-  }) => _expandAnimationContextsByTab.putIfAbsent(
-    tab,
-    () => AnimationContext(duration: duration, curve: curve),
-  );
-
-  bool _hasTabExpandAnimationContext(T tab) =>
-      _expandAnimationContextsByTab[tab] != null;
-
-  // The context of the tab's flight, whether it expands or collapses.
-  AnimationContext? _getTabFlightAnimationContext(T tab) =>
-      _expandAnimationContextsByTab[tab] ??
-      _collapseAnimationContextsByTab[tab];
-
-  Animation<double>? _getTabExpandAnimation(T tab) =>
-      _expandAnimationContextsByTab[tab]?.animation;
-
-  AnimationContext? _removeTabExpandAnimationContext(T tab) =>
-      _expandAnimationContextsByTab.remove(tab);
-
-  AnimationContext _ensureTabCollapseAnimationContext(
-    T tab, {
-    Duration? duration,
-    Curve? curve,
-  }) => _collapseAnimationContextsByTab.putIfAbsent(
-    tab,
-    () => AnimationContext(duration: duration, curve: curve),
-  );
-
-  bool _hasTabCollapseAnimationContext(T tab) =>
-      _collapseAnimationContextsByTab[tab] != null;
-
-  Animation<double>? _getTabCollapseAnimation(T tab) =>
-      _collapseAnimationContextsByTab[tab]?.animation;
-
-  AnimationContext? _removeTabCollapseAnimationContext(T tab) =>
-      _collapseAnimationContextsByTab.remove(tab);
 }

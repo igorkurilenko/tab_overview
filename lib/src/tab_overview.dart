@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// TODO: debug removing during expanding
-
 library;
 
 import 'dart:collection';
@@ -25,7 +23,7 @@ import 'package:flutter/rendering.dart';
 import 'package:hero_here/hero_here.dart';
 import 'package:tab_overview/src/widget/remove_tab_button.dart';
 
-import 'util/animation_context.dart';
+import 'util/tab_flight.dart';
 import 'util/hero_tab_helper.dart';
 import 'util/sliver_grid_delegate_decorator.dart';
 import 'util/model_widget_builder.dart';

@@ -61,6 +61,7 @@ class TabFlight {
   double get expansion =>
       lerpDouble(_expansionAtSetOff, _headsToPage ? 1 : 0, _animation.value)!;
 
+  /// Asks the tab to go to its page, or to its thumbnail.
   void ask({required bool toPage}) => _toPage = toPage;
 
   /// Starts with [animation], the flight's.
