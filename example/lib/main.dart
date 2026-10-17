@@ -29,6 +29,9 @@ class TabOverviewExampleState extends State<TabOverviewExample> {
     initialMode: TabOverviewMode.expanded,
   );
 
+  // The number of the last tab added, so each new tab has a number of its own.
+  var _lastTabNum = 0;
+
   @override
   Widget build(BuildContext context) {
     final viewPadding = MediaQuery.viewPaddingOf(context);
@@ -70,14 +73,17 @@ class TabOverviewExampleState extends State<TabOverviewExample> {
               onPressed: controller.toggleMode,
               icon: const Icon(Icons.auto_awesome_motion_outlined),
             ),
-            // A button to dynamically add new tabs.
+            // A button to close the active tab, if there's any tab left.
             IconButton(
-              onPressed: () => controller.removeTabAt(1),
+              onPressed: () {
+                final tab = controller.activeTab;
+                if (tab != null) controller.remove(tab);
+              },
               icon: const Icon(Icons.remove),
             ),
             // A button to dynamically add new tabs.
             IconButton(
-              onPressed: () => controller.add(Tab(controller.tabs.length + 1)),
+              onPressed: () => controller.add(Tab(++_lastTabNum)),
               icon: const Icon(Icons.add),
             ),
           ],
