@@ -16,7 +16,8 @@ part of '../tab_overview.dart';
 
 /// Decorates a tab's thumbnail or page with [idleDecoration] or, while the
 /// tab flies, with a decoration between the thumbnail's and the expanded
-/// tab's, as far as the tab is between them.
+/// tab's, as far as the tab is between them. A page pulled to collapse it,
+/// by [pull], turns toward the thumbnail's as far as it's pulled.
 ///
 /// The same widgets in every phase. A change of widget type here would
 /// re-create the tab content's State, losing its text, focus and scroll
@@ -25,12 +26,14 @@ class _TabDecoration<T> extends StatelessWidget {
   final TabOverview<T> overview;
   final _TabEntry<T> entry;
   final Decoration idleDecoration;
+  final ValueListenable<double>? pull;
   final Widget child;
 
   const _TabDecoration({
     required this.overview,
     required this.entry,
     required this.idleDecoration,
+    this.pull,
     required this.child,
   });
 
@@ -41,16 +44,10 @@ class _TabDecoration<T> extends StatelessWidget {
     builder: (context, child) {
       final flight = entry.flight;
       return AnimatedBuilder(
-        animation: flight?.animation ?? kAlwaysCompleteAnimation,
+        animation: flight?.animation ?? pull ?? kAlwaysCompleteAnimation,
         builder: (context, child) => Container(
           clipBehavior: Clip.antiAlias,
-          decoration: flight == null
-              ? idleDecoration
-              : Decoration.lerp(
-                  overview.thumbnailDecoration,
-                  overview.expandedTabDecoration,
-                  flight.expansion,
-                ),
+          decoration: _decorationFor(flight),
           child: child,
         ),
         child: child,
@@ -58,6 +55,17 @@ class _TabDecoration<T> extends StatelessWidget {
     },
     child: child,
   );
+
+  Decoration? _decorationFor(TabFlight? flight) {
+    final pulled = pull?.value ?? 0;
+    final expansion = flight?.expansion ?? (pulled > 0 ? 1 - pulled : null);
+    if (expansion == null) return idleDecoration;
+    return Decoration.lerp(
+      overview.thumbnailDecoration,
+      overview.expandedTabDecoration,
+      expansion,
+    );
+  }
 }
 
 /// Scales and fades a tab's thumbnail, page or remove button with

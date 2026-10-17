@@ -18,6 +18,8 @@ import 'dart:collection';
 import 'dart:math';
 
 import 'package:animated_reorderable/animated_reorderable.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:hero_here/hero_here.dart';
@@ -32,6 +34,7 @@ part '_tab_overview_model.dart';
 part 'tab_overview_controller.dart';
 part 'widget/_tab_thumbnails_grid.dart';
 part 'widget/_expanded_tab.dart';
+part 'widget/_pull_to_collapse.dart';
 part 'widget/_tab_transitions.dart';
 
 const kExpandedTabPageViewportFraction = 1.1;
@@ -110,6 +113,19 @@ class TabOverview<T> extends StatefulWidget {
   /// Provides styling options for the expanded tab view, such as background color and border.
   final Decoration expandedTabDecoration;
 
+  /// Whether the expanded tab can be pulled down to collapse it, as in
+  /// hero_here's show details example.
+  ///
+  /// A tab is pulled from the top of its vertical scroll view, or from
+  /// anywhere on a tab without one. As it's pulled, it shrinks and its
+  /// decoration turns toward [thumbnailDecoration]. Let go once it's pulled
+  /// 50 pixels, or while it moves down fast, and it collapses from where it
+  /// is, at the speed it had. Otherwise it goes back.
+  ///
+  /// Off by default, as a `RefreshIndicator` at the top of a tab reads the
+  /// same pull.
+  final bool pullToCollapse;
+
   /// Constructor to create a customizable [TabOverview] with various builders and configurations.
   ///
   /// - [controller] manages the state and behavior of the widget.
@@ -122,6 +138,7 @@ class TabOverview<T> extends StatefulWidget {
   /// - [thumbnailsMotionAnimationCurve] sets the animation curve.
   /// - [scrollBehavior] configures input device interactions.
   /// - [thumbnailDecoration] and [expandedTabDecoration] allow styling for each mode.
+  /// - [pullToCollapse] lets the expanded tab be pulled down to collapse it.
   TabOverview.builder({
     super.key,
     required this.controller,
@@ -135,6 +152,7 @@ class TabOverview<T> extends StatefulWidget {
     this.scrollBehavior,
     Decoration? thumbnailDecoration,
     Decoration? expandedTabDecoration,
+    this.pullToCollapse = false,
   }) : thumbnailDecoration = thumbnailDecoration ?? const BoxDecoration(),
        expandedTabDecoration = expandedTabDecoration ?? const BoxDecoration(),
        tabThumbnailBuilder =

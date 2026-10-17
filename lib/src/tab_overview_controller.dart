@@ -151,8 +151,11 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _collapseOffScreen(
           removed,
-          duration: duration,
-          curve: HeroHere.defaultFlightAnimationCurve,
+          TabFlight(
+            toPage: false,
+            duration: duration,
+            curve: HeroHere.defaultFlightAnimationCurve,
+          ),
         );
 
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -219,10 +222,11 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
 
     activeTab = tab;
 
+    final flight = TabFlight(toPage: true, duration: duration, curve: curve);
     if (_thumbnailsGridState!.thumbOffScreen(tab)) {
-      _expandOffScreen(entry, duration: duration, curve: curve);
+      _expandOffScreen(entry, flight);
     } else {
-      _doExpand(entry, duration: duration, curve: curve);
+      _doExpand(entry, flight);
     }
   }
 
@@ -259,6 +263,27 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
   void collapse({
     Duration duration = HeroHere.defaultFlightAnimationDuration,
     Curve curve = Curves.easeInOut,
+  }) => _collapse(duration: duration, curve: curve);
+
+  // Collapses the active tab from where a pull left its page: [expansion] of
+  // the way from its thumbnail to its page, flung at [velocity], in flights
+  // a second.
+  void _collapseFromPull({
+    required double velocity,
+    required double expansion,
+  }) => _collapse(
+    duration: HeroHere.defaultFlightAnimationDuration,
+    curve: Curves.easeInOut,
+    // A fling the other way would land where it is at once.
+    velocity: max(0, velocity),
+    expansion: expansion,
+  );
+
+  void _collapse({
+    required Duration duration,
+    required Curve curve,
+    double? velocity,
+    double? expansion,
   }) {
     if (overview) return;
 
@@ -267,10 +292,17 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
     // An active tab removed while expanded collapses on its own.
     if (entry == null) return;
 
+    final flight = TabFlight(
+      toPage: false,
+      duration: duration,
+      curve: curve,
+      velocity: velocity,
+      expansion: expansion,
+    );
     if (_thumbnailsGridState!.thumbOffScreen(tab)) {
-      _collapseOffScreen(entry, duration: duration, curve: curve);
+      _collapseOffScreen(entry, flight);
     } else {
-      _doCollapse(entry, duration: duration, curve: curve);
+      _doCollapse(entry, flight);
     }
   }
 
@@ -297,11 +329,7 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
     _notifyTabsReordered();
   }
 
-  void _expandOffScreen(
-    _TabEntry<T> entry, {
-    required Duration duration,
-    required Curve curve,
-  }) {
+  void _expandOffScreen(_TabEntry<T> entry, TabFlight flight) {
     if (_model.addStandIn(entry)) _notifyOffScreenThumbTabAdded(entry.tab);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -309,17 +337,13 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
       if (_model.indexOfEntry(entry) == -1) {
         _removeStandIn(entry);
       } else {
-        _doExpand(entry, duration: duration, curve: curve);
+        _doExpand(entry, flight);
       }
     });
   }
 
-  void _doExpand(
-    _TabEntry<T> entry, {
-    required Duration duration,
-    required Curve curve,
-  }) {
-    _askForTabFlight(entry, toPage: true, duration: duration, curve: curve);
+  void _doExpand(_TabEntry<T> entry, TabFlight flight) {
+    _askForTabFlight(entry, flight);
 
     _mode = TabOverviewMode.expanded;
     _notifyModeChanged(_mode);
@@ -340,43 +364,29 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
     _notifyModeChanged(_mode);
   }
 
-  void _collapseOffScreen(
-    _TabEntry<T> entry, {
-    required Duration duration,
-    required Curve curve,
-  }) {
+  void _collapseOffScreen(_TabEntry<T> entry, TabFlight flight) {
     if (_model.addStandIn(entry)) _notifyOffScreenThumbTabAdded(entry.tab);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _doCollapse(entry, duration: duration, curve: curve);
+      _doCollapse(entry, flight);
     });
   }
 
-  void _doCollapse(
-    _TabEntry<T> entry, {
-    required Duration duration,
-    required Curve curve,
-  }) {
-    _askForTabFlight(entry, toPage: false, duration: duration, curve: curve);
+  void _doCollapse(_TabEntry<T> entry, TabFlight flight) {
+    _askForTabFlight(entry, flight);
 
     _mode = TabOverviewMode.overview;
     _notifyModeChanged(_mode);
   }
 
-  // Asks for the tab to fly to its page or its thumbnail, in the flight the
-  // coming switch starts, or in the flight it's in, which the switch diverts.
-  void _askForTabFlight(
-    _TabEntry<T> entry, {
-    required bool toPage,
-    required Duration duration,
-    required Curve curve,
-  }) {
+  // Asks for the tab to fly where [asked] goes, to its page or its
+  // thumbnail: in [asked], which the coming switch starts, or in the flight
+  // it's in, which the switch diverts.
+  void _askForTabFlight(_TabEntry<T> entry, TabFlight asked) {
+    final toPage = asked.toPage;
     final flight = entry.flight;
     if (flight == null) {
-      _setFlight(
-        entry,
-        TabFlight(toPage: toPage, duration: duration, curve: curve),
-      );
+      _setFlight(entry, asked);
     } else if (!flight.started && flight.headsToPage == toPage) {
       // Asked back to where it is before the switch, which now won't come.
       _setFlight(entry, null);
@@ -415,7 +425,10 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
     AnimationController controller,
   ) {
     final flight = entry.flight!;
-    final animation = CurvedAnimation(parent: controller, curve: flight.curve);
+    // A fling sets its own pace.
+    final animation = flight.velocity != null
+        ? controller
+        : CurvedAnimation(parent: controller, curve: flight.curve);
     flight.start(animation);
     return animation;
   }
@@ -426,8 +439,10 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
     AnimationController controller, {
     double? from,
   }) {
-    entry.flight?.setOff();
-    return controller.forward(from: from);
+    final velocity = entry.flight?.setOff();
+    return velocity != null
+        ? controller.fling(velocity: velocity)
+        : controller.forward(from: from);
   }
 
   // However the flight ended: landed, or stopped by a switch that left no

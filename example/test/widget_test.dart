@@ -1,6 +1,8 @@
 import 'package:example/main.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:tab_overview/tab_overview.dart';
 
 void main() {
   testWidgets('adds tabs and shows them in the overview', (tester) async {
@@ -36,4 +38,30 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('3'), findsOneWidget);
   });
+
+  for (final kind in [PointerDeviceKind.touch, PointerDeviceKind.mouse]) {
+    testWidgets('pulls the expanded tab down to collapse it, by '
+        '${kind.name}', (tester) async {
+      await tester.pumpWidget(const MainApp());
+      await tester.tap(find.byIcon(Icons.add));
+      await tester.pumpAndSettle();
+      final controller = tester
+          .state<TabOverviewExampleState>(find.byType(TabOverviewExample))
+          .controller;
+      expect(controller.mode, TabOverviewMode.expanded);
+
+      final gesture = await tester.startGesture(
+        tester.getCenter(find.byType(PageView)),
+        kind: kind,
+      );
+      for (var step = 0; step < 15; step++) {
+        await gesture.moveBy(const Offset(0, 10));
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      expect(controller.mode, TabOverviewMode.overview);
+    });
+  }
 }

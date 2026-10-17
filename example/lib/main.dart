@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:tab_overview/tab_overview.dart';
 
@@ -60,6 +61,13 @@ class TabOverviewExampleState extends State<TabOverviewExample> {
           borderRadius: BorderRadius.circular(
             32.0,
           ), // Add rounded corners to thumbnails
+        ),
+        // Pull the expanded tab down to collapse it.
+        pullToCollapse: true,
+        // Drag with the mouse too, to turn the page and to pull the expanded
+        // tab down, as hero_here's examples do.
+        scrollBehavior: const MaterialScrollBehavior().copyWith(
+          dragDevices: PointerDeviceKind.values.toSet(),
         ),
       ),
       floatingActionButton: Padding(
