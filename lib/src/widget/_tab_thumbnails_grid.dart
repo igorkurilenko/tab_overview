@@ -34,7 +34,6 @@ class _TabThumbnailsGrid<T> extends StatefulWidget {
 class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
     with HeroTabHelper {
   final thumbsGridKey = GlobalKey<AnimatedReorderableState>();
-  SliverGridLayout? _thumbsGridLayout;
   final scrollController = ScrollController();
 
   _TabOverviewModel<T> get model => controller._model;
@@ -63,11 +62,36 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
   Curve? get activeTabHeroAnimationCurve =>
       controller._flightOf(controller.activeTab)?.curve;
 
+  // The scroll offset of the thumb at [index] in the grid as last laid out,
+  // up to how far the grid scrolls.
   double getThumbScrollOffset(int index) {
-    final maxOffset = scrollController.position.maxScrollExtent;
-    final offset =
-        _thumbsGridLayout?.getGeometryForChildIndex(index).scrollOffset ?? 0;
-    return min(maxOffset, offset);
+    final grid = _renderGrid;
+    // A sliver has no geometry until it's laid out.
+    if (grid == null || grid.geometry == null) return 0;
+    final offset = grid.gridDelegate
+        .getLayout(grid.constraints)
+        .getGeometryForChildIndex(index)
+        .scrollOffset;
+    return min(scrollController.position.maxScrollExtent, offset);
+  }
+
+  // The grid's sliver, found from the grid's own Scrollable, so as to stay
+  // out of the layer that shows the thumbnails being dragged or moved.
+  RenderSliverGrid? get _renderGrid {
+    RenderSliverGrid? grid;
+    void visit(RenderObject object) {
+      if (object is RenderSliverGrid) {
+        grid = object;
+      } else if (grid == null) {
+        object.visitChildren(visit);
+      }
+    }
+
+    if (!scrollController.hasClients) return null;
+    final scrollable = scrollController.position.context.notificationContext;
+    final scrollableObject = scrollable?.findRenderObject();
+    if (scrollableObject != null) visit(scrollableObject);
+    return grid;
   }
 
   // The grid's items. A mode change or a flight rebuilds the rest of the
@@ -90,20 +114,20 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
     super.dispose();
   }
 
-  var _revealActiveThumbScheduled = false;
-
   // A relayout while expanded, such as a window resize, can move the active
-  // thumb off screen. Collapse would then fly the tab off screen too.
-  void _scheduleRevealActiveThumb() {
-    if (_revealActiveThumbScheduled || !controller.expanded) return;
-    _revealActiveThumbScheduled = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _revealActiveThumbScheduled = false;
-      final tab = controller.activeTab;
-      if (!mounted || !controller.expanded || tab == null) return;
-      if (controller._flightOf(tab) != null) return;
-      if (thumbOffScreen(tab)) _jumpToThumbNow(tab);
-    });
+  // thumb off screen. Collapse would then fly the tab off screen too. A
+  // resize, the keyboard or a change of safe area changes the grid's
+  // viewport or extent, which the grid's Scrollable tells after the frame.
+  bool _handleScrollMetricsChanged(ScrollMetricsNotification notification) {
+    if (notification.depth == 0) _revealActiveThumb();
+    return false;
+  }
+
+  void _revealActiveThumb() {
+    final tab = controller.activeTab;
+    if (!controller.expanded || tab == null) return;
+    if (controller._flightOf(tab) != null) return;
+    if (thumbOffScreen(tab)) _jumpToThumbNow(tab);
   }
 
   // Jumps to the tab's thumb now, and once more after the next layout. A
@@ -167,22 +191,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
   // grid's sliver would skip its next layout and keep the scroll extent it
   // had, a row short or long, and scrolling to a tab on a new last row would
   // stop short of it.
-  void _relayoutGrid() {
-    void visit(RenderObject object) {
-      if (object is RenderSliverMultiBoxAdaptor) {
-        object.markNeedsLayout();
-      } else {
-        object.visitChildren(visit);
-      }
-    }
-
-    // From the grid's own Scrollable, so as to stay out of the layer that
-    // shows the thumbnails being dragged or moved.
-    if (!scrollController.hasClients) return;
-    final scrollable = scrollController.position.context.notificationContext;
-    final scrollableObject = scrollable?.findRenderObject();
-    if (scrollableObject != null) visit(scrollableObject);
-  }
+  void _relayoutGrid() => _renderGrid?.markNeedsLayout();
 
   @override
   Widget build(BuildContext context) {
@@ -230,32 +239,29 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
     );
   }
 
-  Widget _buildItems() => AnimatedReorderable.grid(
-    key: thumbsGridKey,
-    motionAnimationDuration: overview.thumbnailsMotionAnimationDuration,
-    motionAnimationCurve: overview.thumbnailsMotionAnimationCurve,
-    keyGetter: model.keyAt,
-    reorderableGetter: model.reorderableAt,
-    onReorder: controller._reorderTabs,
-    draggableGetter: (index) =>
-        model.removableAt(index) || model.reorderableAt(index),
-    swipeToRemoveDirectionGetter: (index) =>
-        model.removableAt(index) ? AxisDirection.left : null,
-    onSwipeToRemove: controller.removeTabAt,
-    gridView: GridView.builder(
-      clipBehavior: Clip.none,
-      controller: scrollController,
-      padding: overview.thumbnailsGridPadding,
-      gridDelegate: SliverGridLayoutNotifier(
+  Widget _buildItems() => NotificationListener<ScrollMetricsNotification>(
+    onNotification: _handleScrollMetricsChanged,
+    child: AnimatedReorderable.grid(
+      key: thumbsGridKey,
+      motionAnimationDuration: overview.thumbnailsMotionAnimationDuration,
+      motionAnimationCurve: overview.thumbnailsMotionAnimationCurve,
+      keyGetter: model.keyAt,
+      reorderableGetter: model.reorderableAt,
+      onReorder: controller._reorderTabs,
+      draggableGetter: (index) =>
+          model.removableAt(index) || model.reorderableAt(index),
+      swipeToRemoveDirectionGetter: (index) =>
+          model.removableAt(index) ? AxisDirection.left : null,
+      onSwipeToRemove: controller.removeTabAt,
+      gridView: GridView.builder(
+        clipBehavior: Clip.none,
+        controller: scrollController,
+        padding: overview.thumbnailsGridPadding,
         gridDelegate: widget.gridDelegate,
-        onLayout: (layout) {
-          _thumbsGridLayout = layout;
-          _scheduleRevealActiveThumb();
-        },
+        itemCount: model.tabCount,
+        itemBuilder: (context, index) =>
+            _buildThumb(context, model.entryAt(index)),
       ),
-      itemCount: model.tabCount,
-      itemBuilder: (context, index) =>
-          _buildThumb(context, model.entryAt(index)),
     ),
   );
 
