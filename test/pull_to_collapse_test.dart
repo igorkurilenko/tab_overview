@@ -53,16 +53,18 @@ Future<void> pull(WidgetTester tester, double distance) =>
     tester.timedDrag(page(), Offset(0, distance), const Duration(seconds: 1));
 
 // Scrolls [dy] in [steps], a frame apart, as a trackpad's two-finger swipe
-// does on the web, or a mouse wheel.
-Future<void> scroll(
+// does on the web, or a mouse wheel. Returns when it last scrolled, for a
+// swipe that goes on [from] then.
+Future<Duration> scroll(
   WidgetTester tester, {
   required double dy,
   double dx = 0,
   int steps = 10,
   PointerDeviceKind kind = PointerDeviceKind.trackpad,
+  Duration from = const Duration(seconds: 1),
 }) async {
   final pointer = TestPointer(1, kind);
-  var time = const Duration(seconds: 1);
+  var time = from;
   await tester.sendEventToBinding(
     pointer.hover(tester.getCenter(page()), timeStamp: time),
   );
@@ -73,6 +75,7 @@ Future<void> scroll(
     );
     await tester.pump(const Duration(milliseconds: 16));
   }
+  return time;
 }
 
 // The corner radius of every decoration with a border radius shown.
@@ -317,22 +320,39 @@ void main() {
   });
 
   group('on the web, a trackpad swipe', () {
-    testWidgets('down pulls the tab, and collapses it once it\'s pulled far '
-        'enough', (tester) async {
+    testWidgets('down pulls the tab, and collapses it as the scrolling '
+        'pauses', (tester) async {
       final controller = await pumpExpanded(tester);
 
       // Scrolling up past the top, as two fingers moving down do.
       await scroll(tester, dy: -100);
+      expect(controller.mode, TabOverviewMode.expanded);
+      expect(tester.getRect(page()).width, lessThan(800));
+
+      // There's no let-go, only a pause in the scrolling.
+      await tester.pump(const Duration(milliseconds: 200));
       await tester.pumpAndSettle();
 
       expectCollapsed(tester, controller);
+    });
+
+    testWidgets('back up before the scrolling pauses takes the pull back', (
+      tester,
+    ) async {
+      final controller = await pumpExpanded(tester);
+
+      final pulledAt = await scroll(tester, dy: -100);
+      await scroll(tester, dy: 100, from: pulledAt);
+      await tester.pump(const Duration(milliseconds: 200));
+      await tester.pumpAndSettle();
+
+      expectExpandedAtFullSize(tester, controller);
     });
 
     testWidgets('that stops short lets the tab go back', (tester) async {
       final controller = await pumpExpanded(tester);
 
       await scroll(tester, dy: -20);
-      // There's no let-go, only a pause in the scrolling.
       await tester.pump(const Duration(milliseconds: 200));
       await tester.pumpAndSettle();
 
@@ -346,6 +366,7 @@ void main() {
       );
 
       await scroll(tester, dy: -100);
+      await tester.pump(const Duration(milliseconds: 200));
       await tester.pumpAndSettle();
 
       expect(controller.mode, TabOverviewMode.overview);
@@ -364,6 +385,7 @@ void main() {
       await tester.pump();
 
       await scroll(tester, dy: -400, steps: 20);
+      await tester.pump(const Duration(milliseconds: 200));
       await tester.pumpAndSettle();
 
       expect(listScroll.offset, 0);
@@ -385,6 +407,7 @@ void main() {
     final controller = await pumpExpanded(tester);
 
     await scroll(tester, dy: -100, kind: PointerDeviceKind.mouse);
+    await tester.pump(const Duration(milliseconds: 200));
     await tester.pumpAndSettle();
 
     expectExpandedAtFullSize(tester, controller);

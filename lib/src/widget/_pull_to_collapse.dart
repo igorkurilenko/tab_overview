@@ -25,7 +25,11 @@ const _kPullGoBackDuration = Duration(milliseconds: 200);
 
 // How long a trackpad's scrolling on the web pauses before the next scroll is
 // another swipe, and before a pull it made is let go.
-const _kTrackpadSwipePause = Duration(milliseconds: 120);
+const _kTrackpadSwipePause = Duration(milliseconds: 150);
+
+// How much less a trackpad swipe pulls a page that's pulled far enough to
+// collapse, as the swipe goes on after the fingers lift.
+const _kTrackpadSwipeResistance = 0.3;
 
 /// Lets a tab's page be pulled down to collapse the tab, if the overview's
 /// `pullToCollapse` is on.
@@ -40,9 +44,9 @@ const _kTrackpadSwipePause = Duration(milliseconds: 120);
 ///
 /// On the web, a trackpad's two-finger swipe comes as scrolling, with no
 /// let-go either, and goes on scrolling after the fingers lift. So it pulls
-/// the page only past the top, from the start of the swipe, and collapses
-/// the tab once it's pulled far enough. A swipe that stops short of that
-/// lets the page go back. A mouse wheel doesn't pull.
+/// the page only past the top, from the start of the swipe, and lets go of
+/// it when the scrolling pauses. Until then, swiping back up takes the pull
+/// back. A mouse wheel doesn't pull.
 ///
 /// The same widgets whether or not the page is pulled, or pulling is on, so
 /// the tab's content keeps its State.
@@ -213,20 +217,20 @@ class _PullToCollapseState<T> extends State<_PullToCollapse<T>>
     }
     if (_collapsing) return;
 
-    _swipeOffset -= event.scrollDelta.dy;
+    final pulled = -event.scrollDelta.dy;
+    _swipeOffset += pulled;
     _swipeVelocity!.addPosition(event.timeStamp, Offset(0, _swipeOffset));
-    _pull(_distance.value - event.scrollDelta.dy, follows: true);
+    final resistance = _progress >= 1 ? _kTrackpadSwipeResistance : 1.0;
+    _pull(_distance.value + pulled * resistance, follows: true);
 
+    // The pause after the swipe, and after the scrolling it goes on with
+    // once the fingers lift, lets go of the pull.
     _swipePause?.cancel();
+    if (_distance.value == 0) return;
     final velocity = _swipeVelocity!.getVelocity();
-    if (_progress >= 1) {
-      // Pulled far enough, with no let-go to wait for.
-      _letGo(velocity);
-    } else if (_distance.value > 0) {
-      _swipePause = Timer(_kTrackpadSwipePause, () {
-        if (!_collapsing && _distance.value > 0) _letGo(velocity);
-      });
-    }
+    _swipePause = Timer(_kTrackpadSwipePause, () {
+      if (!_collapsing && _distance.value > 0) _letGo(velocity);
+    });
   }
 
   // A drag on the page lets go as it ends, which comes after this.

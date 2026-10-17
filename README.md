@@ -203,7 +203,7 @@ Style your tabs with the following properties:
 
 With `pullToCollapse: true`, the expanded tab can be pulled down to collapse it, as in hero_here's show details example. It's pulled from the top of its vertical scroll view, or from anywhere on a tab without one. As it's pulled, it shrinks and its corners round toward `thumbnailDecoration`'s. Let go once it's pulled 50 pixels, or while it moves down fast, and it collapses into its thumbnail from where it is, at the speed it had. Otherwise it goes back.
 
-On the web, a trackpad's two-finger swipe down pulls it too. A swipe has no let-go, so the tab collapses once it's pulled 50 pixels. A mouse wheel doesn't pull it.
+On the web, a trackpad's two-finger swipe down pulls it too. The browser doesn't tell when the fingers lift, so the swipe lets go when its scrolling pauses, and until then swiping back up takes the pull back. A mouse wheel doesn't pull it.
 
 It's off by default, as a `RefreshIndicator` at the top of a tab reads the same pull.
 
