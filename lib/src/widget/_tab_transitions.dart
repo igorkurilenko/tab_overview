@@ -36,7 +36,7 @@ class _TabDecoration<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final flight = overview.controller._tabFlights[entry.tab];
+    final flight = entry.flight;
 
     return AnimatedBuilder(
       animation: flight?.animation ?? kAlwaysCompleteAnimation,

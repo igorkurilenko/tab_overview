@@ -84,9 +84,20 @@ class _TabOverviewModel<T> {
 /// A tab, from when it's added until it's removed and its last animation
 /// ends. A tab removed and added again is a new entry, so the grid tells its
 /// item from the removed one, which may still be animating out.
+///
+/// Entries are told apart by identity, never by the tab's equality or hash
+/// code, which may change while the tab animates.
 class _TabEntry<T> {
   final T tab;
   final key = UniqueKey();
+
+  /// The tab's flight between its thumbnail and its page, from when it's
+  /// asked for until the tab lands.
+  TabFlight? flight;
+
+  /// The tab's add or remove animation while it runs, which the tab's page
+  /// and stand-in scale and fade with. Grid items get their own.
+  Animation<double>? presence;
 
   _TabEntry(this.tab);
 }

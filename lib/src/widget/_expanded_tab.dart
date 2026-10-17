@@ -23,8 +23,7 @@ class _ExpandedTab<T> extends StatefulWidget {
   State<_ExpandedTab<T>> createState() => _ExpandedTabState<T>();
 }
 
-class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
-    with HeroTabHelper<T> {
+class _ExpandedTabState<T> extends State<_ExpandedTab<T>> with HeroTabHelper {
   late final PageController pageController;
 
   _TabOverviewModel<T> get model => controller._model;
@@ -84,7 +83,7 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
       child: tabWidget,
     );
     tabWidget = _TabPresence(
-      animation: controller._tabPresence(tab),
+      animation: entry.presence ?? kAlwaysCompleteAnimation,
       child: tabWidget,
     );
 
@@ -92,8 +91,8 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
       children: [
         Positioned.fill(
           child: HeroHere(
-            tag: tabHeroTag(tab),
-            key: expandedTabHeroKey(tab),
+            tag: tabHeroTag(entry),
+            key: expandedTabHeroKey(entry),
             flightRedirect: HeroHereFlightRedirect.divert,
             flightAnimationControllerFactory: (vsync, duration) => controller
                 ._createTabFlightController(entry, vsync, toPage: true),
@@ -106,8 +105,8 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
         ),
         if (model.removable(tab))
           HeroHere(
-            tag: removeButtonHeroTag(tab),
-            key: expandedTabRemoveButtonHeroKey(tab),
+            tag: removeButtonHeroTag(entry),
+            key: expandedTabRemoveButtonHeroKey(entry),
             flightRedirect: HeroHereFlightRedirect.divert,
             flightShuttleBuilder: _buildRemoveButtonHeroFlightShuttle,
             child: IgnorePointer(

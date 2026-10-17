@@ -32,7 +32,7 @@ class _TabThumbnailsGrid<T> extends StatefulWidget {
 }
 
 class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
-    with HeroTabHelper<T> {
+    with HeroTabHelper {
   final thumbsGridKey = GlobalKey<AnimatedReorderableState>();
   SliverGridLayout? _thumbsGridLayout;
   final scrollController = ScrollController();
@@ -58,10 +58,10 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
       : 1.0;
 
   Duration? get activeTabHeroAnimationDuration =>
-      controller._tabFlights[controller.activeTab]?.duration;
+      controller._flightOf(controller.activeTab)?.duration;
 
   Curve? get activeTabHeroAnimationCurve =>
-      controller._tabFlights[controller.activeTab]?.curve;
+      controller._flightOf(controller.activeTab)?.curve;
 
   double getThumbScrollOffset(int index) {
     final maxOffset = scrollController.position.maxScrollExtent;
@@ -89,7 +89,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
       _revealActiveThumbScheduled = false;
       final tab = controller.activeTab;
       if (!mounted || !controller.expanded || tab == null) return;
-      if (controller._tabFlights.containsKey(tab)) return;
+      if (controller._flightOf(tab) != null) return;
       if (thumbOffScreen(tab)) controller._jumpToThumb(tab);
     });
   }
@@ -112,7 +112,11 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
       index,
       animation,
     ) {
-      controller._trackTabInsertAnimation(entry.tab, animation);
+      controller._trackTabPresence(
+        entry,
+        animation,
+        endsAt: AnimationStatus.completed,
+      );
       return _buildThumb(context, model.entryAt(index), presence: animation);
     }, duration: duration);
   }
@@ -123,7 +127,11 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
     required Duration duration,
   }) {
     thumbsGridState!.removeItem(index, (context, animation) {
-      controller._trackTabRemoveAnimation(removed.tab, animation);
+      controller._trackTabPresence(
+        removed,
+        animation,
+        endsAt: AnimationStatus.dismissed,
+      );
       return _buildThumb(context, removed, presence: animation);
     }, duration: duration);
   }
@@ -229,15 +237,15 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
       children: [
         Positioned.fill(child: _buildThumbHero(thumb, entry)),
         if (model.removable(tab))
-          _buildThumbRemoveButtonHero(removeButton, tab),
+          _buildThumbRemoveButtonHero(removeButton, entry),
       ],
     );
   }
 
   Widget _buildThumbHero(Widget thumb, _TabEntry<T> entry) {
     return HeroHere(
-      tag: tabHeroTag(entry.tab),
-      key: tabThumbHeroKey(entry.tab),
+      tag: tabHeroTag(entry),
+      key: tabThumbHeroKey(entry),
       flightRedirect: HeroHereFlightRedirect.divert,
       flightAnimationControllerFactory: (vsync, duration) =>
           controller._createTabFlightController(entry, vsync, toPage: false),
@@ -249,10 +257,10 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
     );
   }
 
-  Widget _buildThumbRemoveButtonHero(Widget removeButton, T tab) {
+  Widget _buildThumbRemoveButtonHero(Widget removeButton, _TabEntry<T> entry) {
     return HeroHere(
-      tag: removeButtonHeroTag(tab),
-      key: tabThumbRemoveButtonHeroKey(tab),
+      tag: removeButtonHeroTag(entry),
+      key: tabThumbRemoveButtonHeroKey(entry),
       flightRedirect: HeroHereFlightRedirect.divert,
       child: removeButton,
     );
@@ -289,7 +297,11 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
 
   Widget _buildOffScreenThumb(BuildContext context, _TabEntry<T> entry) {
     final tab = entry.tab;
-    final thumb = _buildThumbnail(context, entry, controller._tabPresence(tab));
+    final thumb = _buildThumbnail(
+      context,
+      entry,
+      entry.presence ?? kAlwaysCompleteAnimation,
+    );
 
     return _TabExpandedBuilder<T>(
       controller: controller,
