@@ -200,8 +200,9 @@ void main() {
 
   testWidgets('removing a tab in the same event as its expand leaves it '
       'in the overview', (tester) async {
-    // Tab 1 is on screen, so its expand switches to its page at once.
-    for (final tab in [1]) {
+    // Tab 1 is on screen, so its expand switches to its page at once. Tab 38
+    // is off screen, so its expand waits a frame for its stand-in.
+    for (final tab in [1, 38]) {
       await tester.pumpWidget(const SizedBox());
       final controller = await pumpOverview(tester, tabCount: 40);
 

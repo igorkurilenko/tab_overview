@@ -53,9 +53,9 @@ void main() {
     expect(find.text('T21').hitTestable(), findsOneWidget);
   });
 
-  // At 1 frame, the tab goes before the overview builds its page; at 6,
-  // mid-flight.
-  for (final frames in [1, 6]) {
+  // At 0 frames, the tab goes before its expand starts; at 1, before the
+  // overview builds its page; at 6, mid-flight.
+  for (final frames in [0, 1, 6]) {
     testWidgets('removing a tab $frames frames into its expand leaves the '
         'overview where it was', (tester) async {
       final controller = TabOverviewController<int>(

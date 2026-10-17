@@ -305,7 +305,12 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
     if (_model.addStandIn(entry)) _notifyOffScreenThumbTabAdded(entry.tab);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _doExpand(entry, duration: duration, curve: curve);
+      // A tab removed since stays in the overview.
+      if (_model.indexOfEntry(entry) == -1) {
+        _removeStandIn(entry);
+      } else {
+        _doExpand(entry, duration: duration, curve: curve);
+      }
     });
   }
 
