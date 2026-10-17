@@ -5,8 +5,13 @@ import 'package:tab_overview/tab_overview.dart';
 const thumbnailDecoration = BoxDecoration(color: Color(0xFFFF0000));
 const expandedTabDecoration = BoxDecoration(color: Color(0xFF0000FF));
 
-Future<TabOverviewController<int>> pumpOverview(WidgetTester tester) async {
-  final controller = TabOverviewController<int>(initialTabs: [0, 1, 2, 3]);
+Future<TabOverviewController<int>> pumpOverview(
+  WidgetTester tester, {
+  int tabCount = 4,
+}) async {
+  final controller = TabOverviewController<int>(
+    initialTabs: List.generate(tabCount, (tab) => tab),
+  );
   await tester.pumpWidget(
     MaterialApp(
       home: TabOverview<int>.builder(
@@ -144,6 +149,39 @@ void main() {
       });
     });
   }
+
+  testWidgets('an off-screen tab turned around ends its flight in the '
+      'overview, however late in the flight it turns', (tester) async {
+    // Late enough, the tab lands on its page before the switch that turns it
+    // around, which then starts a flight back to the stand-in of its own.
+    for (var frames = 1; frames <= 20; frames++) {
+      await tester.pumpWidget(const SizedBox());
+      final controller = await pumpOverview(tester, tabCount: 40);
+      expect(find.text('T38'), findsNothing);
+
+      controller.expand(38);
+      await pumpFrames(tester, frames);
+      controller.collapse();
+      await tester.pumpAndSettle();
+
+      expect(controller.mode, TabOverviewMode.overview, reason: '$frames');
+      expect(controller.isAnyExpanding, isFalse, reason: '$frames');
+      expect(controller.isAnyCollapsing, isFalse, reason: '$frames');
+    }
+  });
+
+  testWidgets('an overview that goes away mid-flight ends the flight', (
+    tester,
+  ) async {
+    final controller = await pumpOverview(tester);
+
+    controller.expand(1);
+    await pumpFrames(tester, 5);
+    await tester.pumpWidget(const SizedBox());
+
+    expect(tester.takeException(), isNull);
+    expectNothingFlying(controller);
+  });
 
   testWidgets('a turned flight\'s decoration turns from where it is', (
     tester,
