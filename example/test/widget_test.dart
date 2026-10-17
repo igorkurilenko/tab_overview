@@ -1,4 +1,5 @@
 import 'package:example/main.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tab_overview/tab_overview.dart';
@@ -38,22 +39,29 @@ void main() {
     expect(find.text('3'), findsOneWidget);
   });
 
-  testWidgets('pulls the expanded tab down to collapse it', (tester) async {
-    await tester.pumpWidget(const MainApp());
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pumpAndSettle();
-    final controller = tester
-        .state<TabOverviewExampleState>(find.byType(TabOverviewExample))
-        .controller;
-    expect(controller.mode, TabOverviewMode.expanded);
+  for (final kind in [PointerDeviceKind.touch, PointerDeviceKind.mouse]) {
+    testWidgets('pulls the expanded tab down to collapse it, by '
+        '${kind.name}', (tester) async {
+      await tester.pumpWidget(const MainApp());
+      await tester.tap(find.byIcon(Icons.add));
+      await tester.pumpAndSettle();
+      final controller = tester
+          .state<TabOverviewExampleState>(find.byType(TabOverviewExample))
+          .controller;
+      expect(controller.mode, TabOverviewMode.expanded);
 
-    await tester.timedDrag(
-      find.byType(PageView),
-      const Offset(0, 150),
-      const Duration(seconds: 1),
-    );
-    await tester.pumpAndSettle();
+      final gesture = await tester.startGesture(
+        tester.getCenter(find.byType(PageView)),
+        kind: kind,
+      );
+      for (var step = 0; step < 15; step++) {
+        await gesture.moveBy(const Offset(0, 10));
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      await gesture.up();
+      await tester.pumpAndSettle();
 
-    expect(controller.mode, TabOverviewMode.overview);
-  });
+      expect(controller.mode, TabOverviewMode.overview);
+    });
+  }
 }
