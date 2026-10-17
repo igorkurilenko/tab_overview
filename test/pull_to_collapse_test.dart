@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tab_overview/tab_overview.dart';
@@ -50,6 +51,29 @@ Finder page() => find
 
 Future<void> pull(WidgetTester tester, double distance) =>
     tester.timedDrag(page(), Offset(0, distance), const Duration(seconds: 1));
+
+// Scrolls [dy] in [steps], a frame apart, as a trackpad's two-finger swipe
+// does on the web, or a mouse wheel.
+Future<void> scroll(
+  WidgetTester tester, {
+  required double dy,
+  double dx = 0,
+  int steps = 10,
+  PointerDeviceKind kind = PointerDeviceKind.trackpad,
+}) async {
+  final pointer = TestPointer(1, kind);
+  var time = const Duration(seconds: 1);
+  await tester.sendEventToBinding(
+    pointer.hover(tester.getCenter(page()), timeStamp: time),
+  );
+  for (var step = 0; step < steps; step++) {
+    time += const Duration(milliseconds: 16);
+    await tester.sendEventToBinding(
+      pointer.scroll(Offset(dx / steps, dy / steps), timeStamp: time),
+    );
+    await tester.pump(const Duration(milliseconds: 16));
+  }
+}
 
 // The corner radius of every decoration with a border radius shown.
 Iterable<double> cornerRadii(WidgetTester tester) => tester
@@ -290,6 +314,80 @@ void main() {
     await pull(tester, 150);
     await tester.pumpAndSettle();
     expectCollapsed(tester, controller);
+  });
+
+  group('on the web, a trackpad swipe', () {
+    testWidgets('down pulls the tab, and collapses it once it\'s pulled far '
+        'enough', (tester) async {
+      final controller = await pumpExpanded(tester);
+
+      // Scrolling up past the top, as two fingers moving down do.
+      await scroll(tester, dy: -100);
+      await tester.pumpAndSettle();
+
+      expectCollapsed(tester, controller);
+    });
+
+    testWidgets('that stops short lets the tab go back', (tester) async {
+      final controller = await pumpExpanded(tester);
+
+      await scroll(tester, dy: -20);
+      // There's no let-go, only a pause in the scrolling.
+      await tester.pump(const Duration(milliseconds: 200));
+      await tester.pumpAndSettle();
+
+      expectExpandedAtFullSize(tester, controller);
+    });
+
+    testWidgets('down at the top of a list pulls the tab', (tester) async {
+      final controller = await pumpExpanded(
+        tester,
+        tabBuilder: (tab) => listTab(tab),
+      );
+
+      await scroll(tester, dy: -100);
+      await tester.pumpAndSettle();
+
+      expect(controller.mode, TabOverviewMode.overview);
+    });
+
+    testWidgets('that scrolls a list to its top doesn\'t pull past it', (
+      tester,
+    ) async {
+      final listScroll = ScrollController();
+      addTearDown(listScroll.dispose);
+      final controller = await pumpExpanded(
+        tester,
+        tabBuilder: (tab) => listTab(tab, scroll: tab == 1 ? listScroll : null),
+      );
+      listScroll.jumpTo(200);
+      await tester.pump();
+
+      await scroll(tester, dy: -400, steps: 20);
+      await tester.pumpAndSettle();
+
+      expect(listScroll.offset, 0);
+      expectExpandedAtFullSize(tester, controller);
+    });
+
+    testWidgets('sideways still turns the page', (tester) async {
+      final controller = await pumpExpanded(tester);
+
+      await scroll(tester, dx: 600, dy: 0);
+      await tester.pumpAndSettle();
+
+      expect(controller.mode, TabOverviewMode.expanded);
+      expect(controller.activeTab, 2);
+    });
+  });
+
+  testWidgets('a mouse wheel doesn\'t pull the tab', (tester) async {
+    final controller = await pumpExpanded(tester);
+
+    await scroll(tester, dy: -100, kind: PointerDeviceKind.mouse);
+    await tester.pumpAndSettle();
+
+    expectExpandedAtFullSize(tester, controller);
   });
 
   testWidgets('pulling is off by default', (tester) async {

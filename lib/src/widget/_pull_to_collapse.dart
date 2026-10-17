@@ -23,6 +23,10 @@ const _kPulledTabScale = 0.9;
 
 const _kPullGoBackDuration = Duration(milliseconds: 200);
 
+// How long a trackpad's scrolling on the web pauses before the next scroll is
+// another swipe, and before a pull it made is let go.
+const _kTrackpadSwipePause = Duration(milliseconds: 120);
+
 /// Lets a tab's page be pulled down to collapse the tab, if the overview's
 /// `pullToCollapse` is on.
 ///
@@ -33,6 +37,12 @@ const _kPullGoBackDuration = Duration(milliseconds: 200);
 ///
 /// A scroll view that bounces goes on moving as it's let go, and tells of no
 /// let-go, so the page tracks the pointer for that, as the example does.
+///
+/// On the web, a trackpad's two-finger swipe comes as scrolling, with no
+/// let-go either, and goes on scrolling after the fingers lift. So it pulls
+/// the page only past the top, from the start of the swipe, and collapses
+/// the tab once it's pulled far enough. A swipe that stops short of that
+/// lets the page go back. A mouse wheel doesn't pull.
 ///
 /// The same widgets whether or not the page is pulled, or pulling is on, so
 /// the tab's content keeps its State.
@@ -72,6 +82,16 @@ class _PullToCollapseState<T> extends State<_PullToCollapse<T>>
   // flight sets off from where the page is then.
   var _collapsing = false;
 
+  // A trackpad swipe on the web: when it last scrolled, its first scroll,
+  // whether it may pull, as it scrolled nothing else first, and how far it
+  // has scrolled, for its speed. A pause lets go of its pull.
+  Duration? _swipeScrolledAt;
+  PointerScrollEvent? _swipeStart;
+  var _swipeMayPull = false;
+  var _swipeOffset = 0.0;
+  VelocityTracker? _swipeVelocity;
+  Timer? _swipePause;
+
   TabOverview<T> get overview => widget.overview;
 
   TabOverviewController<T> get controller => overview.controller;
@@ -91,6 +111,7 @@ class _PullToCollapseState<T> extends State<_PullToCollapse<T>>
 
   @override
   void dispose() {
+    _swipePause?.cancel();
     _distance.dispose();
     entry.pull.value = 0;
     super.dispose();
@@ -106,6 +127,7 @@ class _PullToCollapseState<T> extends State<_PullToCollapse<T>>
       onPointerPanZoomStart: on ? _handlePanZoomStart : null,
       onPointerPanZoomUpdate: on ? _handlePanZoomUpdate : null,
       onPointerPanZoomEnd: on ? _handlePanZoomEnd : null,
+      onPointerSignal: on ? _handlePointerSignal : null,
       child: NotificationListener<ScrollNotification>(
         onNotification: on ? _handleScrollNotification : null,
         child: GestureDetector(
@@ -152,6 +174,60 @@ class _PullToCollapseState<T> extends State<_PullToCollapse<T>>
       _pointerVelocity?.addPosition(event.timeStamp, event.pan);
 
   void _handlePanZoomEnd(PointerPanZoomEndEvent event) => _letGoOfScrollView();
+
+  void _handlePointerSignal(PointerSignalEvent event) {
+    if (event is! PointerScrollEvent ||
+        event.kind != PointerDeviceKind.trackpad) {
+      return;
+    }
+
+    final lastScrolledAt = _swipeScrolledAt;
+    _swipeScrolledAt = event.timeStamp;
+    if (lastScrolledAt == null ||
+        event.timeStamp - lastScrolledAt > _kTrackpadSwipePause) {
+      // A new swipe.
+      _swipeStart = event;
+      _swipeMayPull = false;
+      _swipeOffset = 0;
+      _swipeVelocity = VelocityTracker.withKind(event.kind);
+    }
+
+    final delta = event.scrollDelta;
+    final vertical = delta.dy.abs() > delta.dx.abs();
+    final pulls = vertical && delta.dy < 0;
+    final mayPull = identical(event, _swipeStart) ? pulls : _swipeMayPull;
+    // Back up, it only takes back a pull.
+    if (!mayPull || !vertical || (!pulls && _distance.value == 0)) return;
+
+    // A scroll view the swipe scrolls, being deeper, takes it first.
+    GestureBinding.instance.pointerSignalResolver.register(
+      event,
+      (event) => _pullBySwipe(event as PointerScrollEvent),
+    );
+  }
+
+  void _pullBySwipe(PointerScrollEvent event) {
+    if (identical(event, _swipeStart)) {
+      if (!_canPull) return;
+      _swipeMayPull = true;
+    }
+    if (_collapsing) return;
+
+    _swipeOffset -= event.scrollDelta.dy;
+    _swipeVelocity!.addPosition(event.timeStamp, Offset(0, _swipeOffset));
+    _pull(_distance.value - event.scrollDelta.dy, follows: true);
+
+    _swipePause?.cancel();
+    final velocity = _swipeVelocity!.getVelocity();
+    if (_progress >= 1) {
+      // Pulled far enough, with no let-go to wait for.
+      _letGo(velocity);
+    } else if (_distance.value > 0) {
+      _swipePause = Timer(_kTrackpadSwipePause, () {
+        if (!_collapsing && _distance.value > 0) _letGo(velocity);
+      });
+    }
+  }
 
   // A drag on the page lets go as it ends, which comes after this.
   void _letGoOfScrollView() {
