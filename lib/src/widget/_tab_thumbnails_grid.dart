@@ -151,8 +151,12 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
       }
     }
 
-    final gridObject = thumbsGridKey.currentContext?.findRenderObject();
-    if (gridObject != null) visit(gridObject);
+    // From the grid's own Scrollable, so as to stay out of the layer that
+    // shows the thumbnails being dragged or moved.
+    if (!scrollController.hasClients) return;
+    final scrollable = scrollController.position.context.notificationContext;
+    final scrollableObject = scrollable?.findRenderObject();
+    if (scrollableObject != null) visit(scrollableObject);
   }
 
   @override
