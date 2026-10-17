@@ -2,7 +2,7 @@
 
 ## [0.1.11]
 ### Added
-- `pullToCollapse`, off by default: pull the expanded tab down to collapse it, as in hero_here's show details example. The tab is pulled from the top of its vertical scroll view, or from anywhere on a tab without one. As it's pulled, it shrinks and its corners round toward the thumbnail's. Let go once it's pulled 50 pixels, or while it moves down fast, and it collapses from where it is, at the speed it had. Otherwise it goes back. On the web, a trackpad's two-finger swipe down pulls the tab too, and collapses it once it's pulled 50 pixels. The example turns it on.
+- `pullToCollapse`, off by default: pull the expanded tab down to collapse it, as in hero_here's show details example. The tab is pulled from the top of its vertical scroll view, or from anywhere on a tab without one. As it's pulled, it shrinks and its corners round toward the thumbnail's. Let go once it's pulled 50 pixels, or while it moves down fast, and it collapses from where it is, at the speed it had. Otherwise it goes back. On the web, a trackpad's two-finger swipe down pulls the tab too, and lets go when its scrolling pauses. The example turns it on.
 
 ## [0.1.10]
 ### Fixed
