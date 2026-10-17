@@ -296,10 +296,7 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
     required Duration duration,
     required Curve curve,
   }) {
-    if (_model.addStandIn(entry)) {
-      _notifyOffScreenThumbTabAdded(entry.tab);
-      _thumbnailsGridState?.stateChanged();
-    }
+    if (_model.addStandIn(entry)) _notifyOffScreenThumbTabAdded(entry.tab);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _doExpand(entry, duration: duration, curve: curve);
@@ -322,10 +319,7 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
     required Duration duration,
     required Curve curve,
   }) {
-    if (_model.addStandIn(entry)) {
-      _notifyOffScreenThumbTabAdded(entry.tab);
-      _thumbnailsGridState?.stateChanged();
-    }
+    if (_model.addStandIn(entry)) _notifyOffScreenThumbTabAdded(entry.tab);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _doCollapse(entry, duration: duration, curve: curve);
@@ -353,16 +347,13 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
   }) {
     final flight = entry.flight;
     if (flight == null) {
-      entry.flight = TabFlight(
-        toPage: toPage,
-        duration: duration,
-        curve: curve,
+      _setFlight(
+        entry,
+        TabFlight(toPage: toPage, duration: duration, curve: curve),
       );
-      _flyingEntries.add(entry);
     } else if (!flight.started && flight.headsToPage == toPage) {
       // Asked back to where it is before the switch, which now won't come.
-      entry.flight = null;
-      _flyingEntries.remove(entry);
+      _setFlight(entry, null);
     } else {
       flight.ask(toPage: toPage);
     }
@@ -376,16 +367,20 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
     TickerProvider vsync, {
     required bool toPage,
   }) {
-    final flight = entry.flight ??= TabFlight(
-      toPage: toPage,
-      duration: HeroHere.defaultFlightAnimationDuration,
-      curve: HeroHere.defaultFlightAnimationCurve,
-    );
-    _flyingEntries.add(entry);
+    var flight = entry.flight;
+    if (flight == null) {
+      flight = TabFlight(
+        toPage: toPage,
+        duration: HeroHere.defaultFlightAnimationDuration,
+        curve: HeroHere.defaultFlightAnimationCurve,
+      );
+      _setFlight(entry, flight);
+    }
+    final startedFlight = flight;
     return TabFlightController(
       vsync: vsync,
       duration: flight.duration,
-      onDispose: () => _tabFlightEnded(entry, flight),
+      onDispose: () => _tabFlightEnded(entry, startedFlight),
     );
   }
 
@@ -414,24 +409,16 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
   void _tabFlightEnded(_TabEntry<T> entry, TabFlight flight) {
     final tab = entry.tab;
     final landedOnPage = flight.headsToPage;
-    var standInRemoved = false;
     if (flight.toPage == landedOnPage) {
-      entry.flight = null;
-      _flyingEntries.remove(entry);
-      standInRemoved = _model.removeStandIn(entry);
-      if (standInRemoved) _notifyOffScreenThumbTabRemoved(tab);
+      _setFlight(entry, null);
+      if (_model.removeStandIn(entry)) _notifyOffScreenThumbTabRemoved(tab);
     } else {
       // Asked elsewhere after the switch that sent it. The next switch
       // starts a flight for that, which needs the stand-in, if any.
       flight.land();
     }
 
-    final grid = _thumbnailsGridState;
-    // The grid ignores taps while a tab flies, and a thumbnail that landed
-    // shows its idle decoration.
-    if (!landedOnPage || standInRemoved) grid?.stateChanged();
-
-    if (landedOnPage && (grid?.thumbOffScreen(tab) ?? false)) {
+    if (landedOnPage && (_thumbnailsGridState?.thumbOffScreen(tab) ?? false)) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _jumpToThumb(tab);
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -579,6 +566,18 @@ mixin _Listeners<T> {
 mixin _TabAnimations<T> {
   /// The entries with a flight, a removed tab's among them.
   final _flyingEntries = <_TabEntry<T>>{};
+
+  /// Tells when a tab starts or stops flying, as the grid ignores taps
+  /// while any does.
+  final _flightsChanged = _Notifier();
+
+  void _setFlight(_TabEntry<T> entry, TabFlight? flight) {
+    entry.flight = flight;
+    final changed = flight == null
+        ? _flyingEntries.remove(entry)
+        : _flyingEntries.add(entry);
+    if (changed) _flightsChanged.notify();
+  }
 
   bool get isAnyExpanding =>
       _flyingEntries.any((entry) => entry.flight!.toPage);
