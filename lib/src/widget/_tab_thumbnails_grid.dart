@@ -119,6 +119,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
       );
       return _buildThumb(context, model.entryAt(index), presence: animation);
     }, duration: duration);
+    _relayoutGrid();
   }
 
   void removeTab(
@@ -134,6 +135,24 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
       );
       return _buildThumb(context, removed, presence: animation);
     }, duration: duration);
+    _relayoutGrid();
+  }
+
+  // A tab added or removed off screen changes no child on screen, so the
+  // grid's sliver would skip its next layout and keep the scroll extent it
+  // had, a row short or long, and scrolling to a tab on a new last row would
+  // stop short of it.
+  void _relayoutGrid() {
+    void visit(RenderObject object) {
+      if (object is RenderSliverMultiBoxAdaptor) {
+        object.markNeedsLayout();
+      } else {
+        object.visitChildren(visit);
+      }
+    }
+
+    final gridObject = thumbsGridKey.currentContext?.findRenderObject();
+    if (gridObject != null) visit(gridObject);
   }
 
   @override
