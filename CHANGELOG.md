@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.10]
+### Fixed
+- Removing a tab in the same event as expanding it from off screen no longer leaves the overview ignoring taps. The overview expanded the tab that took the removed one's place instead of staying put, and its grid ignored taps from then on, after a collapse too.
+- Removing a tab right after expanding it, before the overview builds its page, leaves the overview where it was. It scrolled to its top, and the removed tab stayed built, hidden, for as long as the overview lived.
+- Removing the active tab of a controller created expanded, before the overview is first built, no longer leaves the overview ignoring taps.
+
+All three go back to 0.0.5 at least.
+
 ## [0.1.9]
 ### Fixed
 - Removing a tab other than the last and adding one in the same event, such as closing a tab and opening another in one handler, no longer throws `RangeError`s. Fixed in animated_reorderable 1.6.0.
