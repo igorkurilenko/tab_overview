@@ -15,3 +15,4 @@
 library;
 
 export 'src/tab_overview.dart';
+export 'src/widget/fitted_tab.dart' show FittedTab;

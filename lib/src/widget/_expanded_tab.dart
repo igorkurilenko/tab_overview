@@ -33,7 +33,7 @@ class _ExpandedTab<T> extends StatefulWidget {
   });
 
   @override
-  State<_ExpandedTab> createState() => _ExpandedTabState<T>();
+  State<_ExpandedTab<T>> createState() => _ExpandedTabState<T>();
 }
 
 class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
@@ -87,8 +87,19 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
 
   Widget _buildExpandedTab(BuildContext context, T tab) {
     Widget tabWidget = FittedTab(child: widget.tabBuilder(context, tab));
-    tabWidget = _decorate(tabWidget, tab);
-    tabWidget = _scaleAndFade(tabWidget, tab);
+    tabWidget = _TabDecoration<T>(
+      controller: controller,
+      tab: tab,
+      thumbnailDecoration: widget.thumbnailDecoration,
+      expandedTabDecoration: widget.expandedTabDecoration,
+      idleDecoration: widget.expandedTabDecoration,
+      child: tabWidget,
+    );
+    tabWidget = _TabPresence<T>(
+      controller: controller,
+      tab: tab,
+      child: tabWidget,
+    );
 
     return Stack(
       children: [
@@ -99,7 +110,7 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
             flightAnimationControllerFactory: (vsync, duration) =>
                 _createTabHeroFlightAnimationController(vsync, duration, tab),
             flightAnimationFactory: (animationController) =>
-                _createTabHeroFligthAnimation(animationController, tab),
+                _createTabHeroFlightAnimation(animationController, tab),
             child: tabWidget,
           ),
         ),
@@ -120,58 +131,13 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
     );
   }
 
-  // The same widgets in every phase. A change of widget type here would
-  // re-create the tab content's State, losing its text, focus and scroll
-  // position on the first rebuild after a flight.
-  Widget _decorate(Widget tabWidget, T tab) {
-    final Animation<Decoration> decoration;
-    if (controller._hasTabExpandAnimationContext(tab)) {
-      decoration = DecorationTween(
-        begin: widget.thumbnailDecoration,
-        end: widget.expandedTabDecoration,
-      ).animate(controller._getTabExpandAnimation(tab)!);
-    } else if (controller._hasTabCollapseAnimationContext(tab)) {
-      decoration = DecorationTween(
-        begin: widget.expandedTabDecoration,
-        end: widget.thumbnailDecoration,
-      ).animate(controller._getTabCollapseAnimation(tab)!);
-    } else {
-      decoration = AlwaysStoppedAnimation(widget.expandedTabDecoration);
-    }
-
-    return AnimatedBuilder(
-      animation: decoration,
-      builder: (context, child) => Container(
-        clipBehavior: Clip.antiAlias,
-        decoration: decoration.value,
-        child: child,
-      ),
-      child: tabWidget,
-    );
-  }
-
-  // The same widgets whether or not the tab is being added or removed, so
-  // its content keeps its State when the animation ends.
-  Widget _scaleAndFade(Widget tabWidget, T tab) {
-    final animation =
-        controller._getTabRemoveAnimation(tab) ??
-        controller._getTabInsertAnimation(tab) ??
-        kAlwaysCompleteAnimation;
-
-    return ScaleTransition(
-      scale: animation,
-      child: FadeTransition(opacity: animation, child: tabWidget),
-    );
-  }
-
   AnimationController _createTabHeroFlightAnimationController(
     TickerProvider vsync,
     Duration duration,
     T tab,
   ) {
     final animationContext =
-        controller._getTabExpandAnimationContext(tab) ??
-        controller._getTabCollapseAnimationContext(tab) ??
+        controller._getTabFlightAnimationContext(tab) ??
         controller._ensureTabCollapseAnimationContext(
           tab,
           duration: HeroHere.defaultFlightAnimationDuration,
@@ -191,13 +157,12 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
     });
   }
 
-  Animation<double> _createTabHeroFligthAnimation(
+  Animation<double> _createTabHeroFlightAnimation(
     AnimationController animationController,
     T tab,
   ) {
     final animationContext =
-        controller._getTabExpandAnimationContext(tab) ??
-        controller._getTabCollapseAnimationContext(tab) ??
+        controller._getTabFlightAnimationContext(tab) ??
         controller._ensureTabCollapseAnimationContext(
           tab,
           duration: HeroHere.defaultFlightAnimationDuration,

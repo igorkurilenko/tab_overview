@@ -146,22 +146,23 @@ class TabOverviewController<T> with _AnimationContexts<T>, _Listeners<T> {
         );
 
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          activeTab = tabs.isNotEmpty
-              ? tabs[index < tabs.length ? index : index - 1]
-              : null;
+          activeTab = _neighbourOfRemovedTabAt(index);
         });
       });
     } else if (expanded && !isActiveTabRemoved) {
       _expandedTabState?.jumpToPage(indexOfActiveTab()!);
       _expandedTabState?.stateChanged();
     } else if (isActiveTabRemoved) {
-      activeTab = tabs.isNotEmpty
-          ? tabs[index < tabs.length ? index : index - 1]
-          : null;
+      activeTab = _neighbourOfRemovedTabAt(index);
     }
 
     return removedTab;
   }
+
+  // The tab that took the removed tab's place, or the one before it if the
+  // removed tab was the last.
+  T? _neighbourOfRemovedTabAt(int index) =>
+      tabs.isNotEmpty ? tabs[index < tabs.length ? index : index - 1] : null;
 
   /// Toggles between `overview` and `expanded` modes for the active tab.
   ///
@@ -269,7 +270,7 @@ class TabOverviewController<T> with _AnimationContexts<T>, _Listeners<T> {
     _tabAddedListeners.clear();
     _tabRemovedListeners.clear();
     _offScreenThumbTabAddedListeners.clear();
-    _offscreenThumbTabRemovedListeners.clear();
+    _offScreenThumbTabRemovedListeners.clear();
     _tabsReorderedListeners.clear();
   }
 
@@ -353,37 +354,9 @@ class TabOverviewController<T> with _AnimationContexts<T>, _Listeners<T> {
     }
   }
 
-  void _collapseAnimationCompleted(T tab) {
-    _removeTabCollapseAnimationContext(tab);
-
-    if (_model.removeOffScreenThumbTab(tab)) {
-      _notifyOffScreenThumbTabRemoved(tab);
-    }
-
-    _thumbnailsGridState?.stateChanged();
-  }
-
-  void _collapseAnimationDismissed(T tab) {
-    _removeTabCollapseAnimationContext(tab);
-
-    if (_model.removeOffScreenThumbTab(tab)) {
-      _notifyOffScreenThumbTabRemoved(tab);
-    }
-
-    _thumbnailsGridState?.stateChanged();
-  }
-
-  void _collapseOffScreenAnimationCompleted(T tab) {
-    _removeTabCollapseAnimationContext(tab);
-
-    if (_model.removeOffScreenThumbTab(tab)) {
-      _notifyOffScreenThumbTabRemoved(tab);
-    }
-
-    _thumbnailsGridState?.stateChanged();
-  }
-
-  void _collapseOffScreenAnimationDismissed(T tab) {
+  // Whether it completed or was turned around, and whether the tab landed
+  // in its cell or in a stand-in for one off screen.
+  void _collapseFlightEnded(T tab) {
     _removeTabCollapseAnimationContext(tab);
 
     if (_model.removeOffScreenThumbTab(tab)) {
@@ -440,7 +413,7 @@ mixin _Listeners<T> {
   final _tabAddedListeners = <TabAddedListener<T>>[];
   final _tabRemovedListeners = <TabRemovedListener<T>>[];
   final _offScreenThumbTabAddedListeners = <TabAddedListener<T>>[];
-  final _offscreenThumbTabRemovedListeners = <TabRemovedListener<T>>[];
+  final _offScreenThumbTabRemovedListeners = <TabRemovedListener<T>>[];
   final _tabsReorderedListeners = <TabsReorderedListener>[];
 
   void addModeChangedListener(ModeChangedListener listener) =>
@@ -477,13 +450,13 @@ mixin _Listeners<T> {
       _offScreenThumbTabAddedListeners.add(listener);
 
   void addOffScreenThumbTabRemovedListener(TabRemovedListener<T> listener) =>
-      _offscreenThumbTabRemovedListeners.add(listener);
+      _offScreenThumbTabRemovedListeners.add(listener);
 
   void removeOffScreenThumbTabAddedListener(TabAddedListener<T> listener) =>
       _offScreenThumbTabAddedListeners.remove(listener);
 
   void removeOffScreenThumbTabRemovedListener(TabRemovedListener<T> listener) =>
-      _offscreenThumbTabRemovedListeners.remove(listener);
+      _offScreenThumbTabRemovedListeners.remove(listener);
 
   void _notifyModeChanged(TabOverviewMode mode) {
     for (var listener in _modeChangedListeners) {
@@ -516,7 +489,7 @@ mixin _Listeners<T> {
   }
 
   void _notifyOffScreenThumbTabRemoved(T removedTab) {
-    for (var listener in _offscreenThumbTabRemovedListeners) {
+    for (var listener in _offScreenThumbTabRemovedListeners) {
       listener(removedTab);
     }
   }
@@ -529,8 +502,8 @@ mixin _Listeners<T> {
 }
 
 mixin _AnimationContexts<T> {
-  final _expandAnimationContextsByTab = <T, AnimationContext<T>>{};
-  final _collapseAnimationContextsByTab = <T, AnimationContext<T>>{};
+  final _expandAnimationContextsByTab = <T, AnimationContext>{};
+  final _collapseAnimationContextsByTab = <T, AnimationContext>{};
   final _insertAnimationByTab = <T, Animation<double>>{};
   final _removeAnimationByTab = <T, Animation<double>>{};
 
@@ -572,8 +545,10 @@ mixin _AnimationContexts<T> {
   bool _hasTabExpandAnimationContext(T tab) =>
       _expandAnimationContextsByTab[tab] != null;
 
-  AnimationContext? _getTabExpandAnimationContext(T tab) =>
-      _expandAnimationContextsByTab[tab];
+  // The context of the tab's flight, whether it expands or collapses.
+  AnimationContext? _getTabFlightAnimationContext(T tab) =>
+      _expandAnimationContextsByTab[tab] ??
+      _collapseAnimationContextsByTab[tab];
 
   Animation<double>? _getTabExpandAnimation(T tab) =>
       _expandAnimationContextsByTab[tab]?.animation;
@@ -592,9 +567,6 @@ mixin _AnimationContexts<T> {
 
   bool _hasTabCollapseAnimationContext(T tab) =>
       _collapseAnimationContextsByTab[tab] != null;
-
-  AnimationContext? _getTabCollapseAnimationContext(T tab) =>
-      _collapseAnimationContextsByTab[tab];
 
   Animation<double>? _getTabCollapseAnimation(T tab) =>
       _collapseAnimationContextsByTab[tab]?.animation;

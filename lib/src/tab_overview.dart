@@ -35,6 +35,7 @@ part '_tab_overview_model.dart';
 part 'tab_overview_controller.dart';
 part 'widget/_tab_thumbnails_grid.dart';
 part 'widget/_expanded_tab.dart';
+part 'widget/_tab_transitions.dart';
 
 const kExpandedTabPageViewportFraction = 1.1;
 const kDefaultThumbnailsGridCrossAxisSpacing = 8.0;
@@ -81,8 +82,8 @@ class TabOverview<T> extends StatefulWidget {
 
   /// Builder function for generating a thumbnail widget for each tab in overview mode.
   ///
-  /// This function allows customization of each tab’s appearance in the overview grid,
-  /// by wrapping the main content of the tab with a [FittedTab].
+  /// This function allows customization of each tab’s appearance in the overview grid.
+  /// By default, it shows what [tabBuilder] builds in a [FittedTab].
   final ModelWidgetBuilder<T> tabThumbnailBuilder;
 
   /// Duration of the animation for transitions within the thumbnails grid.
@@ -148,11 +149,10 @@ class TabOverview<T> extends StatefulWidget {
   }
 
   @override
-  State<TabOverview> createState() => _TabOverviewState<T>();
+  State<TabOverview<T>> createState() => _TabOverviewState<T>();
 }
 
-class _TabOverviewState<T> extends State<TabOverview<T>>
-    with TickerProviderStateMixin {
+class _TabOverviewState<T> extends State<TabOverview<T>> {
   final _thumbnailsGridKey = GlobalKey<_TabThumbnailsGridState<T>>();
   final _expandedTabKey = GlobalKey<_ExpandedTabState<T>>();
 
@@ -241,7 +241,7 @@ class _TabOverviewState<T> extends State<TabOverview<T>>
             key: _thumbnailsGridKey,
             controller: controller,
             thumbnailsGridDelegate: _thumbnailsGridDelegateFor(constraints),
-            tabThumbBuilder: widget.tabThumbnailBuilder,
+            tabThumbnailBuilder: widget.tabThumbnailBuilder,
             removeTabButtonBuilder: widget.removeTabButtonBuilder,
             thumbnailDecoration: widget.thumbnailDecoration,
             expandedTabDecoration: widget.expandedTabDecoration,

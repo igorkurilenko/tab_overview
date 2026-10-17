@@ -19,7 +19,7 @@ class _TabThumbnailsGrid<T> extends StatefulWidget {
   final ModelWidgetBuilder<T> removeTabButtonBuilder;
   final EdgeInsets? thumbnailsGridPadding;
   final SliverGridDelegate thumbnailsGridDelegate;
-  final ModelWidgetBuilder<T> tabThumbBuilder;
+  final ModelWidgetBuilder<T> tabThumbnailBuilder;
   final Duration thumbnailsMotionAnimationDuration;
   final Curve thumbnailsMotionAnimationCurve;
   final ScrollBehavior? scrollBehavior;
@@ -32,7 +32,7 @@ class _TabThumbnailsGrid<T> extends StatefulWidget {
     required this.removeTabButtonBuilder,
     this.thumbnailsGridPadding,
     required this.thumbnailsGridDelegate,
-    required this.tabThumbBuilder,
+    required this.tabThumbnailBuilder,
     required this.thumbnailsMotionAnimationDuration,
     required this.thumbnailsMotionAnimationCurve,
     this.scrollBehavior,
@@ -41,7 +41,7 @@ class _TabThumbnailsGrid<T> extends StatefulWidget {
   });
 
   @override
-  State<_TabThumbnailsGrid> createState() => _TabThumbnailsGridState<T>();
+  State<_TabThumbnailsGrid<T>> createState() => _TabThumbnailsGridState<T>();
 }
 
 class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
@@ -70,17 +70,17 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
 
   Duration? get activeTabHeroAnimationDuration {
     if (controller.activeTab == null) return null;
-    final heroAnimationContext =
-        controller._getTabExpandAnimationContext(controller.activeTab as T) ??
-        controller._getTabCollapseAnimationContext(controller.activeTab as T);
+    final heroAnimationContext = controller._getTabFlightAnimationContext(
+      controller.activeTab as T,
+    );
     return heroAnimationContext?.duration;
   }
 
   Curve? get activeTabHeroAnimationCurve {
     if (controller.activeTab == null) return null;
-    final heroAnimationContext =
-        controller._getTabExpandAnimationContext(controller.activeTab as T) ??
-        controller._getTabCollapseAnimationContext(controller.activeTab as T);
+    final heroAnimationContext = controller._getTabFlightAnimationContext(
+      controller.activeTab as T,
+    );
     return heroAnimationContext?.curve;
   }
 
@@ -247,26 +247,22 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
       return Container();
     }
 
-    Widget thumb = widget.tabThumbBuilder(context, tab);
+    Widget thumb = widget.tabThumbnailBuilder(context, tab);
     thumb = _decorate(thumb, tab);
-    thumb = _scaleAndFade(thumb, tab);
+    thumb = _TabPresence<T>(controller: controller, tab: tab, child: thumb);
 
     Widget removeButton = widget.removeTabButtonBuilder(context, tab);
-    removeButton = _scaleAndFade(removeButton, tab);
+    removeButton = _TabPresence<T>(
+      controller: controller,
+      tab: tab,
+      child: removeButton,
+    );
 
     return Stack(
       children: [
-        Positioned.fill(
-          child: HeroMode(
-            enabled: !model.containsOffScreenThumbTab(tab),
-            child: _buildThumbHero(thumb, tab),
-          ),
-        ),
+        Positioned.fill(child: _buildThumbHero(thumb, tab)),
         if (model.removable(tab))
-          HeroMode(
-            enabled: !model.containsOffScreenThumbTab(tab),
-            child: _buildThumbRemoveButtonHero(removeButton, tab),
-          ),
+          _buildThumbRemoveButtonHero(removeButton, tab),
       ],
     );
   }
@@ -276,25 +272,19 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
       tag: tabHeroTag(tab),
       key: tabThumbHeroKey(tab),
       flightAnimationControllerFactory: (vsync, duration) {
-        final animationContext =
-            controller._getTabExpandAnimationContext(tab) ??
-            controller._getTabCollapseAnimationContext(tab);
+        final animationContext = controller._getTabFlightAnimationContext(tab);
         return AnimationController(
           vsync: vsync,
           duration: animationContext!.duration,
         )..addStatusListener((status) {
-          if (status == AnimationStatus.completed) {
-            controller._collapseAnimationCompleted(tab);
-          }
-          if (status == AnimationStatus.dismissed) {
-            controller._collapseAnimationDismissed(tab);
+          if (status == AnimationStatus.completed ||
+              status == AnimationStatus.dismissed) {
+            controller._collapseFlightEnded(tab);
           }
         });
       },
       flightAnimationFactory: (animationController) {
-        final animationContext =
-            controller._getTabExpandAnimationContext(tab) ??
-            controller._getTabCollapseAnimationContext(tab);
+        final animationContext = controller._getTabFlightAnimationContext(tab);
         return animationContext!.animation = CurvedAnimation(
           parent: animationController,
           curve: animationContext.curve!,
@@ -341,96 +331,28 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
   }
 
   Widget _buildOffScreenThumb(BuildContext context, T tab) {
-    Widget thumb = widget.tabThumbBuilder(context, tab);
+    Widget thumb = widget.tabThumbnailBuilder(context, tab);
     thumb = _decorate(thumb, tab);
-    thumb = _scaleAndFade(thumb, tab);
+    thumb = _TabPresence<T>(controller: controller, tab: tab, child: thumb);
 
     return _TabExpandedBuilder<T>(
       controller: controller,
       tab: tab,
       builder: (context) => HeroMode(
         enabled: !controller.isTabExpanded(tab),
-        child: _buildOffScreenThumbHero(thumb, tab),
+        child: _buildThumbHero(thumb, tab),
       ),
     );
   }
 
-  Widget _buildOffScreenThumbHero(Widget thumb, T tab) {
-    return HeroHere(
-      tag: tabHeroTag(tab),
-      key: tabThumbHeroKey(tab),
-      flightAnimationControllerFactory: (vsync, duration) {
-        final animationContext =
-            controller._getTabExpandAnimationContext(tab) ??
-            controller._getTabCollapseAnimationContext(tab);
-        return AnimationController(
-          vsync: vsync,
-          duration: animationContext!.duration,
-        )..addStatusListener((status) {
-          if (status == AnimationStatus.completed) {
-            controller._collapseOffScreenAnimationCompleted(tab);
-          }
-          if (status == AnimationStatus.dismissed) {
-            controller._collapseOffScreenAnimationDismissed(tab);
-          }
-        });
-      },
-      flightAnimationFactory: (animationController) {
-        final animationContext =
-            controller._getTabExpandAnimationContext(tab) ??
-            controller._getTabCollapseAnimationContext(tab);
-        return animationContext!.animation = CurvedAnimation(
-          parent: animationController,
-          curve: animationContext.curve!,
-        );
-      },
-      child: thumb,
-    );
-  }
-
-  // The same widgets in every phase. A change of widget type here would
-  // re-create the tab content's State, losing its text, focus and scroll
-  // position on the first rebuild after a flight.
-  Widget _decorate(Widget thumb, T tab) {
-    final Animation<Decoration> decoration;
-    if (controller._hasTabExpandAnimationContext(tab)) {
-      decoration = DecorationTween(
-        begin: widget.thumbnailDecoration,
-        end: widget.expandedTabDecoration,
-      ).animate(controller._getTabExpandAnimation(tab)!);
-    } else if (controller._hasTabCollapseAnimationContext(tab)) {
-      decoration = DecorationTween(
-        begin: widget.expandedTabDecoration,
-        end: widget.thumbnailDecoration,
-      ).animate(controller._getTabCollapseAnimation(tab)!);
-    } else {
-      decoration = AlwaysStoppedAnimation(widget.thumbnailDecoration);
-    }
-
-    return AnimatedBuilder(
-      animation: decoration,
-      builder: (context, child) => Container(
-        clipBehavior: Clip.antiAlias,
-        decoration: decoration.value,
-        child: child,
-      ),
-      child: thumb,
-    );
-  }
-
-  // The same widgets whether or not the tab is being added or removed, so
-  // its content keeps its State when the animation ends.
-  Widget _scaleAndFade(Widget widget, T tab) {
-    final animation =
-        controller._getTabRemoveAnimation(tab) ??
-        controller._getTabInsertAnimation(tab) ??
-        kAlwaysCompleteAnimation;
-
-    return ScaleTransition(
-      scale: animation,
-      child: FadeTransition(opacity: animation, child: widget),
-    );
-  }
+  Widget _decorate(Widget thumb, T tab) => _TabDecoration<T>(
+    controller: controller,
+    tab: tab,
+    thumbnailDecoration: widget.thumbnailDecoration,
+    expandedTabDecoration: widget.expandedTabDecoration,
+    idleDecoration: widget.thumbnailDecoration,
+    child: thumb,
+  );
 }
 
 /// Builds again when whether [tab] is expanded changes, as when a swipe in
