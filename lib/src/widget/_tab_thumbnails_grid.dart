@@ -101,6 +101,9 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
       _revealActiveThumbScheduled = false;
       final tab = controller.activeTab;
       if (!mounted || !controller.expanded || tab == null) return;
+      // An active tab removed while expanded has no thumb to reveal. It
+      // collapses on its own.
+      if (!model.containsTab(tab)) return;
       if (controller._flightOf(tab) != null) return;
       if (thumbOffScreen(tab)) controller._jumpToThumb(tab);
     });
