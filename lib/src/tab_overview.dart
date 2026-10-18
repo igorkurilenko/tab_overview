@@ -136,6 +136,24 @@ class TabOverview<T> extends StatefulWidget {
 
   bool _isRemovable(T tab) => isTabRemovable?.call(tab) ?? true;
 
+  // How tabs clip their content to their decorations: anti-aliased only if
+  // a decoration rounds or shapes them, as a path clip with anti-aliasing
+  // costs more than a square one. Always some clip, so a change of it
+  // changes no widget around the tab's content.
+  Clip get _tabClip =>
+      _isRounded(thumbnailDecoration) || _isRounded(expandedTabDecoration)
+      ? Clip.antiAlias
+      : Clip.hardEdge;
+
+  static bool _isRounded(Decoration decoration) => switch (decoration) {
+    BoxDecoration(:final shape, :final borderRadius) =>
+      shape != BoxShape.rectangle ||
+          (borderRadius != null &&
+              borderRadius != BorderRadius.zero &&
+              borderRadius != BorderRadiusDirectional.zero),
+    _ => true,
+  };
+
   bool _isReorderable(T tab) => isTabReorderable?.call(tab) ?? true;
 
   /// Constructor to create a customizable [TabOverview] with various builders and configurations.

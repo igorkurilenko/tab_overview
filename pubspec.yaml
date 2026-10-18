@@ -13,7 +13,7 @@ dependencies:
   flutter:
     sdk: flutter
   animated_reorderable: ^2.2.1
-  hero_here: ^1.5.4
+  hero_here: ">=1.5.4 <3.0.0"
 
 dev_dependencies:
   flutter_test:

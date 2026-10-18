@@ -46,7 +46,7 @@ class _TabDecoration<T> extends StatelessWidget {
       return AnimatedBuilder(
         animation: flight?.animation ?? pull ?? kAlwaysCompleteAnimation,
         builder: (context, child) => Container(
-          clipBehavior: Clip.antiAlias,
+          clipBehavior: overview._tabClip,
           decoration: _decorationFor(flight),
           child: child,
         ),

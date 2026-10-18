@@ -259,5 +259,39 @@ void main() {
         }
       });
     }
+
+    // Tabs added off screen change no page on screen, so the page view kept
+    // the scroll extent it had, two pages here. A jump to tab 3's page went
+    // past it, and the view reported page 1, making tab 2 active while tab
+    // 3 showed. A collapse then had no page to fly from, and froze.
+    testWidgets('keeps the page and the active tab together for tabs added '
+        'while expanded', (tester) async {
+      final controller = TabOverviewController<int>(
+        initialMode: TabOverviewMode.expanded,
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: TabOverview<int>.builder(
+            controller: controller,
+            tabBuilder: (context, tab) => Center(child: Text('T$tab')),
+          ),
+        ),
+      );
+      for (var tab = 1; tab <= 6; tab++) {
+        controller.add(tab);
+        await tester.pumpAndSettle();
+      }
+
+      controller.activeTab = 3;
+      await tester.pumpAndSettle();
+
+      expect(controller.activeTab, 3);
+      expect(shown(3), findsOneWidget);
+
+      controller.collapse();
+      await tester.pumpAndSettle();
+      expect(controller.isTransitioning, isFalse);
+      expect(controller.mode, TabOverviewMode.overview);
+    });
   });
 }

@@ -345,11 +345,11 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
   ) {
     final tab = entry.tab;
     if (controller.isTabExpanded(tab)) {
-      return Container();
+      return const SizedBox.shrink();
     }
 
     if (entry.hasStandIn) {
-      return Container();
+      return const SizedBox.shrink();
     }
 
     final thumb = _buildThumbnail(context, entry, presence);
