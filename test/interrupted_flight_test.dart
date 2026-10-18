@@ -78,6 +78,22 @@ double flyingExpansion(WidgetTester tester) => tester
     .color!
     .b;
 
+// Tab 38 of 40, expanded, with the grid scrolled back to its top, so its
+// thumb is off screen.
+Future<TabOverviewController<int>> pumpOffScreenExpanded(
+  WidgetTester tester,
+) async {
+  final controller = await pumpOverview(tester, tabCount: 40);
+  controller.expand(38);
+  await tester.pumpAndSettle();
+  tester
+      .state<ScrollableState>(find.byType(Scrollable).first)
+      .position
+      .jumpTo(0);
+  await tester.pump();
+  return controller;
+}
+
 // The tab's thumb shows in the grid once scrolled to: no stand-in is left
 // in its place.
 Future<void> expectThumbShows(
@@ -330,6 +346,42 @@ void main() {
       expect(controller.activeTab, 38);
       expectNothingFlying(controller);
       await expectThumbShows(tester, controller, 38);
+    });
+  });
+
+  // An off-screen tab's collapse waited a frame for its stand-in too, which
+  // it doesn't need: the stand-in is where its flight lands, which the
+  // switch looks for after its frame. An expand in the same event, while
+  // still expanded, was lost.
+  group('in the same event as an off-screen collapse', () {
+    for (final tab in [1, 38]) {
+      testWidgets('an expand of tab $tab expands it', (tester) async {
+        final controller = await pumpOffScreenExpanded(tester);
+
+        controller.collapse();
+        controller.expand(tab);
+        await tester.pumpAndSettle();
+
+        expect(controller.mode, TabOverviewMode.expanded);
+        expect(controller.activeTab, tab);
+        expectNothingFlying(controller);
+        await expectThumbShows(tester, controller, 38);
+      });
+    }
+
+    testWidgets('removing the tab switches to the grid once', (tester) async {
+      final controller = await pumpOffScreenExpanded(tester);
+      final modes = <TabOverviewMode>[];
+      controller.addModeChangedListener(modes.add);
+
+      controller.collapse();
+      controller.remove(38);
+      await tester.pumpAndSettle();
+
+      expect(modes, [TabOverviewMode.overview]);
+      expect(controller.activeTab, 39);
+      expectNothingFlying(controller);
+      await expectThumbShows(tester, controller, 39);
     });
   });
 }

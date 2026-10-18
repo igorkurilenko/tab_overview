@@ -318,11 +318,10 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
       velocity: velocity,
       expansion: expansion,
     );
-    if (_thumbnailsGridState!.thumbOffScreen(tab)) {
-      _collapseOffScreen(entry, flight);
-    } else {
-      _doCollapse(entry, flight);
-    }
+    // The stand-in is where the flight lands, which the switch looks for
+    // after its frame, so it's there in time.
+    if (_thumbnailsGridState!.thumbOffScreen(tab)) _addStandIn(entry);
+    _doCollapse(entry, flight);
   }
 
   /// Disposes resources used by the controller.
@@ -401,14 +400,6 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
     _notifyModeChanged(_mode);
   }
 
-  void _collapseOffScreen(_TabEntry<T> entry, TabFlight flight) {
-    _addStandIn(entry);
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _doCollapse(entry, flight);
-    });
-  }
-
   void _doCollapse(_TabEntry<T> entry, TabFlight flight) {
     _askForTabFlight(entry, flight);
 
@@ -425,8 +416,10 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
     if (flight == null) {
       _setFlight(entry, asked);
     } else if (!flight.started && flight.headsToPage == toPage) {
-      // Asked back to where it is before the switch, which now won't come.
+      // Asked back to where it is before the switch, which now won't come,
+      // nor a flight for its stand-in.
       _setFlight(entry, null);
+      _removeStandIn(entry);
     } else {
       flight.ask(toPage: toPage);
     }
