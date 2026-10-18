@@ -72,13 +72,25 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
 
   AnimatedReorderableState? get thumbsGridState => thumbsGridKey.currentState;
 
-  double get thumbsGridScale => controller.mode == TabOverviewMode.expanded
-      ? _kThumbsGridScaleWhenExpanded
+  // The grid's scale and opacity, zoomed out and hidden behind the pages,
+  // and as far back in as the expanded tab's page is [pulled] to collapse.
+  double thumbsGridScale(double pulled) => controller.expanded
+      ? lerpDouble(_kThumbsGridScaleWhenExpanded, 1, pulled)!
       : 1.0;
 
-  double get thumbsGridOpacity => controller.mode == TabOverviewMode.expanded
-      ? _kThumbsGridOpacityWhenExpanded
+  double thumbsGridOpacity(double pulled) => controller.expanded
+      ? lerpDouble(_kThumbsGridOpacityWhenExpanded, 1, pulled)!
       : 1.0;
+
+  // How far the expanded tab's page is pulled to collapse it, if a tab is
+  // expanded.
+  ValueListenable<double> get _activePull {
+    final tab = controller.activeTab;
+    final entry = tab == null ? null : model.entryOf(tab);
+    return entry?.pull ?? _notPulled;
+  }
+
+  static final _notPulled = ValueNotifier<double>(0);
 
   Duration? get activeTabHeroAnimationDuration =>
       controller._flights.of(controller.activeTab)?.duration;
@@ -250,20 +262,39 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
   Widget _buildThumbs() {
     return ScrollConfiguration(
       behavior: overview.scrollBehavior ?? ScrollConfiguration.of(context),
-      child: AnimatedScale(
-        scale: thumbsGridScale,
-        duration:
-            activeTabHeroAnimationDuration ?? controller.transition.duration,
-        curve: activeTabHeroAnimationCurve ?? controller.transition.curve,
-        child: AnimatedOpacity(
-          opacity: thumbsGridOpacity,
-          duration:
-              activeTabHeroAnimationDuration ?? controller.transition.duration,
-          curve: controller.mode == TabOverviewMode.expanded
-              ? Curves.fastOutSlowIn.flipped
-              : Curves.fastOutSlowIn,
-          child: _items ??= _buildItems(),
+      // A swipe changes the active tab, whose page may be pulled.
+      child: ListenableBuilder(
+        listenable: controller,
+        builder: (context, items) => ValueListenableBuilder<double>(
+          valueListenable: _activePull,
+          builder: (context, pulled, items) => _buildZoom(pulled, items!),
+          child: items,
         ),
+        child: _items ??= _buildItems(),
+      ),
+    );
+  }
+
+  // Zooms the grid out and hides it behind the pages, and back as the
+  // overview switches to the grid. A pull on the expanded tab's page brings
+  // it back as far as the page is pulled, at once: the grid follows the
+  // pull, and a collapse let go of carries on from where the pull left it.
+  Widget _buildZoom(double pulled, Widget items) {
+    final followsPull = controller.expanded && pulled > 0;
+    final duration = followsPull
+        ? Duration.zero
+        : activeTabHeroAnimationDuration ?? controller.transition.duration;
+    return AnimatedScale(
+      scale: thumbsGridScale(pulled),
+      duration: duration,
+      curve: activeTabHeroAnimationCurve ?? controller.transition.curve,
+      child: AnimatedOpacity(
+        opacity: thumbsGridOpacity(pulled),
+        duration: duration,
+        curve: controller.expanded
+            ? Curves.fastOutSlowIn.flipped
+            : Curves.fastOutSlowIn,
+        child: items,
       ),
     );
   }

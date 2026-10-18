@@ -16,6 +16,7 @@ library;
 
 import 'dart:collection';
 import 'dart:math';
+import 'dart:ui' show lerpDouble;
 
 import 'package:animated_reorderable/animated_reorderable.dart';
 import 'package:flutter/foundation.dart';

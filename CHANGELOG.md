@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.2.1]
+### Changed
+- Pulling an expanded tab's page down to collapse it now brings the grid behind it back as you pull. Half way, the grid is half faded in and half zoomed back. Let go short, and it goes back with the page. Let go to collapse, and it carries on from where the pull left it. Before, the grid stayed hidden until the tab began to collapse.
+
 ## [0.2.0]
 0.2.0 removes what 0.1.20 and 0.1.21 deprecated, and changes a few names and errors. Fix any deprecation warnings on 0.1.21 first; the table below covers the rest.
 

@@ -92,7 +92,12 @@ class _PullToCollapseState<T> extends State<_PullToCollapse<T>>
   @override
   void dispose() {
     _distance.dispose();
-    entry.pull.value = 0;
+    // After the frame: the page goes as the overview builds, when the grid,
+    // which follows the pull, can't rebuild.
+    final pull = entry.pull;
+    if (pull.value != 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => pull.value = 0);
+    }
     super.dispose();
   }
 

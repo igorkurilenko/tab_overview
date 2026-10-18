@@ -60,6 +60,32 @@ Iterable<double> cornerRadii(WidgetTester tester) => tester
     .whereType<BorderRadius>()
     .map((radius) => radius.topLeft.x);
 
+// The grid's scale and opacity as shown, from the transitions its
+// AnimatedScale and AnimatedOpacity build.
+double gridScale(WidgetTester tester) => tester
+    .widget<ScaleTransition>(
+      find
+          .ancestor(
+            of: find.byType(GridView),
+            matching: find.byType(ScaleTransition),
+          )
+          .first,
+    )
+    .scale
+    .value;
+
+double gridOpacity(WidgetTester tester) => tester
+    .widget<FadeTransition>(
+      find
+          .ancestor(
+            of: find.byType(GridView),
+            matching: find.byType(FadeTransition),
+          )
+          .first,
+    )
+    .opacity
+    .value;
+
 void expectCollapsed(WidgetTester tester, TabOverviewController<int> c) {
   expect(c.mode, TabOverviewMode.overview);
   expect(c.isTransitioning, isFalse);
@@ -85,6 +111,116 @@ void main() {
     await tester.pumpAndSettle();
 
     expectCollapsed(tester, controller);
+  });
+
+  // The grid behind the pages is zoomed out to 90% and hidden. A pull on the
+  // page brings it back as the collapse would, as far as the page is pulled,
+  // so the tab's thumbnail shows where it will land.
+  testWidgets('the grid zooms and fades back in as far as the tab is pulled', (
+    tester,
+  ) async {
+    await pumpExpanded(tester);
+    expect(gridScale(tester), 0.9);
+    expect(gridOpacity(tester), 0);
+
+    final gesture = await tester.startGesture(tester.getCenter(page()));
+    // Past the touch slop, then halfway.
+    await gesture.moveBy(const Offset(0, 20));
+    await tester.pump();
+    await gesture.moveBy(const Offset(0, 25));
+    await tester.pump();
+
+    expect(gridScale(tester), moreOrLessEquals(0.95));
+    expect(gridOpacity(tester), moreOrLessEquals(0.5));
+
+    // Pulled all the way.
+    await gesture.moveBy(const Offset(0, 40));
+    await tester.pump();
+    expect(gridScale(tester), 1);
+    expect(gridOpacity(tester), 1);
+
+    await gesture.cancel();
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('the grid goes back with a tab let go short of collapsing', (
+    tester,
+  ) async {
+    final controller = await pumpExpanded(tester);
+
+    await pull(tester, 40);
+    await tester.pumpAndSettle();
+
+    expect(controller.mode, TabOverviewMode.expanded);
+    expect(gridScale(tester), 0.9);
+    expect(gridOpacity(tester), 0);
+  });
+
+  testWidgets('the grid shows fully when a tab is removed while pulled', (
+    tester,
+  ) async {
+    final controller = await pumpExpanded(tester);
+
+    final gesture = await tester.startGesture(tester.getCenter(page()));
+    await gesture.moveBy(const Offset(0, 20));
+    await tester.pump();
+    await gesture.moveBy(const Offset(0, 25));
+    await tester.pump();
+    expect(gridOpacity(tester), inExclusiveRange(0, 1));
+
+    // Removing the expanded tab collapses it, and its page goes mid-pull.
+    controller.remove(1);
+    await tester.pumpAndSettle();
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(controller.mode, TabOverviewMode.overview);
+    expect(gridScale(tester), 1);
+    expect(gridOpacity(tester), 1);
+
+    // The tab that took its place expands with no pull left over.
+    controller.expand(controller.activeTab!);
+    await tester.pumpAndSettle();
+    expect(gridScale(tester), 0.9);
+    expect(gridOpacity(tester), 0);
+  });
+
+  testWidgets('the grid carries on from where the pull left it as the tab '
+      'collapses', (tester) async {
+    await pumpExpanded(tester);
+
+    final gesture = await tester.startGesture(tester.getCenter(page()));
+    var time = Duration.zero;
+    Future<void> move(double dy, Duration frame) async {
+      time += frame;
+      await gesture.moveBy(Offset(0, dy), timeStamp: time);
+      await tester.pump(frame);
+    }
+
+    // Past the touch slop, then halfway in steps of 5 pixels every 8 ms,
+    // fast enough to collapse when let go.
+    await move(20, const Duration(milliseconds: 16));
+    for (var step = 0; step < 5; step++) {
+      await move(5, const Duration(milliseconds: 8));
+    }
+    final atRelease = gridScale(tester);
+    await gesture.up(timeStamp: time);
+
+    final scales = <double>[];
+    for (var frame = 0; frame < 30; frame++) {
+      await tester.pump(const Duration(milliseconds: 16));
+      scales.add(gridScale(tester));
+    }
+    await tester.pumpAndSettle();
+
+    expect(atRelease, moreOrLessEquals(0.95, epsilon: 0.01));
+    // No jump back to 90%: from where it was, up to full size.
+    expect(scales.first, greaterThanOrEqualTo(atRelease - 0.001));
+    for (var frame = 1; frame < scales.length; frame++) {
+      expect(scales[frame], greaterThanOrEqualTo(scales[frame - 1] - 0.001));
+    }
+    expect(scales.last, 1);
+    expect(gridOpacity(tester), 1);
   });
 
   testWidgets('a tab pulled a little and let go slowly goes back', (
