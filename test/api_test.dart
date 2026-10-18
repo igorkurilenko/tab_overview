@@ -125,6 +125,15 @@ void main() {
     });
   });
 
+  group('the constructor', () {
+    test('takes an empty list of tabs, with no tab active', () {
+      final controller = TabOverviewController<int>(initialTabs: []);
+
+      expect(controller.tabs, isEmpty);
+      expect(controller.activeTab, isNull);
+    });
+  });
+
   group('activeIndex', () {
     testWidgets('is the active tab\'s index in tabs', (tester) async {
       final controller = await pumpOverview(tester);

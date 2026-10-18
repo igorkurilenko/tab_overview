@@ -67,7 +67,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
        _model = _TabOverviewModel<T>(initialTabs: initialTabs),
        _activeTab = (initialTabs?.contains(activeTab) ?? false)
            ? activeTab
-           : initialTabs?.first;
+           : initialTabs?.firstOrNull;
 
   /// The current display mode of the [TabOverview], either `overview` or `expanded`.
   ///
