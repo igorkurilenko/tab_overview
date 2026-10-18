@@ -38,7 +38,7 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
   void initState() {
     super.initState();
     pageController = PageController(
-      initialPage: controller._indexOfActiveTab() ?? 0,
+      initialPage: controller.activeIndex ?? 0,
       viewportFraction: _kExpandedTabPageViewportFraction,
     );
     controller._attachPages(this);

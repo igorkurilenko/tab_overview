@@ -120,15 +120,14 @@ void main() {
       expect(controller.activeIndex, isNull);
     });
 
-    testWidgets('is null for an active tab not in the overview, where '
-        'indexOfActiveTab is -1', (tester) async {
+    testWidgets('can\'t be of a tab that isn\'t in the overview, as the '
+        'activeTab setter refuses one', (tester) async {
       final controller = TabOverviewController<int>(initialTabs: [0, 1, 2]);
 
-      controller.activeTab = 42;
+      expect(() => controller.activeTab = 42, throwsArgumentError);
 
-      expect(controller.activeIndex, isNull);
-      // ignore: deprecated_member_use_from_same_package
-      expect(controller.indexOfActiveTab(), -1);
+      expect(controller.activeTab, 0);
+      expect(controller.activeIndex, 0);
     });
   });
 

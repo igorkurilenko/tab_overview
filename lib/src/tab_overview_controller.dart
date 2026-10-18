@@ -80,10 +80,16 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
   /// tab's page shows at once. An expand still under way turns to the tab,
   /// and a tab still flying to its page flies back to its thumbnail, as the
   /// tab's page opens.
+  ///
+  /// Throws an [ArgumentError] for a tab that isn't in the overview, as
+  /// [expand] does.
   set activeTab(T? value) {
     if (_activeTab == value) return;
 
     final entry = value == null ? null : _model.entryOf(value);
+    if (value != null && entry == null) {
+      throw ArgumentError('Tab $value not found');
+    }
     final active = _activeTab == null ? null : _model.entryOf(_activeTab as T);
     if (_phase is _ExpandWaiting && entry != null) {
       // An expand waits for its stand-in: it turns to this tab.
@@ -124,21 +130,9 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
 
   /// The active tab's index in [tabs], or `null` if no tab is active.
   int? get activeIndex {
-    final index = _indexOfActiveTab();
-    return index == -1 ? null : index;
+    final tab = _activeTab;
+    return tab == null ? null : _model.indexOfTab(tab);
   }
-
-  /// Returns the index of the current active tab in the [tabs] list.
-  @Deprecated(
-    'Use activeIndex, which is null rather than -1 for an active tab not in '
-    'the overview. This method goes in 0.2.0.',
-  )
-  int? indexOfActiveTab() => _indexOfActiveTab();
-
-  // -1 for an active tab not in the overview, which the activeTab setter
-  // still lets an app set.
-  int? _indexOfActiveTab() =>
-      activeTab != null ? _model.indexOfTab(activeTab as T) : null;
 
   /// Checks if the specified [tab] is currently active.
   ///
@@ -188,7 +182,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
 
     activeTab ??= newTab;
 
-    _pages?.jumpToPage(_indexOfActiveTab()!);
+    _pages?.jumpToPage(activeIndex!);
     _pages?.stateChanged();
 
     return true;
@@ -242,7 +236,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
       if (expanded) _collapseRemoved(removed, duration: duration);
       _setActiveTab(_neighbourOfRemovedTabAt(index));
     } else if (expanded) {
-      _pages?.jumpToPage(_indexOfActiveTab()!);
+      _pages?.jumpToPage(activeIndex!);
       _pages?.stateChanged();
     }
 
