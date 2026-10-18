@@ -13,17 +13,15 @@
 // limitations under the License.
 
 import 'package:flutter/material.dart';
-import 'package:tab_overview/tab_overview.dart';
 
-class RemoveTabButton<T> extends StatelessWidget {
-  final TabOverviewController<T> controller;
-  final T tab;
+/// The remove (close) button the overview shows on a tab by default, at its
+/// top right corner. Use it in a `removeTabButtonBuilder` to keep its look
+/// and do something else when it's pressed, such as asking first.
+class RemoveTabButton extends StatelessWidget {
+  /// Called when the button is pressed.
+  final VoidCallback onPressed;
 
-  const RemoveTabButton({
-    super.key,
-    required this.controller,
-    required this.tab,
-  });
+  const RemoveTabButton({super.key, required this.onPressed});
 
   ButtonStyle get buttonStyle => ButtonStyle(
     backgroundColor: WidgetStateProperty.all(
@@ -41,11 +39,9 @@ class RemoveTabButton<T> extends StatelessWidget {
       child: IconButton.filled(
         style: buttonStyle,
         color: buttonColor,
-        onPressed: _handlePress,
+        onPressed: onPressed,
         icon: const Icon(Icons.close),
       ),
     ),
   );
-
-  void _handlePress() => controller.remove(tab);
 }

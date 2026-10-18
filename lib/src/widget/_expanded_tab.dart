@@ -149,7 +149,7 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
               ignoring: true,
               child: Opacity(
                 opacity: 0,
-                child: overview.removeTabButtonBuilder(context, tab),
+                child: overview._buildRemoveTabButton(context, tab),
               ),
             ),
           ),

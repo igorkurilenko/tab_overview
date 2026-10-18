@@ -68,8 +68,8 @@ class TabOverview<T> extends StatefulWidget {
 
   /// Builder function for the tab's remove (close) button in overview mode.
   ///
-  /// If not provided, a default [RemoveTabButton] is used, allowing tabs to be removed.
-  late final ModelWidgetBuilder<T> removeTabButtonBuilder;
+  /// If null, a [RemoveTabButton] removes the tab from the controller.
+  final ModelWidgetBuilder<T>? removeTabButtonBuilder;
 
   /// Padding around the thumbnails grid in overview mode.
   ///
@@ -85,8 +85,8 @@ class TabOverview<T> extends StatefulWidget {
   /// Builder function for generating a thumbnail widget for each tab in overview mode.
   ///
   /// This function allows customization of each tab’s appearance in the overview grid.
-  /// By default, it shows what [tabBuilder] builds in a [FittedTab].
-  final ModelWidgetBuilder<T> tabThumbnailBuilder;
+  /// If null, a thumbnail shows what [tabBuilder] builds in a [FittedTab].
+  final ModelWidgetBuilder<T>? tabThumbnailBuilder;
 
   /// Duration of the animation for transitions within the thumbnails grid.
   ///
@@ -166,14 +166,14 @@ class TabOverview<T> extends StatefulWidget {
   /// - [pullToCollapse] lets the expanded tab be pulled down to collapse it.
   /// - [isTabRemovable] and [isTabReorderable] tell which tabs the user may
   ///   remove or move.
-  TabOverview.builder({
+  const TabOverview.builder({
     super.key,
     required this.controller,
     required this.tabBuilder,
-    ModelWidgetBuilder<T>? removeTabButtonBuilder,
+    this.removeTabButtonBuilder,
     this.thumbnailsGridPadding,
     this.thumbnailsGridDelegate,
-    ModelWidgetBuilder<T>? tabThumbnailBuilder,
+    this.tabThumbnailBuilder,
     this.thumbnailsMotionAnimationDuration = const Duration(milliseconds: 350),
     this.thumbnailsMotionAnimationCurve = Curves.easeInOut,
     this.scrollBehavior,
@@ -183,14 +183,17 @@ class TabOverview<T> extends StatefulWidget {
     this.isTabRemovable,
     this.isTabReorderable,
   }) : thumbnailDecoration = thumbnailDecoration ?? const BoxDecoration(),
-       expandedTabDecoration = expandedTabDecoration ?? const BoxDecoration(),
-       tabThumbnailBuilder =
-           tabThumbnailBuilder ??
-           ((context, tab) => FittedTab(child: tabBuilder(context, tab))) {
-    this.removeTabButtonBuilder =
-        removeTabButtonBuilder ??
-        ((context, tab) => RemoveTabButton(controller: controller, tab: tab));
-  }
+       expandedTabDecoration = expandedTabDecoration ?? const BoxDecoration();
+
+  // What removeTabButtonBuilder builds, or the default button.
+  Widget _buildRemoveTabButton(BuildContext context, T tab) =>
+      removeTabButtonBuilder?.call(context, tab) ??
+      RemoveTabButton(onPressed: () => controller.remove(tab));
+
+  // What tabThumbnailBuilder builds, or the tab's content in a FittedTab.
+  Widget _buildTabThumbnail(BuildContext context, T tab) =>
+      tabThumbnailBuilder?.call(context, tab) ??
+      FittedTab(child: tabBuilder(context, tab));
 
   @override
   State<TabOverview<T>> createState() => _TabOverviewState<T>();

@@ -7,6 +7,7 @@ Future<TabOverviewController<int>> pumpOverview(
   int tabCount = 4,
   bool Function(int tab)? isTabRemovable,
   bool Function(int tab)? isTabReorderable,
+  Widget Function(BuildContext context, int tab)? removeTabButtonBuilder,
 }) async {
   final controller = TabOverviewController<int>(
     initialTabs: List.generate(tabCount, (tab) => tab),
@@ -28,6 +29,7 @@ Future<TabOverviewController<int>> pumpOverview(
               controller: controller,
               isTabRemovable: isTabRemovable,
               isTabReorderable: isTabReorderable,
+              removeTabButtonBuilder: removeTabButtonBuilder,
               tabBuilder: (context, tab) => ColoredBox(
                 color: Colors.white,
                 child: Center(child: Text('T$tab')),
@@ -287,6 +289,33 @@ void main() {
 
       expect(controller.activeTab, 2);
       expect(page(2), findsOneWidget);
+    });
+  });
+
+  group('the remove button', () {
+    testWidgets('removes its tab by default', (tester) async {
+      final controller = await pumpOverview(tester);
+
+      await tester.tap(find.byIcon(Icons.close).at(1));
+      await tester.pumpAndSettle();
+
+      expect(controller.tabs, [0, 2, 3]);
+    });
+
+    testWidgets('keeps its look and calls its own onPressed in a custom '
+        'builder', (tester) async {
+      final pressed = <int>[];
+      final controller = await pumpOverview(
+        tester,
+        removeTabButtonBuilder: (context, tab) =>
+            RemoveTabButton(onPressed: () => pressed.add(tab)),
+      );
+
+      await tester.tap(find.byIcon(Icons.close).at(1));
+      await tester.pumpAndSettle();
+
+      expect(pressed, [1]);
+      expect(controller.tabs, [0, 1, 2, 3]);
     });
   });
 

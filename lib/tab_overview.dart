@@ -16,3 +16,4 @@ library;
 
 export 'src/tab_overview.dart';
 export 'src/widget/fitted_tab.dart' show FittedTab;
+export 'src/widget/remove_tab_button.dart' show RemoveTabButton;

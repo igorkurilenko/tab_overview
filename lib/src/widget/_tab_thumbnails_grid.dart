@@ -358,7 +358,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
     final thumb = _buildThumbnail(context, entry, presence);
     final removeButton = _TabPresence(
       animation: presence,
-      child: overview.removeTabButtonBuilder(context, tab),
+      child: overview._buildRemoveTabButton(context, tab),
     );
 
     return Stack(
@@ -453,7 +453,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
       overview: overview,
       entry: entry,
       idleDecoration: overview.thumbnailDecoration,
-      child: overview.tabThumbnailBuilder(context, entry.tab),
+      child: overview._buildTabThumbnail(context, entry.tab),
     ),
   );
 }
