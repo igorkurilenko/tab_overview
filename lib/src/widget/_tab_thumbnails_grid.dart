@@ -157,11 +157,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
 
   // The tab's thumb enters through _buildItemPresence.
   void addTab(_TabEntry<T> entry, {required Duration duration}) {
-    thumbsGridState!.insertItem(
-      model.indexOfEntry(entry),
-      null,
-      duration: duration,
-    );
+    thumbsGridState!.insertItem(model.indexOfEntry(entry), duration: duration);
     _relayoutGrid();
   }
 
