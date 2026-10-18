@@ -282,7 +282,7 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
     _setActiveTab(tab);
 
     final flight = TabFlight(toPage: true, duration: duration, curve: curve);
-    if (_thumbnailsGridState!.thumbOffScreen(tab)) {
+    if (!_thumbnailsGridState!.thumbBuilt(tab)) {
       _expandOffScreen(entry, flight);
     } else {
       _doExpand(entry, flight);
@@ -369,7 +369,7 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
     );
     // The stand-in is where the flight lands, which the switch looks for
     // after its frame, so it's there in time.
-    if (_thumbnailsGridState!.thumbOffScreen(tab)) _addStandIn(entry);
+    if (!_thumbnailsGridState!.thumbBuilt(tab)) _addStandIn(entry);
     _doCollapse(entry, flight);
   }
 
@@ -533,7 +533,8 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
       flight.land();
     }
 
-    if (landedOnPage && (_thumbnailsGridState?.thumbOffScreen(tab) ?? false)) {
+    final grid = _thumbnailsGridState;
+    if (landedOnPage && grid != null && !grid.thumbInView(tab)) {
       // After the frame: a flight also ends as the overview goes away.
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _thumbnailsGridState?.jumpToThumb(tab);
