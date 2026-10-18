@@ -160,9 +160,20 @@ class Tab {
 
 ### Classes
 
-- **TabOverview**: The main widget for managing and displaying tabs.
-- **TabOverviewController**: Manages state and tab actions: `add` and `remove` return whether they changed anything, `removeAt` removes the tab at an index, and `activeIndex` is the active tab's index, or `null`.
-- **ReorderableTab** and **RemovableTab**: Deprecated. Use `isTabReorderable` and `isTabRemovable`; the interfaces go in 0.2.0.
+- **TabOverview**: The widget that shows the tabs, as a grid of thumbnails or as the expanded tab's page.
+- **TabOverviewController**: Holds the tabs, the active tab and the mode, and animates the changes:
+  - `add` and `remove` return whether they changed anything. `removeAt` removes the tab at an index.
+  - `expand`, `expandAt`, `collapse` and `toggleMode` switch the mode. Each takes an optional `duration` and `curve`, which override the controller's `transition`.
+  - `activeTab` is the tab the expanded view shows, and `activeIndex` is its index, or `null`.
+  - `isTransitioning` tells whether a tab is flying between its thumbnail and its page.
+  - It's a `ChangeNotifier`, and also has typed listeners for each kind of change.
+- **TabTransition**: How long an animation takes, and how it eases. The controller's `transition` sets it for expanding and collapsing. The widget's `thumbnailsMotion` sets it for thumbnails moving in the grid.
+- **FittedTab**: Shows a tab's content scaled down to fit a thumbnail, as the default thumbnail does.
+- **RemoveTabButton**: The default remove button. Use it in a `removeTabButtonBuilder` to keep its look and do something else when it's pressed.
+
+### Errors
+
+A controller method that takes a tab throws an `ArgumentError` for a tab that isn't in the overview. `remove` is the exception: it returns `false`, as `add` does for a tab that's already there. A method that takes an index throws a `RangeError` for an index out of range.
 
 ### Enums
 
@@ -170,11 +181,16 @@ class Tab {
 
 ### Typedefs
 
+- **ModelWidgetBuilder**: Builds a widget for a tab, as `tabBuilder` and the other builders do.
 - **TabAddedListener**: Callback triggered when a tab is added.
 - **TabRemovedListener**: Callback triggered when a tab is removed.
 - **ModeChangedListener**: Callback triggered when the display mode changes.
 - **ActiveTabChangedListener**: Callback triggered when the active tab changes.
 - **TabsReorderedListener**: Callback triggered when tabs are reordered.
+
+### Migrating from 0.1
+
+0.2.0 removes what 0.1.20 and 0.1.21 deprecated, and changes a few names. The [changelog](CHANGELOG.md) has a table of each change and what to use instead.
 
 ## Customization
 
@@ -193,6 +209,18 @@ You can also override this default layout by providing a custom `thumbnailsGridD
 Style your tabs with the following properties:
 - **thumbnailDecoration**: Apply decoration to each thumbnail in overview mode.
 - **expandedTabDecoration**: Apply decoration to the expanded view of a tab.
+
+### Transitions
+
+A tab expands and collapses over 300 ms along `Curves.easeInOut`. To change that everywhere, give the controller a `transition`:
+
+```dart
+final controller = TabOverviewController<Tab>(
+  transition: const TabTransition(duration: Duration(milliseconds: 450)),
+);
+```
+
+A call can still pass its own `duration` and `curve`, as in `controller.expand(tab, duration: ...)`. Thumbnails moving to new places in the grid follow the widget's `thumbnailsMotion`.
 
 ### Pull to Collapse
 

@@ -23,6 +23,12 @@ part of 'tab_overview.dart';
 /// It's a [ChangeNotifier]: it notifies its listeners when the mode, the
 /// active tab or the tabs change, so a [ListenableBuilder] can rebuild with
 /// it, as with a [ScrollController].
+///
+/// A method that takes a tab throws an [ArgumentError] for a tab that isn't
+/// in the overview, except [remove], which returns `false`, as [add] does
+/// for a tab that already is. A method that takes an index throws a
+/// [RangeError] for an index out of range. Questions such as [isActiveTab]
+/// and [isTabExpanded] answer `false` for a tab that isn't there.
 class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
   // Where the overview's switch heads: to the grid, to the pages, or to the
   // pages once an off-screen tab's stand-in is built.
@@ -38,21 +44,35 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
   // The tabs' flights between their thumbnails and their pages.
   late final _flights = _TabFlights<T>(this);
 
+  /// How a tab expands to its page and collapses to its thumbnail, unless a
+  /// call to [expand], [expandAt], [collapse] or [toggleMode] says otherwise:
+  /// 300 ms along [Curves.easeInOut] by default.
+  final TabTransition transition;
+
   /// Constructor for [TabOverviewController] to initialize with optional tabs and display mode.
   ///
   /// - [initialTabs]: An optional list of tabs to initialize.
   /// - [initialMode]: The initial mode of display, defaulting to `overview`.
+  /// - [activeTab]: The tab active at first, which must be among
+  ///   [initialTabs], as the [activeTab] setter refuses a tab that isn't in
+  ///   the overview. If null, the first of them is.
+  /// - [transition]: How tabs expand and collapse.
   TabOverviewController({
     List<T>? initialTabs,
     TabOverviewMode initialMode = TabOverviewMode.overview,
     T? activeTab,
+    this.transition = const TabTransition(
+      duration: HeroHere.defaultFlightAnimationDuration,
+    ),
   }) : _phase = initialMode == TabOverviewMode.expanded
            ? const _Expanded()
            : const _Overview(),
        _model = _TabOverviewModel<T>(initialTabs: initialTabs),
-       _activeTab = (initialTabs?.contains(activeTab) ?? false)
-           ? activeTab
-           : initialTabs?.first;
+       _activeTab = activeTab ?? initialTabs?.firstOrNull {
+    if (activeTab != null && !(initialTabs?.contains(activeTab) ?? false)) {
+      throw ArgumentError('Tab $activeTab not found');
+    }
+  }
 
   /// The current display mode of the [TabOverview], either `overview` or `expanded`.
   ///
@@ -80,10 +100,16 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
   /// tab's page shows at once. An expand still under way turns to the tab,
   /// and a tab still flying to its page flies back to its thumbnail, as the
   /// tab's page opens.
+  ///
+  /// Throws an [ArgumentError] for a tab that isn't in the overview, as
+  /// [expand] does.
   set activeTab(T? value) {
     if (_activeTab == value) return;
 
     final entry = value == null ? null : _model.entryOf(value);
+    if (value != null && entry == null) {
+      throw ArgumentError('Tab $value not found');
+    }
     final active = _activeTab == null ? null : _model.entryOf(_activeTab as T);
     if (_phase is _ExpandWaiting && entry != null) {
       // An expand waits for its stand-in: it turns to this tab.
@@ -124,21 +150,9 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
 
   /// The active tab's index in [tabs], or `null` if no tab is active.
   int? get activeIndex {
-    final index = _indexOfActiveTab();
-    return index == -1 ? null : index;
+    final tab = _activeTab;
+    return tab == null ? null : _model.indexOfTab(tab);
   }
-
-  /// Returns the index of the current active tab in the [tabs] list.
-  @Deprecated(
-    'Use activeIndex, which is null rather than -1 for an active tab not in '
-    'the overview. This method goes in 0.2.0.',
-  )
-  int? indexOfActiveTab() => _indexOfActiveTab();
-
-  // -1 for an active tab not in the overview, which the activeTab setter
-  // still lets an app set.
-  int? _indexOfActiveTab() =>
-      activeTab != null ? _model.indexOfTab(activeTab as T) : null;
 
   /// Checks if the specified [tab] is currently active.
   ///
@@ -188,7 +202,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
 
     activeTab ??= newTab;
 
-    _pages?.jumpToPage(_indexOfActiveTab()!);
+    _pages?.jumpToPage(activeIndex!);
     _pages?.stateChanged();
 
     return true;
@@ -208,13 +222,6 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
   }
 
   /// Removes the tab at a specified [index] and animates its removal.
-  @Deprecated('Use removeAt. This name goes in 0.2.0.')
-  T removeTabAt(
-    int index, {
-    Duration duration = const Duration(milliseconds: 350),
-  }) => removeAt(index, duration: duration);
-
-  /// Removes the tab at a specified [index] and animates its removal.
   ///
   /// Removing the active tab makes the tab that takes its place active, or
   /// the one before it if it was the last. Removing the expanded tab also
@@ -228,7 +235,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
     // Its add animation, if any, is over, and may never end if its item
     // goes first.
     _model.entryAt(index).presence = null;
-    final removed = _model.removeTabAt(index, duration: duration);
+    final removed = _model.removeAt(index, duration: duration);
     final removedTab = removed.tab;
     _notifyTabRemoved(removedTab);
 
@@ -242,7 +249,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
       if (expanded) _collapseRemoved(removed, duration: duration);
       _setActiveTab(_neighbourOfRemovedTabAt(index));
     } else if (expanded) {
-      _pages?.jumpToPage(_indexOfActiveTab()!);
+      _pages?.jumpToPage(activeIndex!);
       _pages?.stateChanged();
     }
 
@@ -266,11 +273,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
     _addStandIn(removed);
     _doCollapse(
       removed,
-      TabFlight(
-        toPage: false,
-        duration: duration,
-        curve: HeroHere.defaultFlightAnimationCurve,
-      ),
+      TabFlight(toPage: false, duration: duration, curve: transition.curve),
     );
   }
 
@@ -281,11 +284,8 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
 
   /// Toggles between `overview` and `expanded` modes for the active tab.
   ///
-  /// Optionally, a [duration] and [curve] can be provided to control the animation.
-  void toggleMode({
-    Duration duration = HeroHere.defaultFlightAnimationDuration,
-    Curve curve = Curves.easeInOut,
-  }) {
+  /// A [duration] and [curve] override the controller's [transition].
+  void toggleMode({Duration? duration, Curve? curve}) {
     if (_model.tabs.isEmpty) return;
 
     if (expanded) {
@@ -297,21 +297,17 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
   }
 
   /// Expands the tab at a specified [index], switching the mode to `expanded`.
-  void expandAt(
-    int index, {
-    Duration duration = HeroHere.defaultFlightAnimationDuration,
-    Curve curve = Curves.easeInOut,
-  }) => expand(_model[index], duration: duration, curve: curve);
+  ///
+  /// A [duration] and [curve] override the controller's [transition].
+  void expandAt(int index, {Duration? duration, Curve? curve}) =>
+      expand(_model[index], duration: duration, curve: curve);
 
   /// Expands a specified tab, switching the mode to `expanded`.
   ///
-  /// A tab still flying back to its thumbnail turns toward its page from
-  /// where it is, over the duration and curve of the flight it's in.
-  void expand(
-    T tab, {
-    Duration duration = HeroHere.defaultFlightAnimationDuration,
-    Curve curve = Curves.easeInOut,
-  }) {
+  /// A [duration] and [curve] override the controller's [transition]. A tab
+  /// still flying back to its thumbnail turns toward its page from where it
+  /// is, over the duration and curve of the flight it's in.
+  void expand(T tab, {Duration? duration, Curve? curve}) {
     final entry = _model.entryOf(tab);
     if (entry == null) {
       throw ArgumentError('Tab $tab not found');
@@ -326,7 +322,11 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
     }
 
     if (expanded && _pages != null) {
-      scrollToTab(tab, duration: duration, curve: curve);
+      scrollToTab(
+        tab,
+        duration: duration ?? transition.duration,
+        curve: curve ?? transition.curve,
+      );
       return;
     }
 
@@ -343,7 +343,11 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
     }
     _setActiveTab(tab);
 
-    final flight = TabFlight(toPage: true, duration: duration, curve: curve);
+    final flight = TabFlight(
+      toPage: true,
+      duration: duration ?? transition.duration,
+      curve: curve ?? transition.curve,
+    );
     if (!_thumbnails!.thumbBuilt(tab)) {
       _expandOffScreen(entry, flight);
     } else {
@@ -358,7 +362,11 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
     T tab, {
     Duration duration = const Duration(milliseconds: 350),
     Curve curve = Curves.easeInOut,
-  }) => scrollToTabAt(tabs.indexOf(tab), duration: duration, curve: curve);
+  }) {
+    final index = _model.indexOfTab(tab);
+    if (index == -1) throw ArgumentError('Tab $tab not found');
+    scrollToTabAt(index, duration: duration, curve: curve);
+  }
 
   /// Scrolls to the tab at the specified [index].
   ///
@@ -368,6 +376,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
     Duration duration = const Duration(milliseconds: 350),
     Curve curve = Curves.easeInOut,
   }) {
+    RangeError.checkValidIndex(index, tabs, 'index');
     if (expanded) {
       final pages = _pages;
       if (pages == null) {
@@ -387,13 +396,13 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
 
   /// Collapses the active tab, returning to `overview` mode and animating the change.
   ///
-  /// Accepts optional [duration] and [curve] parameters to control the animation.
-  /// A tab still flying to its page turns toward its thumbnail from where it
-  /// is, over the duration and curve of the flight it's in.
-  void collapse({
-    Duration duration = HeroHere.defaultFlightAnimationDuration,
-    Curve curve = Curves.easeInOut,
-  }) => _collapse(duration: duration, curve: curve);
+  /// A [duration] and [curve] override the controller's [transition]. A tab
+  /// still flying to its page turns toward its thumbnail from where it is,
+  /// over the duration and curve of the flight it's in.
+  void collapse({Duration? duration, Curve? curve}) => _collapse(
+    duration: duration ?? transition.duration,
+    curve: curve ?? transition.curve,
+  );
 
   // Collapses the active tab from where a pull left its page: [expansion] of
   // the way from its thumbnail to its page, flung at [velocity], in flights
@@ -402,8 +411,8 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
     required double velocity,
     required double expansion,
   }) => _collapse(
-    duration: HeroHere.defaultFlightAnimationDuration,
-    curve: Curves.easeInOut,
+    duration: transition.duration,
+    curve: transition.curve,
     // A fling the other way would land where it is at once.
     velocity: max(0, velocity),
     expansion: expansion,
@@ -456,8 +465,6 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
     _activeTabChangedListeners.clear();
     _tabAddedListeners.clear();
     _tabRemovedListeners.clear();
-    _offScreenThumbTabAddedListeners.clear();
-    _offScreenThumbTabRemovedListeners.clear();
     _tabsReorderedListeners.clear();
     super.dispose();
   }
@@ -527,20 +534,17 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
   }
 
   void _addStandIn(_TabEntry<T> entry) {
-    if (_model.addStandIn(entry)) _notifyOffScreenThumbTabAdded(entry.tab);
+    _model.addStandIn(entry);
   }
 
   void _removeStandIn(_TabEntry<T> entry) {
-    if (_model.removeStandIn(entry)) _notifyOffScreenThumbTabRemoved(entry.tab);
+    _model.removeStandIn(entry);
   }
 
-  bool get isAnyExpanding => _flights.anyToPage;
-
-  bool get isAnyCollapsing => _flights.anyToThumbnail;
-
-  bool isExpanding(T tab) => _flights.of(tab)?.toPage ?? false;
-
-  bool isCollapsing(T tab) => !(_flights.of(tab)?.toPage ?? true);
+  /// Whether any tab is flying between its thumbnail and its page, as it
+  /// expands, collapses or is removed. The overview ignores taps on its
+  /// thumbnails meanwhile.
+  bool get isTransitioning => _flights.any;
 
   // Keeps [animation] as the entry's add or remove animation until it ends.
   // The grid builds an item on every rebuild while it animates, so it may
@@ -625,8 +629,6 @@ mixin _Listeners<T> on ChangeNotifier {
   final _activeTabChangedListeners = <ActiveTabChangedListener>[];
   final _tabAddedListeners = <TabAddedListener<T>>[];
   final _tabRemovedListeners = <TabRemovedListener<T>>[];
-  final _offScreenThumbTabAddedListeners = <TabAddedListener<T>>[];
-  final _offScreenThumbTabRemovedListeners = <TabRemovedListener<T>>[];
   final _tabsReorderedListeners = <TabsReorderedListener>[];
 
   void addModeChangedListener(ModeChangedListener listener) =>
@@ -659,34 +661,6 @@ mixin _Listeners<T> on ChangeNotifier {
   void removeTabsReorderedListener(TabsReorderedListener listener) =>
       _tabsReorderedListeners.remove(listener);
 
-  @Deprecated(
-    'Stand-ins are placeholders the overview keeps for its flights. '
-    'This listener goes in 0.2.0.',
-  )
-  void addOffScreenThumbTabAddedListener(TabAddedListener<T> listener) =>
-      _offScreenThumbTabAddedListeners.add(listener);
-
-  @Deprecated(
-    'Stand-ins are placeholders the overview keeps for its flights. '
-    'This listener goes in 0.2.0.',
-  )
-  void addOffScreenThumbTabRemovedListener(TabRemovedListener<T> listener) =>
-      _offScreenThumbTabRemovedListeners.add(listener);
-
-  @Deprecated(
-    'Stand-ins are placeholders the overview keeps for its flights. '
-    'This listener goes in 0.2.0.',
-  )
-  void removeOffScreenThumbTabAddedListener(TabAddedListener<T> listener) =>
-      _offScreenThumbTabAddedListeners.remove(listener);
-
-  @Deprecated(
-    'Stand-ins are placeholders the overview keeps for its flights. '
-    'This listener goes in 0.2.0.',
-  )
-  void removeOffScreenThumbTabRemovedListener(TabRemovedListener<T> listener) =>
-      _offScreenThumbTabRemovedListeners.remove(listener);
-
   void _notifyModeChanged(TabOverviewMode mode) {
     for (var listener in _modeChangedListeners) {
       listener(mode);
@@ -713,18 +687,6 @@ mixin _Listeners<T> on ChangeNotifier {
       listener(removedTab);
     }
     notifyListeners();
-  }
-
-  void _notifyOffScreenThumbTabAdded(T tab) {
-    for (var listener in _offScreenThumbTabAddedListeners) {
-      listener(tab);
-    }
-  }
-
-  void _notifyOffScreenThumbTabRemoved(T removedTab) {
-    for (var listener in _offScreenThumbTabRemovedListeners) {
-      listener(removedTab);
-    }
   }
 
   void _notifyTabsReordered() {

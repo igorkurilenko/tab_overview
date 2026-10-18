@@ -35,9 +35,7 @@ class _TabFlights<T> {
     if (changes) changed.notify();
   }
 
-  bool get anyToPage => _flying.any((entry) => entry.flight!.toPage);
-
-  bool get anyToThumbnail => _flying.any((entry) => !entry.flight!.toPage);
+  bool get any => _flying.isNotEmpty;
 
   // The flight of the tab, a removed one too, found by equality, which a tab
   // keeps with itself however its hash code changes.
@@ -82,8 +80,8 @@ class _TabFlights<T> {
     if (flight == null) {
       flight = TabFlight(
         toPage: toPage,
-        duration: HeroHere.defaultFlightAnimationDuration,
-        curve: HeroHere.defaultFlightAnimationCurve,
+        duration: _controller.transition.duration,
+        curve: _controller.transition.curve,
       );
       set(entry, flight);
     }

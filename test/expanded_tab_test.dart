@@ -162,7 +162,7 @@ void main() {
 
           await tester.pumpAndSettle();
           expect(controller.mode, TabOverviewMode.overview);
-          expect(controller.isAnyCollapsing, isFalse);
+          expect(controller.isTransitioning, isFalse);
           expect(find.text('T1'), findsNothing);
           for (final tab in controller.tabs) {
             expect(find.text('T$tab').hitTestable(), findsOneWidget);
@@ -184,8 +184,7 @@ void main() {
       expect(controller.mode, TabOverviewMode.expanded);
       expect(controller.activeTab, 3);
       expect(shown(3), findsOneWidget);
-      expect(controller.isAnyExpanding, isFalse);
-      expect(controller.isAnyCollapsing, isFalse);
+      expect(controller.isTransitioning, isFalse);
     });
 
     testWidgets('expands another tab asked for in the same event as its '
@@ -200,8 +199,7 @@ void main() {
       expect(controller.activeTab, 3);
       expect(shown(3), findsOneWidget);
       expect(find.text('T1'), findsNothing);
-      expect(controller.isAnyExpanding, isFalse);
-      expect(controller.isAnyCollapsing, isFalse);
+      expect(controller.isTransitioning, isFalse);
     });
 
     testWidgets('toggled in the same event as its removal, expands the tab '
@@ -216,8 +214,7 @@ void main() {
       expect(controller.activeTab, 2);
       expect(shown(2), findsOneWidget);
       expect(find.text('T1'), findsNothing);
-      expect(controller.isAnyExpanding, isFalse);
-      expect(controller.isAnyCollapsing, isFalse);
+      expect(controller.isTransitioning, isFalse);
     });
 
     // The setter only set the field: the pages went on showing the tab
@@ -233,7 +230,7 @@ void main() {
 
       controller.collapse();
       await tester.pumpAndSettle();
-      expect(controller.isAnyCollapsing, isFalse);
+      expect(controller.isTransitioning, isFalse);
       for (final tab in controller.tabs) {
         expect(find.text('T$tab').hitTestable(), findsOneWidget);
       }
@@ -253,8 +250,7 @@ void main() {
         expect(controller.mode, TabOverviewMode.expanded);
         expect(controller.activeTab, 3);
         expect(shown(3), findsOneWidget);
-        expect(controller.isAnyExpanding, isFalse);
-        expect(controller.isAnyCollapsing, isFalse);
+        expect(controller.isTransitioning, isFalse);
 
         controller.collapse();
         await tester.pumpAndSettle();

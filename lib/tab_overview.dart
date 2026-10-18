@@ -14,5 +14,17 @@
 
 library;
 
-export 'src/tab_overview.dart';
+export 'src/tab_overview.dart'
+    show
+        ActiveTabChangedListener,
+        ModeChangedListener,
+        TabAddedListener,
+        TabOverview,
+        TabOverviewController,
+        TabOverviewMode,
+        TabRemovedListener,
+        TabTransition,
+        TabsReorderedListener;
+export 'src/util/model_widget_builder.dart' show ModelWidgetBuilder;
 export 'src/widget/fitted_tab.dart' show FittedTab;
+export 'src/widget/remove_tab_button.dart' show RemoveTabButton;

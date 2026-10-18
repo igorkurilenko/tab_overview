@@ -38,8 +38,8 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
   void initState() {
     super.initState();
     pageController = PageController(
-      initialPage: controller._indexOfActiveTab() ?? 0,
-      viewportFraction: kExpandedTabPageViewportFraction,
+      initialPage: controller.activeIndex ?? 0,
+      viewportFraction: _kExpandedTabPageViewportFraction,
     );
     controller._attachPages(this);
   }
@@ -149,7 +149,7 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
               ignoring: true,
               child: Opacity(
                 opacity: 0,
-                child: overview.removeTabButtonBuilder(context, tab),
+                child: overview._buildRemoveTabButton(context, tab),
               ),
             ),
           ),

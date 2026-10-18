@@ -62,7 +62,7 @@ Iterable<double> cornerRadii(WidgetTester tester) => tester
 
 void expectCollapsed(WidgetTester tester, TabOverviewController<int> c) {
   expect(c.mode, TabOverviewMode.overview);
-  expect(c.isAnyCollapsing, isFalse);
+  expect(c.isTransitioning, isFalse);
   expect(find.text('T1').hitTestable(), findsOneWidget);
 }
 
@@ -241,7 +241,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(controller.mode, TabOverviewMode.overview);
-      expect(controller.isAnyCollapsing, isFalse);
+      expect(controller.isTransitioning, isFalse);
     });
   }
 

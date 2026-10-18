@@ -73,11 +73,11 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
   AnimatedReorderableState? get thumbsGridState => thumbsGridKey.currentState;
 
   double get thumbsGridScale => controller.mode == TabOverviewMode.expanded
-      ? kThumbsGridScaleWhenExpanded
+      ? _kThumbsGridScaleWhenExpanded
       : 1.0;
 
   double get thumbsGridOpacity => controller.mode == TabOverviewMode.expanded
-      ? kThumbsGridOpacityWhenExpanded
+      ? _kThumbsGridOpacityWhenExpanded
       : 1.0;
 
   Duration? get activeTabHeroAnimationDuration =>
@@ -232,7 +232,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
         ListenableBuilder(
           listenable: controller._flights.changed,
           builder: (context, thumbs) => IgnorePointer(
-            ignoring: controller.isAnyExpanding || controller.isAnyCollapsing,
+            ignoring: controller.isTransitioning,
             child: thumbs,
           ),
           child: _buildThumbs(),
@@ -253,15 +253,12 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
       child: AnimatedScale(
         scale: thumbsGridScale,
         duration:
-            activeTabHeroAnimationDuration ??
-            HeroHere.defaultFlightAnimationDuration,
-        curve:
-            activeTabHeroAnimationCurve ?? HeroHere.defaultFlightAnimationCurve,
+            activeTabHeroAnimationDuration ?? controller.transition.duration,
+        curve: activeTabHeroAnimationCurve ?? controller.transition.curve,
         child: AnimatedOpacity(
           opacity: thumbsGridOpacity,
           duration:
-              activeTabHeroAnimationDuration ??
-              HeroHere.defaultFlightAnimationDuration,
+              activeTabHeroAnimationDuration ?? controller.transition.duration,
           curve: controller.mode == TabOverviewMode.expanded
               ? Curves.fastOutSlowIn.flipped
               : Curves.fastOutSlowIn,
@@ -277,8 +274,8 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
       key: thumbsGridKey,
       keyGetter: model.keyAt,
       motion: MotionOptions(
-        duration: overview.thumbnailsMotionAnimationDuration,
-        curve: overview.thumbnailsMotionAnimationCurve,
+        duration: overview.thumbnailsMotion.duration,
+        curve: overview.thumbnailsMotion.curve,
       ),
       reorder: ReorderOptions(
         onReorder: controller._reorderTabs,
@@ -358,7 +355,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
     final thumb = _buildThumbnail(context, entry, presence);
     final removeButton = _TabPresence(
       animation: presence,
-      child: overview.removeTabButtonBuilder(context, tab),
+      child: overview._buildRemoveTabButton(context, tab),
     );
 
     return Stack(
@@ -453,7 +450,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
       overview: overview,
       entry: entry,
       idleDecoration: overview.thumbnailDecoration,
-      child: overview.tabThumbnailBuilder(context, entry.tab),
+      child: overview._buildTabThumbnail(context, entry.tab),
     ),
   );
 }

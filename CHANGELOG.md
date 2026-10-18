@@ -1,5 +1,43 @@
 # Changelog
 
+## [0.2.0]
+0.2.0 removes what 0.1.20 and 0.1.21 deprecated, and changes a few names and errors. Fix any deprecation warnings on 0.1.21 first; the table below covers the rest.
+
+### Migrating from 0.1
+| 0.1 | 0.2.0 |
+|---|---|
+| `removeTabAt(index)` | `removeAt(index)` |
+| `indexOfActiveTab()` | `activeIndex`, which is `null` rather than −1 |
+| `isAnyExpanding`, `isAnyCollapsing`, `isExpanding(tab)`, `isCollapsing(tab)` | `isTransitioning` |
+| `addOffScreenThumbTabAddedListener` and the other three stand-in listener methods | Removed. Listen to the controller as a `ChangeNotifier`, or to its typed listeners. |
+| A tab model implementing `RemovableTab` or `ReorderableTab` | `TabOverview(isTabRemovable: (tab) => tab.removable, isTabReorderable: (tab) => tab.reorderable)` |
+| `RemoveTabButton(controller: controller, tab: tab)` | `RemoveTabButton(onPressed: () => controller.remove(tab))` |
+| `thumbnailsMotionAnimationDuration` and `thumbnailsMotionAnimationCurve` | `thumbnailsMotion: TabTransition(duration: ..., curve: ...)` |
+| `kExpandedTabPageViewportFraction`, `kThumbsGridScaleWhenExpanded`, `kThumbsGridOpacityWhenExpanded`, `kDefaultThumbnailsGrid…Spacing` | Removed. Set the grid's spacing through `thumbnailsGridDelegate`. |
+| `activeTab = tab` for a tab not in the overview | Throws an `ArgumentError`, as `expand` does |
+| `TabOverviewController(activeTab: tab)` with a tab not among `initialTabs` | Throws an `ArgumentError`, where it used to make the first tab active |
+| `scrollToTab(tab)` for a tab not in the overview | Throws an `ArgumentError` |
+| `scrollToTabAt(index)` for an index out of range | Throws a `RangeError` |
+
+### Added
+- `TabTransition(duration, curve)`, and `TabOverviewController.transition`. The transition sets how tabs expand and collapse, 300 ms along `easeInOut` by default. `expand`, `expandAt`, `collapse` and `toggleMode` take a nullable `duration` and `curve` that override it.
+- `isTransitioning`: whether a tab is flying between its thumbnail and its page.
+- `RemoveTabButton` is exported, so a custom `removeTabButtonBuilder` can keep the default look.
+- `ModelWidgetBuilder` is exported.
+- `TabOverview.builder` is `const`.
+
+### Changed
+- A controller method that takes a tab throws an `ArgumentError` for a tab that isn't in the overview. `remove` is the exception: it returns `false`. A method that takes an index throws a `RangeError` for an index out of range. The controller's docs say so.
+- `removeTabButtonBuilder` and `tabThumbnailBuilder` are nullable. `null` means the default, built when the overview builds.
+- The package exports each public name explicitly, so internal names can't leak into the API.
+
+### Fixed
+- `TabOverviewController(initialTabs: [])` no longer throws a `StateError`. With no tabs, no tab is active.
+
+### Removed
+- Everything deprecated in 0.1.20 and 0.1.21, as listed in the table above.
+- The five `k…` tuning constants, and `RemoveTabButton`'s `buttonStyle` and `buttonColor` getters.
+
 ## [0.1.21]
 ### Added
 - `activeIndex`: the active tab's index in `tabs`, or `null` if no tab is active.

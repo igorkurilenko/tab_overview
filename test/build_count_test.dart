@@ -90,7 +90,7 @@ void main() {
     for (final tab in [0, 2, 3]) {
       expect(find.text('T$tab').hitTestable(), findsOneWidget);
     }
-    expect(controller.isAnyExpanding || controller.isAnyCollapsing, isFalse);
+    expect(controller.isTransitioning, isFalse);
 
     controller.add(4);
     await tester.pumpAndSettle();

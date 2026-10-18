@@ -7,10 +7,13 @@ Future<TabOverviewController<int>> pumpOverview(
   int tabCount = 4,
   bool Function(int tab)? isTabRemovable,
   bool Function(int tab)? isTabReorderable,
+  Widget Function(BuildContext context, int tab)? removeTabButtonBuilder,
+  TabTransition? transition,
 }) async {
-  final controller = TabOverviewController<int>(
-    initialTabs: List.generate(tabCount, (tab) => tab),
-  );
+  final tabs = List.generate(tabCount, (tab) => tab);
+  final controller = transition == null
+      ? TabOverviewController<int>(initialTabs: tabs)
+      : TabOverviewController<int>(initialTabs: tabs, transition: transition);
   await tester.pumpWidget(
     MaterialApp(
       home: Column(
@@ -28,6 +31,7 @@ Future<TabOverviewController<int>> pumpOverview(
               controller: controller,
               isTabRemovable: isTabRemovable,
               isTabReorderable: isTabReorderable,
+              removeTabButtonBuilder: removeTabButtonBuilder,
               tabBuilder: (context, tab) => ColoredBox(
                 color: Colors.white,
                 child: Center(child: Text('T$tab')),
@@ -90,14 +94,60 @@ void main() {
     expect(controller.tabs, [0, 1, 3]);
   });
 
-  testWidgets('removeTabAt still removes, deprecated', (tester) async {
-    final controller = await pumpOverview(tester);
+  group('a tab or an index that isn\'t there', () {
+    testWidgets('throws an ArgumentError from a method that takes a tab', (
+      tester,
+    ) async {
+      final controller = await pumpOverview(tester);
 
-    // ignore: deprecated_member_use_from_same_package
-    expect(controller.removeTabAt(2), 2);
-    await tester.pumpAndSettle();
+      expect(() => controller.expand(9), throwsArgumentError);
+      expect(() => controller.scrollToTab(9), throwsArgumentError);
+      expect(() => controller.activeTab = 9, throwsArgumentError);
+    });
 
-    expect(controller.tabs, [0, 1, 3]);
+    testWidgets('throws a RangeError from a method that takes an index', (
+      tester,
+    ) async {
+      final controller = await pumpOverview(tester);
+
+      expect(() => controller.expandAt(9), throwsRangeError);
+      expect(() => controller.scrollToTabAt(9), throwsRangeError);
+      expect(() => controller.removeAt(9), throwsRangeError);
+      expect(() => controller.isTabExpandedAt(9), throwsRangeError);
+      expect(controller.tabs, [0, 1, 2, 3]);
+    });
+
+    testWidgets('answers false from a question', (tester) async {
+      final controller = await pumpOverview(tester);
+
+      expect(controller.isActiveTab(9), isFalse);
+      expect(controller.isTabExpanded(9), isFalse);
+    });
+  });
+
+  group('the constructor', () {
+    test('takes an empty list of tabs, with no tab active', () {
+      final controller = TabOverviewController<int>(initialTabs: []);
+
+      expect(controller.tabs, isEmpty);
+      expect(controller.activeTab, isNull);
+    });
+
+    test('makes the first tab active, unless told another', () {
+      expect(TabOverviewController<int>(initialTabs: [0, 1]).activeTab, 0);
+      expect(
+        TabOverviewController<int>(initialTabs: [0, 1], activeTab: 1).activeTab,
+        1,
+      );
+    });
+
+    test('refuses an active tab that isn\'t among its tabs, as the '
+        'activeTab setter does', () {
+      expect(
+        () => TabOverviewController<int>(initialTabs: [0, 1], activeTab: 9),
+        throwsArgumentError,
+      );
+    });
   });
 
   group('activeIndex', () {
@@ -120,15 +170,14 @@ void main() {
       expect(controller.activeIndex, isNull);
     });
 
-    testWidgets('is null for an active tab not in the overview, where '
-        'indexOfActiveTab is -1', (tester) async {
+    testWidgets('can\'t be of a tab that isn\'t in the overview, as the '
+        'activeTab setter refuses one', (tester) async {
       final controller = TabOverviewController<int>(initialTabs: [0, 1, 2]);
 
-      controller.activeTab = 42;
+      expect(() => controller.activeTab = 42, throwsArgumentError);
 
-      expect(controller.activeIndex, isNull);
-      // ignore: deprecated_member_use_from_same_package
-      expect(controller.indexOfActiveTab(), -1);
+      expect(controller.activeTab, 0);
+      expect(controller.activeIndex, 0);
     });
   });
 
@@ -218,7 +267,7 @@ void main() {
       expect(controller.mode, TabOverviewMode.expanded);
       expect(controller.activeTab, 2);
       expect(page(2), findsOneWidget);
-      expect(controller.isAnyExpanding, isFalse);
+      expect(controller.isTransitioning, isFalse);
     });
 
     testWidgets('toggleMode expands the active tab', (tester) async {
@@ -267,6 +316,94 @@ void main() {
 
       expect(controller.activeTab, 2);
       expect(page(2), findsOneWidget);
+    });
+  });
+
+  group('transition', () {
+    // How long a tab flies to its page, to the frame.
+    Future<int> framesToExpand(
+      WidgetTester tester,
+      void Function() expand,
+    ) async {
+      expand();
+      var frames = 0;
+      do {
+        await tester.pump(const Duration(milliseconds: 20));
+        frames++;
+      } while (frames < 200 &&
+          !find
+              .descendant(of: find.byType(PageView), matching: find.text('T1'))
+              .hitTestable()
+              .evaluate()
+              .isNotEmpty);
+      await tester.pumpAndSettle();
+      return frames;
+    }
+
+    testWidgets('is 300 ms by default', (tester) async {
+      final controller = await pumpOverview(tester);
+      expect(
+        controller.transition,
+        const TabTransition(duration: Duration(milliseconds: 300)),
+      );
+
+      final frames = await framesToExpand(tester, () => controller.expand(1));
+
+      expect(frames * 20, inInclusiveRange(300, 360));
+    });
+
+    testWidgets('times every expand the controller isn\'t told otherwise', (
+      tester,
+    ) async {
+      final controller = await pumpOverview(
+        tester,
+        transition: const TabTransition(duration: Duration(seconds: 1)),
+      );
+
+      final frames = await framesToExpand(tester, () => controller.expand(1));
+
+      expect(frames * 20, inInclusiveRange(1000, 1060));
+    });
+
+    testWidgets('gives way to a call\'s own duration', (tester) async {
+      final controller = await pumpOverview(
+        tester,
+        transition: const TabTransition(duration: Duration(seconds: 1)),
+      );
+
+      final frames = await framesToExpand(
+        tester,
+        () => controller.expand(1, duration: const Duration(milliseconds: 100)),
+      );
+
+      expect(frames * 20, inInclusiveRange(100, 160));
+    });
+  });
+
+  group('the remove button', () {
+    testWidgets('removes its tab by default', (tester) async {
+      final controller = await pumpOverview(tester);
+
+      await tester.tap(find.byIcon(Icons.close).at(1));
+      await tester.pumpAndSettle();
+
+      expect(controller.tabs, [0, 2, 3]);
+    });
+
+    testWidgets('keeps its look and calls its own onPressed in a custom '
+        'builder', (tester) async {
+      final pressed = <int>[];
+      final controller = await pumpOverview(
+        tester,
+        removeTabButtonBuilder: (context, tab) =>
+            RemoveTabButton(onPressed: () => pressed.add(tab)),
+      );
+
+      await tester.tap(find.byIcon(Icons.close).at(1));
+      await tester.pumpAndSettle();
+
+      expect(pressed, [1]);
+      expect(controller.tabs, [0, 1, 2, 3]);
     });
   });
 

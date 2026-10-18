@@ -32,6 +32,7 @@ import 'widget/fitted_tab.dart';
 
 part '_overview_views.dart';
 part '_tab_flights.dart';
+part 'tab_transition.dart';
 part '_tab_overview_model.dart';
 part 'tab_overview_controller.dart';
 part 'widget/_tab_thumbnails_grid.dart';
@@ -39,11 +40,11 @@ part 'widget/_expanded_tab.dart';
 part 'widget/_pull_to_collapse.dart';
 part 'widget/_tab_transitions.dart';
 
-const kExpandedTabPageViewportFraction = 1.1;
-const kDefaultThumbnailsGridCrossAxisSpacing = 8.0;
-const kDefaultThumbnailsGridMainAxisSpacing = 8.0;
-const kThumbsGridScaleWhenExpanded = 0.9;
-const kThumbsGridOpacityWhenExpanded = 0.0;
+const _kExpandedTabPageViewportFraction = 1.1;
+const _kDefaultThumbnailsGridCrossAxisSpacing = 8.0;
+const _kDefaultThumbnailsGridMainAxisSpacing = 8.0;
+const _kThumbsGridScaleWhenExpanded = 0.9;
+const _kThumbsGridOpacityWhenExpanded = 0.0;
 
 /// The [TabOverview] widget provides a flexible, animated interface for switching between multiple tabs.
 /// It supports both overview and expanded modes with customizable animations, decorations, and layouts.
@@ -68,8 +69,8 @@ class TabOverview<T> extends StatefulWidget {
 
   /// Builder function for the tab's remove (close) button in overview mode.
   ///
-  /// If not provided, a default [RemoveTabButton] is used, allowing tabs to be removed.
-  late final ModelWidgetBuilder<T> removeTabButtonBuilder;
+  /// If null, a [RemoveTabButton] removes the tab from the controller.
+  final ModelWidgetBuilder<T>? removeTabButtonBuilder;
 
   /// Padding around the thumbnails grid in overview mode.
   ///
@@ -85,18 +86,12 @@ class TabOverview<T> extends StatefulWidget {
   /// Builder function for generating a thumbnail widget for each tab in overview mode.
   ///
   /// This function allows customization of each tab’s appearance in the overview grid.
-  /// By default, it shows what [tabBuilder] builds in a [FittedTab].
-  final ModelWidgetBuilder<T> tabThumbnailBuilder;
+  /// If null, a thumbnail shows what [tabBuilder] builds in a [FittedTab].
+  final ModelWidgetBuilder<T>? tabThumbnailBuilder;
 
-  /// Duration of the animation for transitions within the thumbnails grid.
-  ///
-  /// This duration applies when tabs change positions, such as during reordering.
-  final Duration thumbnailsMotionAnimationDuration;
-
-  /// Curve of the animation for transitions within the thumbnails grid.
-  ///
-  /// Controls the speed and motion style of animations affecting the thumbnails grid.
-  final Curve thumbnailsMotionAnimationCurve;
+  /// How thumbnails move to new places in the grid, as when tabs are added,
+  /// removed or reordered: 350 ms along [Curves.easeInOut] by default.
+  final TabTransition thumbnailsMotion;
 
   /// Scroll behavior configuration for the thumbnails grid and [PageView] used in expanded mode.
   ///
@@ -131,25 +126,17 @@ class TabOverview<T> extends StatefulWidget {
   /// Whether the user may remove a tab: its thumbnail shows a remove button
   /// and swipes away, and its expanded page shows the remove button too.
   ///
-  /// If null, a tab that implements the deprecated [RemovableTab] decides,
-  /// and any other tab may be removed.
+  /// If null, every tab may be removed.
   final bool Function(T tab)? isTabRemovable;
 
   /// Whether the user may drag a tab's thumbnail to a new place in the grid.
   ///
-  /// If null, a tab that implements the deprecated [ReorderableTab] decides,
-  /// and any other tab may be moved.
+  /// If null, every tab may be moved.
   final bool Function(T tab)? isTabReorderable;
 
-  bool _isRemovable(T tab) =>
-      isTabRemovable?.call(tab) ??
-      // ignore: deprecated_member_use_from_same_package
-      (tab is RemovableTab ? tab.removable : true);
+  bool _isRemovable(T tab) => isTabRemovable?.call(tab) ?? true;
 
-  bool _isReorderable(T tab) =>
-      isTabReorderable?.call(tab) ??
-      // ignore: deprecated_member_use_from_same_package
-      (tab is ReorderableTab ? tab.reorderable : true);
+  bool _isReorderable(T tab) => isTabReorderable?.call(tab) ?? true;
 
   /// Constructor to create a customizable [TabOverview] with various builders and configurations.
   ///
@@ -159,23 +146,23 @@ class TabOverview<T> extends StatefulWidget {
   /// - [thumbnailsGridPadding] sets padding around the thumbnails grid.
   /// - [thumbnailsGridDelegate] customizes the grid layout for thumbnails.
   /// - [tabThumbnailBuilder] customizes each thumbnail in overview mode.
-  /// - [thumbnailsMotionAnimationDuration] sets the duration for animations.
-  /// - [thumbnailsMotionAnimationCurve] sets the animation curve.
+  /// - [thumbnailsMotion] sets how thumbnails move to new places.
   /// - [scrollBehavior] configures input device interactions.
   /// - [thumbnailDecoration] and [expandedTabDecoration] allow styling for each mode.
   /// - [pullToCollapse] lets the expanded tab be pulled down to collapse it.
   /// - [isTabRemovable] and [isTabReorderable] tell which tabs the user may
   ///   remove or move.
-  TabOverview.builder({
+  const TabOverview.builder({
     super.key,
     required this.controller,
     required this.tabBuilder,
-    ModelWidgetBuilder<T>? removeTabButtonBuilder,
+    this.removeTabButtonBuilder,
     this.thumbnailsGridPadding,
     this.thumbnailsGridDelegate,
-    ModelWidgetBuilder<T>? tabThumbnailBuilder,
-    this.thumbnailsMotionAnimationDuration = const Duration(milliseconds: 350),
-    this.thumbnailsMotionAnimationCurve = Curves.easeInOut,
+    this.tabThumbnailBuilder,
+    this.thumbnailsMotion = const TabTransition(
+      duration: Duration(milliseconds: 350),
+    ),
     this.scrollBehavior,
     Decoration? thumbnailDecoration,
     Decoration? expandedTabDecoration,
@@ -183,14 +170,17 @@ class TabOverview<T> extends StatefulWidget {
     this.isTabRemovable,
     this.isTabReorderable,
   }) : thumbnailDecoration = thumbnailDecoration ?? const BoxDecoration(),
-       expandedTabDecoration = expandedTabDecoration ?? const BoxDecoration(),
-       tabThumbnailBuilder =
-           tabThumbnailBuilder ??
-           ((context, tab) => FittedTab(child: tabBuilder(context, tab))) {
-    this.removeTabButtonBuilder =
-        removeTabButtonBuilder ??
-        ((context, tab) => RemoveTabButton(controller: controller, tab: tab));
-  }
+       expandedTabDecoration = expandedTabDecoration ?? const BoxDecoration();
+
+  // What removeTabButtonBuilder builds, or the default button.
+  Widget _buildRemoveTabButton(BuildContext context, T tab) =>
+      removeTabButtonBuilder?.call(context, tab) ??
+      RemoveTabButton(onPressed: () => controller.remove(tab));
+
+  // What tabThumbnailBuilder builds, or the tab's content in a FittedTab.
+  Widget _buildTabThumbnail(BuildContext context, T tab) =>
+      tabThumbnailBuilder?.call(context, tab) ??
+      FittedTab(child: tabBuilder(context, tab));
 
   @override
   State<TabOverview<T>> createState() => _TabOverviewState<T>();
@@ -262,14 +252,14 @@ class _TabOverviewState<T> extends State<TabOverview<T>> {
     > 600 => SliverGridDelegateWithFixedCrossAxisCount(
       crossAxisCount: constraints.maxWidth > 900 ? 4 : 3,
       childAspectRatio: constraints.maxWidth / constraints.maxHeight,
-      mainAxisSpacing: kDefaultThumbnailsGridMainAxisSpacing,
-      crossAxisSpacing: kDefaultThumbnailsGridCrossAxisSpacing,
+      mainAxisSpacing: _kDefaultThumbnailsGridMainAxisSpacing,
+      crossAxisSpacing: _kDefaultThumbnailsGridCrossAxisSpacing,
     ),
     _ => const SliverGridDelegateWithFixedCrossAxisCount(
       crossAxisCount: 2,
       childAspectRatio: 0.7,
-      mainAxisSpacing: kDefaultThumbnailsGridMainAxisSpacing,
-      crossAxisSpacing: kDefaultThumbnailsGridCrossAxisSpacing,
+      mainAxisSpacing: _kDefaultThumbnailsGridMainAxisSpacing,
+      crossAxisSpacing: _kDefaultThumbnailsGridCrossAxisSpacing,
     ),
   };
 
