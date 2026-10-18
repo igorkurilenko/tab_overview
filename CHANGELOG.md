@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.1.18]
+### Fixed
+- Setting `activeTab` while expanded shows that tab's page, as its doc says. Before, the pages went on showing the tab that was active, and a collapse then left the overview ignoring taps, with both tabs' thumbnails empty.
+- Setting `activeTab` while an expand is still under way turns the expand to that tab. That covers both an expand whose pages aren't built yet, which left the overview ignoring taps, and an off-screen expand still waiting for its stand-in, which the setter cancelled.
+- Setting `activeTab` while the active tab still flies to its page flies that tab back to its thumbnail as the new tab's page opens. The mode listeners are told of the collapse and the expand.
+
 ## [0.1.17]
 ### Fixed
 - Expanding a tab, then expanding another or calling `scrollToTab` in the same event, no longer throws. The overview expands the second tab. It goes back to 0.0.5 at least.
