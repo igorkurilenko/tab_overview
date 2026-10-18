@@ -30,9 +30,11 @@
 - A controller method that takes a tab throws an `ArgumentError` for a tab that isn't in the overview. `remove` is the exception: it returns `false`. A method that takes an index throws a `RangeError` for an index out of range. The controller's docs say so.
 - `removeTabButtonBuilder` and `tabThumbnailBuilder` are nullable. `null` means the default, built when the overview builds.
 - The package exports each public name explicitly, so internal names can't leak into the API.
+- Requires animated_reorderable 2.2.1.
 
 ### Fixed
 - `TabOverviewController(initialTabs: [])` no longer throws a `StateError`. With no tabs, no tab is active.
+- Long-pressing a thumbnail while it's still sliding into place no longer makes it jump back where it was, up to a row away, as the drag begins. Fixed in animated_reorderable 2.2.1, which this release requires.
 
 ### Removed
 - Everything deprecated in 0.1.20 and 0.1.21, as listed in the table above.
