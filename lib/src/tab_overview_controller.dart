@@ -66,7 +66,10 @@ class TabOverviewController<T> extends ChangeNotifier
 
   _ExpandedTabState? get _expandedTabState => _expandedTabKey?.currentState;
 
-  /// Retrieves the current active tab.
+  /// The tab the expanded view shows, and that [toggleMode] expands: the
+  /// last one expanded, swiped to in the expanded view, or set here,
+  /// wherever its thumbnail is scrolled in the overview. Removing it makes
+  /// the tab after it active.
   ///
   /// Setting [activeTab] triggers listeners to update the active tab display.
   T? get activeTab => _activeTab;

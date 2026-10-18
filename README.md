@@ -151,6 +151,7 @@ class Tab {
 ### Explanation of Key Components
 
 - **TabOverviewController**: Manages the active tab, mode switching, and tab list. It's a `ChangeNotifier`, so a `ListenableBuilder` can rebuild with it.
+- **Active tab**: The tab the expanded view shows, and that `toggleMode` expands: the last one expanded, swiped to in the expanded view, or set with `activeTab`, wherever its thumbnail is scrolled in the overview.
 - **TabOverview.builder**: Creates a `TabOverview` with customizable `tabBuilder` for expanded views and `tabThumbnailBuilder` for the thumbnail grid.
 - **isTabRemovable & isTabReorderable**: Tell which tabs the user may close or move. Every tab may, by default.
 - **Expanded and Thumbnail Views**: Customize how each tab appears in both overview and expanded modes.
