@@ -69,6 +69,14 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>> with HeroTabHelper {
       itemBuilder: (context, index) {
         final entry = model.entryAt(index);
         return FractionallySizedBox(
+          // The page goes with its tab when a tab before it is removed, so
+          // the tab's content keeps its State. Moved by a global key rather
+          // than by findChildIndexCallback: a page moved that way has no
+          // place in the view until the view lays it out, and a flight to
+          // the tab's page measures it before then, as the flight builds
+          // while the overview lays out. A page moved by its key is away,
+          // which the flight waits out.
+          key: GlobalObjectKey(entry),
           widthFactor: 1 / pageController.viewportFraction,
           // Around the remove button's hero too, so its flight sets off
           // from where the pull left the page.

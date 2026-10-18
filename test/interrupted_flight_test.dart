@@ -131,6 +131,29 @@ void main() {
         expect(pageDecorations(tester), [expandedTabDecoration]);
       });
 
+      // Its page moves down a place, keeping its State. The flight measures
+      // the page on its way, which must have a place in the view by then.
+      testWidgets('removing a tab before it lands its expand on its page', (
+        tester,
+      ) async {
+        final controller = await pumpOverview(tester);
+
+        controller.expand(2);
+        await pumpFrames(tester, frames);
+        controller.remove(0);
+        await tester.pumpAndSettle();
+
+        expect(controller.mode, TabOverviewMode.expanded);
+        expect(controller.activeTab, 2);
+        expectNothingFlying(controller);
+        expect(
+          find
+              .descendant(of: find.byType(PageView), matching: find.text('T2'))
+              .hitTestable(),
+          findsOneWidget,
+        );
+      });
+
       testWidgets('removing the tab ends its expand in the overview', (
         tester,
       ) async {
