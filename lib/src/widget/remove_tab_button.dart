@@ -23,13 +23,13 @@ class RemoveTabButton extends StatelessWidget {
 
   const RemoveTabButton({super.key, required this.onPressed});
 
-  ButtonStyle get buttonStyle => ButtonStyle(
+  ButtonStyle get _buttonStyle => ButtonStyle(
     backgroundColor: WidgetStateProperty.all(
       Colors.black.withValues(alpha: 0.6),
     ),
   );
 
-  Color get buttonColor => Colors.white.withValues(alpha: 0.6);
+  Color get _buttonColor => Colors.white.withValues(alpha: 0.6);
 
   @override
   Widget build(BuildContext context) => Align(
@@ -37,8 +37,8 @@ class RemoveTabButton extends StatelessWidget {
     child: Padding(
       padding: const EdgeInsets.all(16),
       child: IconButton.filled(
-        style: buttonStyle,
-        color: buttonColor,
+        style: _buttonStyle,
+        color: _buttonColor,
         onPressed: onPressed,
         icon: const Icon(Icons.close),
       ),
