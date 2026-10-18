@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.1.14]
+### Changed
+- Require animated_reorderable 2.0.0. An app that depends on animated_reorderable itself needs 2.0 too. tab_overview's API doesn't change.
+- Thumbnails move with animated_reorderable 2.0's motion: a thumbnail whose place moves again while it's moving heads there at the speed it has, rather than starting over from rest.
+
 ## [0.1.13]
 ### Changed
 - Add tabs through animated_reorderable's `insertTransition`, rather than the `insertItem` builder, which animated_reorderable 1.6 deprecates and 2.0 removes. Tabs are added and removed as before.
