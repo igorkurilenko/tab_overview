@@ -303,6 +303,14 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
       throw ArgumentError('Tab $tab not found');
     }
 
+    if (_thumbnails == null) {
+      // Before the overview is built, with nothing to fly between: it
+      // builds the pages at the active tab.
+      _setActiveTab(tab);
+      if (!expanded) _switchTo(const _Expanded());
+      return;
+    }
+
     if (expanded && _pages != null) {
       scrollToTab(tab, duration: duration, curve: curve);
       return;
@@ -355,8 +363,11 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
         pages.animateToPage(index, duration: duration, curve: curve);
       }
     } else {
-      final offset = _thumbnails!.getThumbScrollOffset(index);
-      _thumbnails!.animateTo(offset, duration: duration, curve: curve);
+      // Before the overview is built, there's no grid to scroll.
+      final grid = _thumbnails;
+      if (grid == null) return;
+      final offset = grid.getThumbScrollOffset(index);
+      grid.animateTo(offset, duration: duration, curve: curve);
     }
   }
 
@@ -399,6 +410,12 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
     final entry = _model.entryOf(tab);
     // An active tab removed while expanded collapses on its own.
     if (entry == null) return;
+
+    if (_thumbnails == null) {
+      // Before the overview is built, with nothing to fly between.
+      _switchTo(const _Overview());
+      return;
+    }
 
     final flight = TabFlight(
       toPage: false,

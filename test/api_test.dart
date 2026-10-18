@@ -152,6 +152,92 @@ void main() {
     });
   });
 
+  // An app may call the controller from its own initState, before the
+  // overview is first built. These threw on a null check.
+  group('before the overview is built', () {
+    Future<void> pumpLater(
+      WidgetTester tester,
+      TabOverviewController<int> controller,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: TabOverview<int>.builder(
+            controller: controller,
+            tabBuilder: (context, tab) => ColoredBox(
+              color: Colors.white,
+              child: Center(child: Text('T$tab')),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    Finder page(int tab) => find
+        .descendant(of: find.byType(PageView), matching: find.text('T$tab'))
+        .hitTestable();
+
+    testWidgets('expand shows the tab\'s page once it is', (tester) async {
+      final controller = TabOverviewController<int>(initialTabs: [0, 1, 2]);
+
+      controller.expand(2);
+      await pumpLater(tester, controller);
+
+      expect(controller.mode, TabOverviewMode.expanded);
+      expect(controller.activeTab, 2);
+      expect(page(2), findsOneWidget);
+      expect(controller.isAnyExpanding, isFalse);
+    });
+
+    testWidgets('toggleMode expands the active tab', (tester) async {
+      final controller = TabOverviewController<int>(initialTabs: [0, 1, 2]);
+
+      controller.toggleMode();
+      await pumpLater(tester, controller);
+
+      expect(controller.mode, TabOverviewMode.expanded);
+      expect(page(0), findsOneWidget);
+    });
+
+    testWidgets('collapse takes an expand back', (tester) async {
+      final controller = TabOverviewController<int>(initialTabs: [0, 1, 2]);
+
+      controller.expand(2);
+      controller.collapse();
+      await pumpLater(tester, controller);
+
+      expect(controller.mode, TabOverviewMode.overview);
+      expect(controller.activeTab, 2);
+      expect(find.byType(PageView), findsNothing);
+    });
+
+    testWidgets('scrollToTab does nothing in the overview, with no grid to '
+        'scroll', (tester) async {
+      final controller = TabOverviewController<int>(initialTabs: [0, 1, 2]);
+
+      controller.scrollToTab(2);
+      await pumpLater(tester, controller);
+
+      expect(controller.mode, TabOverviewMode.overview);
+      expect(controller.activeTab, 0);
+    });
+
+    testWidgets('scrollToTab shows the tab\'s page when expanded', (
+      tester,
+    ) async {
+      final controller = TabOverviewController<int>(
+        initialTabs: [0, 1, 2],
+        initialMode: TabOverviewMode.expanded,
+      );
+
+      controller.scrollToTab(2);
+      await pumpLater(tester, controller);
+
+      expect(controller.activeTab, 2);
+      expect(page(2), findsOneWidget);
+    });
+  });
+
   group('isTabRemovable', () {
     testWidgets('leaves a remove button off a tab it rules out', (
       tester,
