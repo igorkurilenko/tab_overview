@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.15]
+### Fixed
+- Removing the expanded tab no longer leaves the overview ignoring taps when a tab is added or removed in the same event or the next frame, or when the overview's parent rebuilds then, as `setState(() => controller.remove(tab))` does. The removed tab's collapse never started, and adding or removing a tab showed the first tab's page for a frame.
+- Collapsing the expanded tab and expanding another in the same event expands it. The overview kept showing the collapsed tab's page, and ignored taps from then on.
+- Removing the expanded tab and expanding another, or calling `toggleMode`, in the same event expands that tab, rather than ending in the overview.
+- Expanding a tab whose thumbnail is off screen and another tab in the same event no longer leaves the overview ignoring taps. It ends on the off-screen tab, whose expand waits a frame for its stand-in and so comes last.
+
+The first two go back to 0.0.5 at least.
+
+### Changed
+- Removing the expanded tab collapses it at once: by the time `remove` returns, the mode is `overview` and the tab after it is active, and the listeners have been told, rather than two frames later. Its collapse sets off two frames sooner, together with its thumbnail's shrinking.
+
 ## [0.1.14]
 ### Changed
 - Require animated_reorderable 2.0.0. An app that depends on animated_reorderable itself needs 2.0 too. tab_overview's API doesn't change.

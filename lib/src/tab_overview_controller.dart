@@ -127,6 +127,10 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
 
   /// Removes the tab at a specified [index] and animates its removal.
   ///
+  /// Removing the active tab makes the tab that takes its place active, or
+  /// the one before it if it was the last. Removing the expanded tab also
+  /// collapses it, and the mode is `overview` by the time this returns.
+  ///
   /// Returns the removed tab.
   T removeTabAt(
     int index, {
@@ -139,37 +143,40 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
     final removedTab = removed.tab;
     _notifyTabRemoved(removedTab);
 
-    final isActiveTabRemoved = isActiveTab(removedTab);
+    if (isActiveTab(removedTab)) {
+      if (expanded) _collapseRemoved(removed, duration: duration);
+      activeTab = _neighbourOfRemovedTabAt(index);
+    } else if (expanded) {
+      _expandedTabState?.jumpToPage(indexOfActiveTab()!);
+      _expandedTabState?.stateChanged();
+    }
 
-    if (expanded && isActiveTabRemoved && _expandedTabState == null) {
+    return removedTab;
+  }
+
+  // Collapses the expanded tab, removed, to a stand-in, as its thumbnail
+  // goes too. At once, so the switch finds the tab's page where the last
+  // frame left it: a rebuild of the pages before the switch, such as one
+  // for a tab added, or the parent's, builds them without it, and leaves the
+  // flight nothing to set off from.
+  void _collapseRemoved(_TabEntry<T> removed, {required Duration duration}) {
+    if (_expandedTabState == null) {
       // Removed before the overview built its page, so it has no page to
       // collapse from. The overview goes back to the grid before it shows a
       // page, and stays where it was.
       _takeBackExpand(removed);
-      activeTab = _neighbourOfRemovedTabAt(index);
-    } else if (expanded && isActiveTabRemoved) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _collapseOffScreen(
-          removed,
-          TabFlight(
-            toPage: false,
-            duration: duration,
-            curve: HeroHere.defaultFlightAnimationCurve,
-          ),
-        );
-
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          activeTab = _neighbourOfRemovedTabAt(index);
-        });
-      });
-    } else if (expanded && !isActiveTabRemoved) {
-      _expandedTabState?.jumpToPage(indexOfActiveTab()!);
-      _expandedTabState?.stateChanged();
-    } else if (isActiveTabRemoved) {
-      activeTab = _neighbourOfRemovedTabAt(index);
+      return;
     }
 
-    return removedTab;
+    if (_model.addStandIn(removed)) _notifyOffScreenThumbTabAdded(removed.tab);
+    _doCollapse(
+      removed,
+      TabFlight(
+        toPage: false,
+        duration: duration,
+        curve: HeroHere.defaultFlightAnimationCurve,
+      ),
+    );
   }
 
   // The tab that took the removed tab's place, or the one before it if the
@@ -344,6 +351,9 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
 
   void _doExpand(_TabEntry<T> entry, TabFlight flight) {
     _askForTabFlight(entry, flight);
+    // Collapsed in the same frame, the overview still has the pages, and
+    // switches back to them with the page where the collapse left it.
+    _expandedTabState?.jumpToPage(_model.indexOfEntry(entry));
 
     _mode = TabOverviewMode.expanded;
     _notifyModeChanged(_mode);
