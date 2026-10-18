@@ -38,9 +38,10 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
 
   _TabOverviewModel<T> get model => controller._model;
 
-  bool thumbOffScreen(T tab) => thumbOffScreenAt(model.indexOfTab(tab));
-
-  bool thumbOffScreenAt(int index) => !thumbsGridState!.isItemRendered(index);
+  // Whether the tab's thumb is built, so has a hero for a flight to fly to
+  // or from. A thumb that isn't needs a stand-in.
+  bool thumbBuilt(T tab) =>
+      thumbsGridState!.isItemRendered(model.indexOfTab(tab));
 
   TabOverview<T> get overview => widget.overview;
 
@@ -127,7 +128,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
     final tab = controller.activeTab;
     if (!controller.expanded || tab == null) return;
     if (controller._flightOf(tab) != null) return;
-    if (thumbOffScreen(tab)) _jumpToThumbNow(tab);
+    if (!thumbBuilt(tab)) _jumpToThumbNow(tab);
   }
 
   // Jumps to the tab's thumb now, and once more after the next layout. A
