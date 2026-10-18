@@ -122,8 +122,22 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
     _notifyActiveTabChanged();
   }
 
+  /// The active tab's index in [tabs], or `null` if no tab is active.
+  int? get activeIndex {
+    final index = _indexOfActiveTab();
+    return index == -1 ? null : index;
+  }
+
   /// Returns the index of the current active tab in the [tabs] list.
-  int? indexOfActiveTab() =>
+  @Deprecated(
+    'Use activeIndex, which is null rather than -1 for an active tab not in '
+    'the overview. This method goes in 0.2.0.',
+  )
+  int? indexOfActiveTab() => _indexOfActiveTab();
+
+  // -1 for an active tab not in the overview, which the activeTab setter
+  // still lets an app set.
+  int? _indexOfActiveTab() =>
       activeTab != null ? _model.indexOfTab(activeTab as T) : null;
 
   /// Checks if the specified [tab] is currently active.
@@ -174,7 +188,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
 
     activeTab ??= newTab;
 
-    _pages?.jumpToPage(indexOfActiveTab()!);
+    _pages?.jumpToPage(_indexOfActiveTab()!);
     _pages?.stateChanged();
 
     return true;
@@ -228,7 +242,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
       if (expanded) _collapseRemoved(removed, duration: duration);
       _setActiveTab(_neighbourOfRemovedTabAt(index));
     } else if (expanded) {
-      _pages?.jumpToPage(indexOfActiveTab()!);
+      _pages?.jumpToPage(_indexOfActiveTab()!);
       _pages?.stateChanged();
     }
 

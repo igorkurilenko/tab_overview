@@ -122,7 +122,7 @@ void main() {
 
       expect(modes, [TabOverviewMode.overview]);
       expect(activeTabs, [2]);
-      expect(controller.indexOfActiveTab(), 1);
+      expect(controller.activeIndex, 1);
     });
 
     // Its collapse sets off from its page. Built again before the collapse

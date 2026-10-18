@@ -100,6 +100,38 @@ void main() {
     expect(controller.tabs, [0, 1, 3]);
   });
 
+  group('activeIndex', () {
+    testWidgets('is the active tab\'s index in tabs', (tester) async {
+      final controller = await pumpOverview(tester);
+      expect(controller.activeIndex, 0);
+
+      controller.expand(2);
+      await tester.pumpAndSettle();
+      expect(controller.activeIndex, 2);
+
+      controller.remove(0);
+      await tester.pumpAndSettle();
+      expect(controller.activeIndex, 1);
+    });
+
+    testWidgets('is null with no tab active', (tester) async {
+      final controller = TabOverviewController<int>();
+
+      expect(controller.activeIndex, isNull);
+    });
+
+    testWidgets('is null for an active tab not in the overview, where '
+        'indexOfActiveTab is -1', (tester) async {
+      final controller = TabOverviewController<int>(initialTabs: [0, 1, 2]);
+
+      controller.activeTab = 42;
+
+      expect(controller.activeIndex, isNull);
+      // ignore: deprecated_member_use_from_same_package
+      expect(controller.indexOfActiveTab(), -1);
+    });
+  });
+
   group('the controller as a ChangeNotifier', () {
     testWidgets('tells its listeners of tabs added and removed, the mode and '
         'the active tab', (tester) async {
