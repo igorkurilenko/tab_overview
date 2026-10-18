@@ -132,6 +132,22 @@ void main() {
       expect(controller.tabs, isEmpty);
       expect(controller.activeTab, isNull);
     });
+
+    test('makes the first tab active, unless told another', () {
+      expect(TabOverviewController<int>(initialTabs: [0, 1]).activeTab, 0);
+      expect(
+        TabOverviewController<int>(initialTabs: [0, 1], activeTab: 1).activeTab,
+        1,
+      );
+    });
+
+    test('refuses an active tab that isn\'t among its tabs, as the '
+        'activeTab setter does', () {
+      expect(
+        () => TabOverviewController<int>(initialTabs: [0, 1], activeTab: 9),
+        throwsArgumentError,
+      );
+    });
   });
 
   group('activeIndex', () {

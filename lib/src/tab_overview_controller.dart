@@ -53,6 +53,9 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
   ///
   /// - [initialTabs]: An optional list of tabs to initialize.
   /// - [initialMode]: The initial mode of display, defaulting to `overview`.
+  /// - [activeTab]: The tab active at first, which must be among
+  ///   [initialTabs], as the [activeTab] setter refuses a tab that isn't in
+  ///   the overview. If null, the first of them is.
   /// - [transition]: How tabs expand and collapse.
   TabOverviewController({
     List<T>? initialTabs,
@@ -65,9 +68,11 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
            ? const _Expanded()
            : const _Overview(),
        _model = _TabOverviewModel<T>(initialTabs: initialTabs),
-       _activeTab = (initialTabs?.contains(activeTab) ?? false)
-           ? activeTab
-           : initialTabs?.firstOrNull;
+       _activeTab = activeTab ?? initialTabs?.firstOrNull {
+    if (activeTab != null && !(initialTabs?.contains(activeTab) ?? false)) {
+      throw ArgumentError('Tab $activeTab not found');
+    }
+  }
 
   /// The current display mode of the [TabOverview], either `overview` or `expanded`.
   ///
