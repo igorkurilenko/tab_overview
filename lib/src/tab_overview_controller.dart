@@ -533,7 +533,8 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
       flight.land();
     }
 
-    if (landedOnPage && !(_thumbnailsGridState?.thumbBuilt(tab) ?? true)) {
+    final grid = _thumbnailsGridState;
+    if (landedOnPage && grid != null && !grid.thumbInView(tab)) {
       // After the frame: a flight also ends as the overview goes away.
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _thumbnailsGridState?.jumpToThumb(tab);
