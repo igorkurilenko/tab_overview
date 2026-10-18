@@ -268,7 +268,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
         reorderableGetter: (index) => overview._isReorderable(model[index]),
       ),
       swipeToRemove: SwipeToRemoveOptions(
-        onSwipeToRemove: controller.removeTabAt,
+        onSwipeToRemove: controller.removeAt,
         directionGetter: (index) =>
             overview._isRemovable(model[index]) ? AxisDirection.left : null,
       ),

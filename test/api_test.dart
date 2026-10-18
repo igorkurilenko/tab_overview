@@ -79,6 +79,27 @@ void main() {
     });
   });
 
+  testWidgets('removeAt removes the tab at an index and returns it', (
+    tester,
+  ) async {
+    final controller = await pumpOverview(tester);
+
+    expect(controller.removeAt(2), 2);
+    await tester.pumpAndSettle();
+
+    expect(controller.tabs, [0, 1, 3]);
+  });
+
+  testWidgets('removeTabAt still removes, deprecated', (tester) async {
+    final controller = await pumpOverview(tester);
+
+    // ignore: deprecated_member_use_from_same_package
+    expect(controller.removeTabAt(2), 2);
+    await tester.pumpAndSettle();
+
+    expect(controller.tabs, [0, 1, 3]);
+  });
+
   group('the controller as a ChangeNotifier', () {
     testWidgets('tells its listeners of tabs added and removed, the mode and '
         'the active tab', (tester) async {
