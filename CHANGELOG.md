@@ -31,10 +31,13 @@
 - `removeTabButtonBuilder` and `tabThumbnailBuilder` are nullable. `null` means the default, built when the overview builds.
 - The package exports each public name explicitly, so internal names can't leak into the API.
 - Requires animated_reorderable 2.2.1.
+- Allows hero_here 2.0.0, as well as 1.5.4 and later 1.x releases.
+- Square tabs clip their content with a hard edge. Only a rounded or shaped decoration uses an anti-aliased clip, which costs more on every frame of a flight.
 
 ### Fixed
 - `TabOverviewController(initialTabs: [])` no longer throws a `StateError`. With no tabs, no tab is active.
 - Long-pressing a thumbnail while it's still sliding into place no longer makes it jump back where it was, up to a row away, as the drag begins. Fixed in animated_reorderable 2.2.1, which this release requires.
+- With tabs added while a tab is expanded, setting `activeTab` shows that tab's page and keeps it active. The expanded pages kept the scroll length they had until a swipe, so the setter's jump stopped short, a different tab became active, and a collapse then left the overview ignoring taps. It goes back to 0.1.17 at least.
 
 ### Removed
 - Everything deprecated in 0.1.20 and 0.1.21, as listed in the table above.
