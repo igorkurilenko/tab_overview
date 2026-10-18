@@ -28,9 +28,11 @@ void main() {
         home: TabOverview<int>.builder(
           controller: controller,
           tabBuilder: (context, tab) => Center(child: Text('T$tab')),
-          thumbnailsMotionAnimationDuration: duration,
           // Holds each thumbnail in place until the end of its motion.
-          thumbnailsMotionAnimationCurve: const Threshold(0.99),
+          thumbnailsMotion: const TabTransition(
+            duration: duration,
+            curve: Threshold(0.99),
+          ),
         ),
       ),
     );

@@ -32,6 +32,7 @@ import 'widget/fitted_tab.dart';
 
 part '_overview_views.dart';
 part '_tab_flights.dart';
+part 'tab_transition.dart';
 part '_tab_overview_model.dart';
 part 'tab_overview_controller.dart';
 part 'widget/_tab_thumbnails_grid.dart';
@@ -88,15 +89,9 @@ class TabOverview<T> extends StatefulWidget {
   /// If null, a thumbnail shows what [tabBuilder] builds in a [FittedTab].
   final ModelWidgetBuilder<T>? tabThumbnailBuilder;
 
-  /// Duration of the animation for transitions within the thumbnails grid.
-  ///
-  /// This duration applies when tabs change positions, such as during reordering.
-  final Duration thumbnailsMotionAnimationDuration;
-
-  /// Curve of the animation for transitions within the thumbnails grid.
-  ///
-  /// Controls the speed and motion style of animations affecting the thumbnails grid.
-  final Curve thumbnailsMotionAnimationCurve;
+  /// How thumbnails move to new places in the grid, as when tabs are added,
+  /// removed or reordered: 350 ms along [Curves.easeInOut] by default.
+  final TabTransition thumbnailsMotion;
 
   /// Scroll behavior configuration for the thumbnails grid and [PageView] used in expanded mode.
   ///
@@ -151,8 +146,7 @@ class TabOverview<T> extends StatefulWidget {
   /// - [thumbnailsGridPadding] sets padding around the thumbnails grid.
   /// - [thumbnailsGridDelegate] customizes the grid layout for thumbnails.
   /// - [tabThumbnailBuilder] customizes each thumbnail in overview mode.
-  /// - [thumbnailsMotionAnimationDuration] sets the duration for animations.
-  /// - [thumbnailsMotionAnimationCurve] sets the animation curve.
+  /// - [thumbnailsMotion] sets how thumbnails move to new places.
   /// - [scrollBehavior] configures input device interactions.
   /// - [thumbnailDecoration] and [expandedTabDecoration] allow styling for each mode.
   /// - [pullToCollapse] lets the expanded tab be pulled down to collapse it.
@@ -166,8 +160,9 @@ class TabOverview<T> extends StatefulWidget {
     this.thumbnailsGridPadding,
     this.thumbnailsGridDelegate,
     this.tabThumbnailBuilder,
-    this.thumbnailsMotionAnimationDuration = const Duration(milliseconds: 350),
-    this.thumbnailsMotionAnimationCurve = Curves.easeInOut,
+    this.thumbnailsMotion = const TabTransition(
+      duration: Duration(milliseconds: 350),
+    ),
     this.scrollBehavior,
     Decoration? thumbnailDecoration,
     Decoration? expandedTabDecoration,

@@ -8,10 +8,12 @@ Future<TabOverviewController<int>> pumpOverview(
   bool Function(int tab)? isTabRemovable,
   bool Function(int tab)? isTabReorderable,
   Widget Function(BuildContext context, int tab)? removeTabButtonBuilder,
+  TabTransition? transition,
 }) async {
-  final controller = TabOverviewController<int>(
-    initialTabs: List.generate(tabCount, (tab) => tab),
-  );
+  final tabs = List.generate(tabCount, (tab) => tab);
+  final controller = transition == null
+      ? TabOverviewController<int>(initialTabs: tabs)
+      : TabOverviewController<int>(initialTabs: tabs, transition: transition);
   await tester.pumpWidget(
     MaterialApp(
       home: Column(
@@ -289,6 +291,67 @@ void main() {
 
       expect(controller.activeTab, 2);
       expect(page(2), findsOneWidget);
+    });
+  });
+
+  group('transition', () {
+    // How long a tab flies to its page, to the frame.
+    Future<int> framesToExpand(
+      WidgetTester tester,
+      void Function() expand,
+    ) async {
+      expand();
+      var frames = 0;
+      do {
+        await tester.pump(const Duration(milliseconds: 20));
+        frames++;
+      } while (frames < 200 &&
+          !find
+              .descendant(of: find.byType(PageView), matching: find.text('T1'))
+              .hitTestable()
+              .evaluate()
+              .isNotEmpty);
+      await tester.pumpAndSettle();
+      return frames;
+    }
+
+    testWidgets('is 300 ms by default', (tester) async {
+      final controller = await pumpOverview(tester);
+      expect(
+        controller.transition,
+        const TabTransition(duration: Duration(milliseconds: 300)),
+      );
+
+      final frames = await framesToExpand(tester, () => controller.expand(1));
+
+      expect(frames * 20, inInclusiveRange(300, 360));
+    });
+
+    testWidgets('times every expand the controller isn\'t told otherwise', (
+      tester,
+    ) async {
+      final controller = await pumpOverview(
+        tester,
+        transition: const TabTransition(duration: Duration(seconds: 1)),
+      );
+
+      final frames = await framesToExpand(tester, () => controller.expand(1));
+
+      expect(frames * 20, inInclusiveRange(1000, 1060));
+    });
+
+    testWidgets('gives way to a call\'s own duration', (tester) async {
+      final controller = await pumpOverview(
+        tester,
+        transition: const TabTransition(duration: Duration(seconds: 1)),
+      );
+
+      final frames = await framesToExpand(
+        tester,
+        () => controller.expand(1, duration: const Duration(milliseconds: 100)),
+      );
+
+      expect(frames * 20, inInclusiveRange(100, 160));
     });
   });
 

@@ -253,15 +253,12 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
       child: AnimatedScale(
         scale: thumbsGridScale,
         duration:
-            activeTabHeroAnimationDuration ??
-            HeroHere.defaultFlightAnimationDuration,
-        curve:
-            activeTabHeroAnimationCurve ?? HeroHere.defaultFlightAnimationCurve,
+            activeTabHeroAnimationDuration ?? controller.transition.duration,
+        curve: activeTabHeroAnimationCurve ?? controller.transition.curve,
         child: AnimatedOpacity(
           opacity: thumbsGridOpacity,
           duration:
-              activeTabHeroAnimationDuration ??
-              HeroHere.defaultFlightAnimationDuration,
+              activeTabHeroAnimationDuration ?? controller.transition.duration,
           curve: controller.mode == TabOverviewMode.expanded
               ? Curves.fastOutSlowIn.flipped
               : Curves.fastOutSlowIn,
@@ -277,8 +274,8 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
       key: thumbsGridKey,
       keyGetter: model.keyAt,
       motion: MotionOptions(
-        duration: overview.thumbnailsMotionAnimationDuration,
-        curve: overview.thumbnailsMotionAnimationCurve,
+        duration: overview.thumbnailsMotion.duration,
+        curve: overview.thumbnailsMotion.curve,
       ),
       reorder: ReorderOptions(
         onReorder: controller._reorderTabs,

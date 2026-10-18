@@ -44,14 +44,23 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
   // The tabs' flights between their thumbnails and their pages.
   late final _flights = _TabFlights<T>(this);
 
+  /// How a tab expands to its page and collapses to its thumbnail, unless a
+  /// call to [expand], [expandAt], [collapse] or [toggleMode] says otherwise:
+  /// 300 ms along [Curves.easeInOut] by default.
+  final TabTransition transition;
+
   /// Constructor for [TabOverviewController] to initialize with optional tabs and display mode.
   ///
   /// - [initialTabs]: An optional list of tabs to initialize.
   /// - [initialMode]: The initial mode of display, defaulting to `overview`.
+  /// - [transition]: How tabs expand and collapse.
   TabOverviewController({
     List<T>? initialTabs,
     TabOverviewMode initialMode = TabOverviewMode.overview,
     T? activeTab,
+    this.transition = const TabTransition(
+      duration: HeroHere.defaultFlightAnimationDuration,
+    ),
   }) : _phase = initialMode == TabOverviewMode.expanded
            ? const _Expanded()
            : const _Overview(),
@@ -259,11 +268,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
     _addStandIn(removed);
     _doCollapse(
       removed,
-      TabFlight(
-        toPage: false,
-        duration: duration,
-        curve: HeroHere.defaultFlightAnimationCurve,
-      ),
+      TabFlight(toPage: false, duration: duration, curve: transition.curve),
     );
   }
 
@@ -274,11 +279,8 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
 
   /// Toggles between `overview` and `expanded` modes for the active tab.
   ///
-  /// Optionally, a [duration] and [curve] can be provided to control the animation.
-  void toggleMode({
-    Duration duration = HeroHere.defaultFlightAnimationDuration,
-    Curve curve = Curves.easeInOut,
-  }) {
+  /// A [duration] and [curve] override the controller's [transition].
+  void toggleMode({Duration? duration, Curve? curve}) {
     if (_model.tabs.isEmpty) return;
 
     if (expanded) {
@@ -290,21 +292,17 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
   }
 
   /// Expands the tab at a specified [index], switching the mode to `expanded`.
-  void expandAt(
-    int index, {
-    Duration duration = HeroHere.defaultFlightAnimationDuration,
-    Curve curve = Curves.easeInOut,
-  }) => expand(_model[index], duration: duration, curve: curve);
+  ///
+  /// A [duration] and [curve] override the controller's [transition].
+  void expandAt(int index, {Duration? duration, Curve? curve}) =>
+      expand(_model[index], duration: duration, curve: curve);
 
   /// Expands a specified tab, switching the mode to `expanded`.
   ///
-  /// A tab still flying back to its thumbnail turns toward its page from
-  /// where it is, over the duration and curve of the flight it's in.
-  void expand(
-    T tab, {
-    Duration duration = HeroHere.defaultFlightAnimationDuration,
-    Curve curve = Curves.easeInOut,
-  }) {
+  /// A [duration] and [curve] override the controller's [transition]. A tab
+  /// still flying back to its thumbnail turns toward its page from where it
+  /// is, over the duration and curve of the flight it's in.
+  void expand(T tab, {Duration? duration, Curve? curve}) {
     final entry = _model.entryOf(tab);
     if (entry == null) {
       throw ArgumentError('Tab $tab not found');
@@ -319,7 +317,11 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
     }
 
     if (expanded && _pages != null) {
-      scrollToTab(tab, duration: duration, curve: curve);
+      scrollToTab(
+        tab,
+        duration: duration ?? transition.duration,
+        curve: curve ?? transition.curve,
+      );
       return;
     }
 
@@ -336,7 +338,11 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
     }
     _setActiveTab(tab);
 
-    final flight = TabFlight(toPage: true, duration: duration, curve: curve);
+    final flight = TabFlight(
+      toPage: true,
+      duration: duration ?? transition.duration,
+      curve: curve ?? transition.curve,
+    );
     if (!_thumbnails!.thumbBuilt(tab)) {
       _expandOffScreen(entry, flight);
     } else {
@@ -385,13 +391,13 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
 
   /// Collapses the active tab, returning to `overview` mode and animating the change.
   ///
-  /// Accepts optional [duration] and [curve] parameters to control the animation.
-  /// A tab still flying to its page turns toward its thumbnail from where it
-  /// is, over the duration and curve of the flight it's in.
-  void collapse({
-    Duration duration = HeroHere.defaultFlightAnimationDuration,
-    Curve curve = Curves.easeInOut,
-  }) => _collapse(duration: duration, curve: curve);
+  /// A [duration] and [curve] override the controller's [transition]. A tab
+  /// still flying to its page turns toward its thumbnail from where it is,
+  /// over the duration and curve of the flight it's in.
+  void collapse({Duration? duration, Curve? curve}) => _collapse(
+    duration: duration ?? transition.duration,
+    curve: curve ?? transition.curve,
+  );
 
   // Collapses the active tab from where a pull left its page: [expansion] of
   // the way from its thumbnail to its page, flung at [velocity], in flights
@@ -400,8 +406,8 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
     required double velocity,
     required double expansion,
   }) => _collapse(
-    duration: HeroHere.defaultFlightAnimationDuration,
-    curve: Curves.easeInOut,
+    duration: transition.duration,
+    curve: transition.curve,
     // A fling the other way would land where it is at once.
     velocity: max(0, velocity),
     expansion: expansion,

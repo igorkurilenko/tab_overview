@@ -80,8 +80,8 @@ class _TabFlights<T> {
     if (flight == null) {
       flight = TabFlight(
         toPage: toPage,
-        duration: HeroHere.defaultFlightAnimationDuration,
-        curve: HeroHere.defaultFlightAnimationCurve,
+        duration: _controller.transition.duration,
+        curve: _controller.transition.curve,
       );
       set(entry, flight);
     }
