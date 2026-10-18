@@ -156,6 +156,35 @@ void main() {
     expect(gridOpacity(tester), 0);
   });
 
+  testWidgets('the grid shows fully when a tab is removed while pulled', (
+    tester,
+  ) async {
+    final controller = await pumpExpanded(tester);
+
+    final gesture = await tester.startGesture(tester.getCenter(page()));
+    await gesture.moveBy(const Offset(0, 20));
+    await tester.pump();
+    await gesture.moveBy(const Offset(0, 25));
+    await tester.pump();
+    expect(gridOpacity(tester), inExclusiveRange(0, 1));
+
+    // Removing the expanded tab collapses it, and its page goes mid-pull.
+    controller.remove(1);
+    await tester.pumpAndSettle();
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(controller.mode, TabOverviewMode.overview);
+    expect(gridScale(tester), 1);
+    expect(gridOpacity(tester), 1);
+
+    // The tab that took its place expands with no pull left over.
+    controller.expand(controller.activeTab!);
+    await tester.pumpAndSettle();
+    expect(gridScale(tester), 0.9);
+    expect(gridOpacity(tester), 0);
+  });
+
   testWidgets('the grid carries on from where the pull left it as the tab '
       'collapses', (tester) async {
     await pumpExpanded(tester);
