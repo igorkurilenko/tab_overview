@@ -168,7 +168,7 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
       return;
     }
 
-    if (_model.addStandIn(removed)) _notifyOffScreenThumbTabAdded(removed.tab);
+    _addStandIn(removed);
     _doCollapse(
       removed,
       TabFlight(
@@ -337,7 +337,7 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
   }
 
   void _expandOffScreen(_TabEntry<T> entry, TabFlight flight) {
-    if (_model.addStandIn(entry)) _notifyOffScreenThumbTabAdded(entry.tab);
+    _addStandIn(entry);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // A tab removed since stays in the overview.
@@ -375,7 +375,7 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
   }
 
   void _collapseOffScreen(_TabEntry<T> entry, TabFlight flight) {
-    if (_model.addStandIn(entry)) _notifyOffScreenThumbTabAdded(entry.tab);
+    _addStandIn(entry);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _doCollapse(entry, flight);
@@ -475,6 +475,10 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
         _thumbnailsGridState?.jumpToThumb(tab);
       });
     }
+  }
+
+  void _addStandIn(_TabEntry<T> entry) {
+    if (_model.addStandIn(entry)) _notifyOffScreenThumbTabAdded(entry.tab);
   }
 
   void _removeStandIn(_TabEntry<T> entry) {
