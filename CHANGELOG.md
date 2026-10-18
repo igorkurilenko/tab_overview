@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.19]
+### Fixed
+- A collapse lands in view when the expanded tab's thumbnail was built just past the edge of the grid's view. The grid builds thumbnails a little beyond its edges. It scrolled to the expanded tab's thumbnail only if that thumbnail wasn't built, so the tab flew out of view in two cases:
+  - after a relayout, such as a window shrinking rows of a fixed height
+  - after expanding a tab whose thumbnail was built out of view
+
+  Now the grid scrolls to the thumbnail unless its middle is in view. A thumbnail mostly in view, such as one tapped at the bottom edge, stays where it is.
+
 ## [0.1.18]
 ### Fixed
 - Setting `activeTab` while expanded shows that tab's page, as its doc says. Before, the pages went on showing the tab that was active, and a collapse then left the overview ignoring taps, with both tabs' thumbnails empty.
