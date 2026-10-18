@@ -456,8 +456,6 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
     _activeTabChangedListeners.clear();
     _tabAddedListeners.clear();
     _tabRemovedListeners.clear();
-    _offScreenThumbTabAddedListeners.clear();
-    _offScreenThumbTabRemovedListeners.clear();
     _tabsReorderedListeners.clear();
     super.dispose();
   }
@@ -527,11 +525,11 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
   }
 
   void _addStandIn(_TabEntry<T> entry) {
-    if (_model.addStandIn(entry)) _notifyOffScreenThumbTabAdded(entry.tab);
+    _model.addStandIn(entry);
   }
 
   void _removeStandIn(_TabEntry<T> entry) {
-    if (_model.removeStandIn(entry)) _notifyOffScreenThumbTabRemoved(entry.tab);
+    _model.removeStandIn(entry);
   }
 
   bool get isAnyExpanding => _flights.anyToPage;
@@ -625,8 +623,6 @@ mixin _Listeners<T> on ChangeNotifier {
   final _activeTabChangedListeners = <ActiveTabChangedListener>[];
   final _tabAddedListeners = <TabAddedListener<T>>[];
   final _tabRemovedListeners = <TabRemovedListener<T>>[];
-  final _offScreenThumbTabAddedListeners = <TabAddedListener<T>>[];
-  final _offScreenThumbTabRemovedListeners = <TabRemovedListener<T>>[];
   final _tabsReorderedListeners = <TabsReorderedListener>[];
 
   void addModeChangedListener(ModeChangedListener listener) =>
@@ -659,34 +655,6 @@ mixin _Listeners<T> on ChangeNotifier {
   void removeTabsReorderedListener(TabsReorderedListener listener) =>
       _tabsReorderedListeners.remove(listener);
 
-  @Deprecated(
-    'Stand-ins are placeholders the overview keeps for its flights. '
-    'This listener goes in 0.2.0.',
-  )
-  void addOffScreenThumbTabAddedListener(TabAddedListener<T> listener) =>
-      _offScreenThumbTabAddedListeners.add(listener);
-
-  @Deprecated(
-    'Stand-ins are placeholders the overview keeps for its flights. '
-    'This listener goes in 0.2.0.',
-  )
-  void addOffScreenThumbTabRemovedListener(TabRemovedListener<T> listener) =>
-      _offScreenThumbTabRemovedListeners.add(listener);
-
-  @Deprecated(
-    'Stand-ins are placeholders the overview keeps for its flights. '
-    'This listener goes in 0.2.0.',
-  )
-  void removeOffScreenThumbTabAddedListener(TabAddedListener<T> listener) =>
-      _offScreenThumbTabAddedListeners.remove(listener);
-
-  @Deprecated(
-    'Stand-ins are placeholders the overview keeps for its flights. '
-    'This listener goes in 0.2.0.',
-  )
-  void removeOffScreenThumbTabRemovedListener(TabRemovedListener<T> listener) =>
-      _offScreenThumbTabRemovedListeners.remove(listener);
-
   void _notifyModeChanged(TabOverviewMode mode) {
     for (var listener in _modeChangedListeners) {
       listener(mode);
@@ -713,18 +681,6 @@ mixin _Listeners<T> on ChangeNotifier {
       listener(removedTab);
     }
     notifyListeners();
-  }
-
-  void _notifyOffScreenThumbTabAdded(T tab) {
-    for (var listener in _offScreenThumbTabAddedListeners) {
-      listener(tab);
-    }
-  }
-
-  void _notifyOffScreenThumbTabRemoved(T removedTab) {
-    for (var listener in _offScreenThumbTabRemovedListeners) {
-      listener(removedTab);
-    }
   }
 
   void _notifyTabsReordered() {
