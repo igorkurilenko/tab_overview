@@ -230,9 +230,16 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
       throw ArgumentError('Tab $tab not found');
     }
 
-    if (expanded) {
+    if (expanded && _expandedTabState != null) {
       scrollToTab(tab, duration: duration, curve: curve);
       return;
+    }
+
+    if (expanded) {
+      // Expanded since the last frame, the overview has no pages to scroll
+      // yet. The expand turns to this tab instead.
+      if (isActiveTab(tab)) return;
+      _takeBackExpand(_model.entryOf(activeTab as T)!);
     }
 
     if (_waitingExpand != entry) _takeBackWaitingExpand();
@@ -264,7 +271,13 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
     Curve curve = Curves.easeInOut,
   }) {
     if (expanded) {
-      _expandedTabState!.animateToPage(index, duration: duration, curve: curve);
+      final pages = _expandedTabState;
+      if (pages == null) {
+        // Expanded since the last frame, with no pages to scroll yet.
+        expand(tabs[index], duration: duration, curve: curve);
+      } else {
+        pages.animateToPage(index, duration: duration, curve: curve);
+      }
     } else {
       final offset = _thumbnailsGridState!.getThumbScrollOffset(index);
       _thumbnailsGridState!.animateTo(offset, duration: duration, curve: curve);

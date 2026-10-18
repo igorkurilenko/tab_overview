@@ -384,4 +384,30 @@ void main() {
       await expectThumbShows(tester, controller, 39);
     });
   });
+
+  // The pages are built on the frame after the expand, so the second expand
+  // had no pages to scroll, and threw.
+  for (final scroll in [false, true]) {
+    final how = scroll ? 'scrolling to another tab' : 'expanding another tab';
+    testWidgets('$how in the same event as an expand shows that tab', (
+      tester,
+    ) async {
+      final controller = await pumpOverview(tester, tabCount: 40);
+
+      controller.expand(1);
+      scroll ? controller.scrollToTab(38) : controller.expand(38);
+      await tester.pumpAndSettle();
+
+      expect(controller.mode, TabOverviewMode.expanded);
+      expect(controller.activeTab, 38);
+      expectNothingFlying(controller);
+      expect(
+        find
+            .descendant(of: find.byType(PageView), matching: find.text('T38'))
+            .hitTestable(),
+        findsOneWidget,
+      );
+      await expectThumbShows(tester, controller, 1);
+    });
+  }
 }
