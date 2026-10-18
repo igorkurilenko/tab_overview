@@ -57,7 +57,7 @@ class _TabOverviewModel<T> {
     _thumbnails?.addTab(entry, duration: duration);
   }
 
-  _TabEntry<T> removeTabAt(int index, {required Duration duration}) {
+  _TabEntry<T> removeAt(int index, {required Duration duration}) {
     final removed = _entries.removeAt(index);
     _thumbnails?.removeTab(index, removed, duration: duration);
 

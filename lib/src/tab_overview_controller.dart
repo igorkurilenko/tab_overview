@@ -23,6 +23,12 @@ part of 'tab_overview.dart';
 /// It's a [ChangeNotifier]: it notifies its listeners when the mode, the
 /// active tab or the tabs change, so a [ListenableBuilder] can rebuild with
 /// it, as with a [ScrollController].
+///
+/// A method that takes a tab throws an [ArgumentError] for a tab that isn't
+/// in the overview, except [remove], which returns `false`, as [add] does
+/// for a tab that already is. A method that takes an index throws a
+/// [RangeError] for an index out of range. Questions such as [isActiveTab]
+/// and [isTabExpanded] answer `false` for a tab that isn't there.
 class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
   // Where the overview's switch heads: to the grid, to the pages, or to the
   // pages once an off-screen tab's stand-in is built.
@@ -202,13 +208,6 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
   }
 
   /// Removes the tab at a specified [index] and animates its removal.
-  @Deprecated('Use removeAt. This name goes in 0.2.0.')
-  T removeTabAt(
-    int index, {
-    Duration duration = const Duration(milliseconds: 350),
-  }) => removeAt(index, duration: duration);
-
-  /// Removes the tab at a specified [index] and animates its removal.
   ///
   /// Removing the active tab makes the tab that takes its place active, or
   /// the one before it if it was the last. Removing the expanded tab also
@@ -222,7 +221,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
     // Its add animation, if any, is over, and may never end if its item
     // goes first.
     _model.entryAt(index).presence = null;
-    final removed = _model.removeTabAt(index, duration: duration);
+    final removed = _model.removeAt(index, duration: duration);
     final removedTab = removed.tab;
     _notifyTabRemoved(removedTab);
 
@@ -352,7 +351,11 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
     T tab, {
     Duration duration = const Duration(milliseconds: 350),
     Curve curve = Curves.easeInOut,
-  }) => scrollToTabAt(tabs.indexOf(tab), duration: duration, curve: curve);
+  }) {
+    final index = _model.indexOfTab(tab);
+    if (index == -1) throw ArgumentError('Tab $tab not found');
+    scrollToTabAt(index, duration: duration, curve: curve);
+  }
 
   /// Scrolls to the tab at the specified [index].
   ///
@@ -362,6 +365,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
     Duration duration = const Duration(milliseconds: 350),
     Curve curve = Curves.easeInOut,
   }) {
+    RangeError.checkValidIndex(index, tabs, 'index');
     if (expanded) {
       final pages = _pages;
       if (pages == null) {

@@ -90,14 +90,35 @@ void main() {
     expect(controller.tabs, [0, 1, 3]);
   });
 
-  testWidgets('removeTabAt still removes, deprecated', (tester) async {
-    final controller = await pumpOverview(tester);
+  group('a tab or an index that isn\'t there', () {
+    testWidgets('throws an ArgumentError from a method that takes a tab', (
+      tester,
+    ) async {
+      final controller = await pumpOverview(tester);
 
-    // ignore: deprecated_member_use_from_same_package
-    expect(controller.removeTabAt(2), 2);
-    await tester.pumpAndSettle();
+      expect(() => controller.expand(9), throwsArgumentError);
+      expect(() => controller.scrollToTab(9), throwsArgumentError);
+      expect(() => controller.activeTab = 9, throwsArgumentError);
+    });
 
-    expect(controller.tabs, [0, 1, 3]);
+    testWidgets('throws a RangeError from a method that takes an index', (
+      tester,
+    ) async {
+      final controller = await pumpOverview(tester);
+
+      expect(() => controller.expandAt(9), throwsRangeError);
+      expect(() => controller.scrollToTabAt(9), throwsRangeError);
+      expect(() => controller.removeAt(9), throwsRangeError);
+      expect(() => controller.isTabExpandedAt(9), throwsRangeError);
+      expect(controller.tabs, [0, 1, 2, 3]);
+    });
+
+    testWidgets('answers false from a question', (tester) async {
+      final controller = await pumpOverview(tester);
+
+      expect(controller.isActiveTab(9), isFalse);
+      expect(controller.isTabExpanded(9), isFalse);
+    });
   });
 
   group('activeIndex', () {
