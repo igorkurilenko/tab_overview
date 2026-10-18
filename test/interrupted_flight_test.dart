@@ -39,8 +39,7 @@ Future<void> pumpFrames(WidgetTester tester, int frames) async {
 }
 
 void expectNothingFlying(TabOverviewController<int> controller) {
-  expect(controller.isAnyExpanding, isFalse, reason: 'expanding');
-  expect(controller.isAnyCollapsing, isFalse, reason: 'collapsing');
+  expect(controller.isTransitioning, isFalse);
 }
 
 Future<void> expectTapOnThumbnailExpands(
@@ -219,8 +218,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(controller.mode, TabOverviewMode.overview, reason: '$frames');
-      expect(controller.isAnyExpanding, isFalse, reason: '$frames');
-      expect(controller.isAnyCollapsing, isFalse, reason: '$frames');
+      expect(controller.isTransitioning, isFalse, reason: '$frames');
       await expectThumbShows(tester, controller, 38);
     }
   });

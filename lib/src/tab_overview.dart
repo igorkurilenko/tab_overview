@@ -39,11 +39,11 @@ part 'widget/_expanded_tab.dart';
 part 'widget/_pull_to_collapse.dart';
 part 'widget/_tab_transitions.dart';
 
-const kExpandedTabPageViewportFraction = 1.1;
-const kDefaultThumbnailsGridCrossAxisSpacing = 8.0;
-const kDefaultThumbnailsGridMainAxisSpacing = 8.0;
-const kThumbsGridScaleWhenExpanded = 0.9;
-const kThumbsGridOpacityWhenExpanded = 0.0;
+const _kExpandedTabPageViewportFraction = 1.1;
+const _kDefaultThumbnailsGridCrossAxisSpacing = 8.0;
+const _kDefaultThumbnailsGridMainAxisSpacing = 8.0;
+const _kThumbsGridScaleWhenExpanded = 0.9;
+const _kThumbsGridOpacityWhenExpanded = 0.0;
 
 /// The [TabOverview] widget provides a flexible, animated interface for switching between multiple tabs.
 /// It supports both overview and expanded modes with customizable animations, decorations, and layouts.
@@ -262,14 +262,14 @@ class _TabOverviewState<T> extends State<TabOverview<T>> {
     > 600 => SliverGridDelegateWithFixedCrossAxisCount(
       crossAxisCount: constraints.maxWidth > 900 ? 4 : 3,
       childAspectRatio: constraints.maxWidth / constraints.maxHeight,
-      mainAxisSpacing: kDefaultThumbnailsGridMainAxisSpacing,
-      crossAxisSpacing: kDefaultThumbnailsGridCrossAxisSpacing,
+      mainAxisSpacing: _kDefaultThumbnailsGridMainAxisSpacing,
+      crossAxisSpacing: _kDefaultThumbnailsGridCrossAxisSpacing,
     ),
     _ => const SliverGridDelegateWithFixedCrossAxisCount(
       crossAxisCount: 2,
       childAspectRatio: 0.7,
-      mainAxisSpacing: kDefaultThumbnailsGridMainAxisSpacing,
-      crossAxisSpacing: kDefaultThumbnailsGridCrossAxisSpacing,
+      mainAxisSpacing: _kDefaultThumbnailsGridMainAxisSpacing,
+      crossAxisSpacing: _kDefaultThumbnailsGridCrossAxisSpacing,
     ),
   };
 

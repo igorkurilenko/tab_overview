@@ -46,13 +46,11 @@ void main() {
     tabs[1].name = 'B2';
     await tester.pumpAndSettle();
 
-    expect(controller.isAnyExpanding, isFalse);
-    expect(controller.isAnyCollapsing, isFalse);
+    expect(controller.isTransitioning, isFalse);
 
     controller.collapse();
     await tester.pumpAndSettle();
-    expect(controller.isAnyExpanding, isFalse);
-    expect(controller.isAnyCollapsing, isFalse);
+    expect(controller.isTransitioning, isFalse);
 
     await tester.tap(find.text('C'));
     await tester.pumpAndSettle();
@@ -79,11 +77,11 @@ void main() {
     controller.remove(2);
     await pumpFrames(tester, 4);
 
-    expect(controller.isAnyCollapsing, isTrue);
+    expect(controller.isTransitioning, isTrue);
     expect(find.text('T0').hitTestable(), findsNothing);
 
     await tester.pumpAndSettle();
-    expect(controller.isAnyCollapsing, isFalse);
+    expect(controller.isTransitioning, isFalse);
     expect(find.text('T0').hitTestable(), findsOneWidget);
   });
 }

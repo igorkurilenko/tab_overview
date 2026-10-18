@@ -218,7 +218,7 @@ void main() {
       expect(controller.mode, TabOverviewMode.expanded);
       expect(controller.activeTab, 2);
       expect(page(2), findsOneWidget);
-      expect(controller.isAnyExpanding, isFalse);
+      expect(controller.isTransitioning, isFalse);
     });
 
     testWidgets('toggleMode expands the active tab', (tester) async {

@@ -73,11 +73,11 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
   AnimatedReorderableState? get thumbsGridState => thumbsGridKey.currentState;
 
   double get thumbsGridScale => controller.mode == TabOverviewMode.expanded
-      ? kThumbsGridScaleWhenExpanded
+      ? _kThumbsGridScaleWhenExpanded
       : 1.0;
 
   double get thumbsGridOpacity => controller.mode == TabOverviewMode.expanded
-      ? kThumbsGridOpacityWhenExpanded
+      ? _kThumbsGridOpacityWhenExpanded
       : 1.0;
 
   Duration? get activeTabHeroAnimationDuration =>
@@ -232,7 +232,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
         ListenableBuilder(
           listenable: controller._flights.changed,
           builder: (context, thumbs) => IgnorePointer(
-            ignoring: controller.isAnyExpanding || controller.isAnyCollapsing,
+            ignoring: controller.isTransitioning,
             child: thumbs,
           ),
           child: _buildThumbs(),

@@ -532,13 +532,10 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
     _model.removeStandIn(entry);
   }
 
-  bool get isAnyExpanding => _flights.anyToPage;
-
-  bool get isAnyCollapsing => _flights.anyToThumbnail;
-
-  bool isExpanding(T tab) => _flights.of(tab)?.toPage ?? false;
-
-  bool isCollapsing(T tab) => !(_flights.of(tab)?.toPage ?? true);
+  /// Whether any tab is flying between its thumbnail and its page, as it
+  /// expands, collapses or is removed. The overview ignores taps on its
+  /// thumbnails meanwhile.
+  bool get isTransitioning => _flights.any;
 
   // Keeps [animation] as the entry's add or remove animation until it ends.
   // The grid builds an item on every rebuild while it animates, so it may
