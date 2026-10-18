@@ -66,8 +66,44 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
   /// Setting [activeTab] triggers listeners to update the active tab display.
   T? get activeTab => _activeTab;
 
-  /// Sets the active tab and updates the view if the mode is expanded.
+  /// Sets the active tab and updates the view if the mode is expanded: the
+  /// tab's page shows at once. An expand still under way turns to the tab,
+  /// and a tab still flying to its page flies back to its thumbnail, as the
+  /// tab's page opens.
   set activeTab(T? value) {
+    if (_activeTab == value) return;
+
+    final entry = value == null ? null : _model.entryOf(value);
+    final active = _activeTab == null ? null : _model.entryOf(_activeTab as T);
+    if (_waitingExpand != null && entry != null) {
+      // An expand waits for its stand-in: it turns to this tab.
+      expand(entry.tab);
+      return;
+    }
+    // Before the overview is built, it builds the pages at the active tab.
+    if (!expanded || entry == null || _thumbnailsGridState == null) {
+      _setActiveTab(value);
+      return;
+    }
+
+    final pages = _expandedTabState;
+    if (pages == null && active != null) {
+      // Expanded since the last frame, the overview has no pages yet. The
+      // expand turns to this tab, as it would for an expand of it.
+      expand(entry.tab);
+    } else if (active?.flight?.toPage ?? false) {
+      // Still flying to its page, the active tab flies back to its
+      // thumbnail, as this tab's page opens. Its page going away from under
+      // its flight would leave its thumbnail hidden.
+      collapse();
+      expand(entry.tab);
+    } else {
+      _setActiveTab(value);
+      pages?.jumpToPage(_model.indexOfEntry(entry));
+    }
+  }
+
+  void _setActiveTab(T? value) {
     if (_activeTab == value) return;
 
     _activeTab = value;
@@ -153,7 +189,7 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
 
     if (isActiveTab(removedTab)) {
       if (expanded) _collapseRemoved(removed, duration: duration);
-      activeTab = _neighbourOfRemovedTabAt(index);
+      _setActiveTab(_neighbourOfRemovedTabAt(index));
     } else if (expanded) {
       _expandedTabState?.jumpToPage(indexOfActiveTab()!);
       _expandedTabState?.stateChanged();
@@ -243,7 +279,7 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
     }
 
     if (_waitingExpand != entry) _takeBackWaitingExpand();
-    activeTab = tab;
+    _setActiveTab(tab);
 
     final flight = TabFlight(toPage: true, duration: duration, curve: curve);
     if (_thumbnailsGridState!.thumbOffScreen(tab)) {
@@ -370,11 +406,6 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_waitingExpand != entry) return;
       _waitingExpand = null;
-      // Made another tab active in the meantime, by the activeTab setter.
-      if (!isActiveTab(entry.tab)) {
-        _removeStandIn(entry);
-        return;
-      }
       _doExpand(entry, flight);
     });
   }
@@ -520,7 +551,7 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
 
   void _handleExpandedTabPageChanged(int page) {
     final tab = _model[page];
-    activeTab = tab;
+    _setActiveTab(tab);
     _thumbnailsGridState?.jumpToThumb(tab);
   }
 }

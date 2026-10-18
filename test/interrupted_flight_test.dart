@@ -333,6 +333,21 @@ void main() {
       await expectThumbShows(tester, controller, 38);
     });
 
+    testWidgets('making another tab active turns it to that tab', (
+      tester,
+    ) async {
+      final controller = await pumpOverview(tester, tabCount: 40);
+
+      controller.expand(38);
+      controller.activeTab = 1;
+      await tester.pumpAndSettle();
+
+      expect(controller.mode, TabOverviewMode.expanded);
+      expect(controller.activeTab, 1);
+      expectNothingFlying(controller);
+      await expectThumbShows(tester, controller, 38);
+    });
+
     testWidgets('a collapse cancels it', (tester) async {
       final controller = await pumpOverview(tester, tabCount: 40);
       final modes = <TabOverviewMode>[];
