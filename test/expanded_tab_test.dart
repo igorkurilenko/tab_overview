@@ -99,6 +99,70 @@ void main() {
       expect(shown(2), findsOneWidget);
     });
 
+    testWidgets('collapses at once when it is removed, with the tab after '
+        'it active', (tester) async {
+      final controller = await expand(tester, 1);
+      final modes = <TabOverviewMode>[];
+      final activeTabs = <int?>[];
+      controller
+        ..addModeChangedListener(modes.add)
+        ..addActiveTabChangedListener(
+          () => activeTabs.add(controller.activeTab),
+        );
+
+      controller.remove(1);
+
+      expect(modes, [TabOverviewMode.overview]);
+      expect(activeTabs, [2]);
+      expect(controller.indexOfActiveTab(), 1);
+    });
+
+    // Its collapse sets off from its page. Built again before the collapse
+    // switched to the grid, the pages had no page of it, and the flight
+    // never set off, so the grid ignored taps from then on.
+    for (final frames in [0, 1]) {
+      final when = frames == 0 ? 'in the same event' : 'a frame later';
+      for (final (what, then)
+          in <(String, void Function(TabOverviewController<int>))>[
+            ('a tab is added', (controller) => controller.add(4)),
+            ('another tab is removed', (controller) => controller.remove(3)),
+            ('the parent rebuilds', (_) => rebuildParent(() {})),
+          ]) {
+        testWidgets('collapses when it is removed and $what $when', (
+          tester,
+        ) async {
+          final controller = await expand(tester, 1);
+          final pageWidth = tester.getRect(shown(1)).width;
+
+          controller.remove(1);
+          for (var frame = 0; frame < frames; frame++) {
+            await tester.pump(const Duration(milliseconds: 16));
+          }
+          then(controller);
+          for (var frame = 0; frame < 5; frame++) {
+            await tester.pump(const Duration(milliseconds: 16));
+          }
+
+          // It flies away, shrinking.
+          final widths = find
+              .text('T1')
+              .evaluate()
+              .map((element) => tester.getRect(find.byWidget(element.widget)))
+              .map((rect) => rect.width)
+              .where((width) => width > 0);
+          expect(widths, [lessThan(pageWidth)]);
+
+          await tester.pumpAndSettle();
+          expect(controller.mode, TabOverviewMode.overview);
+          expect(controller.isAnyCollapsing, isFalse);
+          expect(find.text('T1'), findsNothing);
+          for (final tab in controller.tabs) {
+            expect(find.text('T$tab').hitTestable(), findsOneWidget);
+          }
+        });
+      }
+    }
+
     // A switch to the grid and back to the pages in the same event ran no
     // switch, so the flights both asked for waited for one forever.
     testWidgets('expands another tab asked for in the same event as its '
@@ -112,6 +176,38 @@ void main() {
       expect(controller.mode, TabOverviewMode.expanded);
       expect(controller.activeTab, 3);
       expect(shown(3), findsOneWidget);
+      expect(controller.isAnyExpanding, isFalse);
+      expect(controller.isAnyCollapsing, isFalse);
+    });
+
+    testWidgets('expands another tab asked for in the same event as its '
+        'removal', (tester) async {
+      final controller = await expand(tester, 1);
+
+      controller.remove(1);
+      controller.expand(3);
+      await tester.pumpAndSettle();
+
+      expect(controller.mode, TabOverviewMode.expanded);
+      expect(controller.activeTab, 3);
+      expect(shown(3), findsOneWidget);
+      expect(find.text('T1'), findsNothing);
+      expect(controller.isAnyExpanding, isFalse);
+      expect(controller.isAnyCollapsing, isFalse);
+    });
+
+    testWidgets('toggled in the same event as its removal, expands the tab '
+        'after it', (tester) async {
+      final controller = await expand(tester, 1);
+
+      controller.remove(1);
+      controller.toggleMode();
+      await tester.pumpAndSettle();
+
+      expect(controller.mode, TabOverviewMode.expanded);
+      expect(controller.activeTab, 2);
+      expect(shown(2), findsOneWidget);
+      expect(find.text('T1'), findsNothing);
       expect(controller.isAnyExpanding, isFalse);
       expect(controller.isAnyCollapsing, isFalse);
     });
