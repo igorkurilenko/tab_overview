@@ -30,6 +30,7 @@ import 'util/hero_tab_helper.dart';
 import 'util/model_widget_builder.dart';
 import 'widget/fitted_tab.dart';
 
+part '_overview_views.dart';
 part '_tab_overview_model.dart';
 part 'tab_overview_controller.dart';
 part 'widget/_tab_thumbnails_grid.dart';
@@ -223,22 +224,13 @@ class _TabOverviewState<T> extends State<TabOverview<T>> {
     super.dispose();
   }
 
+  // The grid and the pages attach themselves to the controller.
   void _attach(TabOverviewController<T> controller) {
-    controller._setThumbnailsGridKey(_thumbnailsGridKey);
-    controller._setExpandedTabKey(_expandedTabKey);
     controller.addModeChangedListener(_handleModeChanged);
   }
 
   void _detach(TabOverviewController<T> controller) {
     controller.removeModeChangedListener(_handleModeChanged);
-    // A new overview may have taken the controller over already, such as
-    // when this one is replaced by one with another key.
-    if (controller._thumbnailsGridKey == _thumbnailsGridKey) {
-      controller._setThumbnailsGridKey(null);
-    }
-    if (controller._expandedTabKey == _expandedTabKey) {
-      controller._setExpandedTabKey(null);
-    }
   }
 
   // How many times the controller told of a mode change, to the mode it was
