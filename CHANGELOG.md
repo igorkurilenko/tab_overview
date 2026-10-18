@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.1.17]
+### Fixed
+- Expanding a tab, then expanding another or calling `scrollToTab` in the same event, no longer throws. The overview expands the second tab. It goes back to 0.0.5 at least.
+- A call in the same event as expanding a tab whose thumbnail is off screen now wins. Before, the off-screen expand, which waits a frame for its stand-in, came last.
+  - Expanding another tab expands that tab.
+  - `collapse()` cancels the expand.
+  - Making another tab active with the `activeTab` setter no longer leaves the overview ignoring taps.
+- Collapsing a tab whose thumbnail is off screen switches to the grid at once, rather than a frame later. Its flight sets off a frame sooner.
+  - An expand in the same event, of another tab or the same one, now expands it, rather than being lost.
+  - Removing the tab in the same event tells the mode listeners of the change once, rather than twice.
+
 ## [0.1.16]
 ### Fixed
 - The expanded tab keeps its State when a tab before it is removed: what was typed in a text field, its focus, and any other State of the tab's content. Its page was built anew one place down. It goes back to 0.0.5, where adding or removing any tab lost it.

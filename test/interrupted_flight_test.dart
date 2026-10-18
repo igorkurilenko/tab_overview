@@ -78,6 +78,36 @@ double flyingExpansion(WidgetTester tester) => tester
     .color!
     .b;
 
+// Tab 38 of 40, expanded, with the grid scrolled back to its top, so its
+// thumb is off screen.
+Future<TabOverviewController<int>> pumpOffScreenExpanded(
+  WidgetTester tester,
+) async {
+  final controller = await pumpOverview(tester, tabCount: 40);
+  controller.expand(38);
+  await tester.pumpAndSettle();
+  tester
+      .state<ScrollableState>(find.byType(Scrollable).first)
+      .position
+      .jumpTo(0);
+  await tester.pump();
+  return controller;
+}
+
+// The tab's thumb shows in the grid once scrolled to: no stand-in is left
+// in its place.
+Future<void> expectThumbShows(
+  WidgetTester tester,
+  TabOverviewController<int> controller,
+  int tab,
+) async {
+  if (controller.expanded) controller.collapse();
+  await tester.pumpAndSettle();
+  controller.scrollToTab(tab);
+  await tester.pumpAndSettle();
+  expect(find.text('T$tab').hitTestable(), findsOneWidget, reason: 'T$tab');
+}
+
 void main() {
   for (final frames in [1, 5, 10]) {
     group('$frames frame${frames == 1 ? '' : 's'} into a flight', () {
@@ -177,7 +207,8 @@ void main() {
       'overview, however late in the flight it turns', (tester) async {
     // Late enough, the tab lands on its page before the switch that turns it
     // around, which then starts a flight back to the stand-in of its own.
-    for (var frames = 1; frames <= 20; frames++) {
+    // Early enough, before its flight starts, the collapse cancels it.
+    for (var frames = 0; frames <= 20; frames++) {
       await tester.pumpWidget(const SizedBox());
       final controller = await pumpOverview(tester, tabCount: 40);
       expect(find.text('T38'), findsNothing);
@@ -190,6 +221,7 @@ void main() {
       expect(controller.mode, TabOverviewMode.overview, reason: '$frames');
       expect(controller.isAnyExpanding, isFalse, reason: '$frames');
       expect(controller.isAnyCollapsing, isFalse, reason: '$frames');
+      await expectThumbShows(tester, controller, 38);
     }
   });
 
@@ -283,4 +315,99 @@ void main() {
     expectNothingFlying(controller);
     await expectTapOnThumbnailExpands(tester, controller);
   });
+
+  // An off-screen tab's expand waits a frame for its stand-in, where its
+  // flight sets off. A call in the same event took effect before it, and so
+  // lost to it.
+  group('in the same event as an off-screen expand', () {
+    testWidgets('an expand of another tab expands that tab', (tester) async {
+      final controller = await pumpOverview(tester, tabCount: 40);
+
+      controller.expand(38);
+      controller.expand(1);
+      await tester.pumpAndSettle();
+
+      expect(controller.mode, TabOverviewMode.expanded);
+      expect(controller.activeTab, 1);
+      expectNothingFlying(controller);
+      await expectThumbShows(tester, controller, 38);
+    });
+
+    testWidgets('a collapse cancels it', (tester) async {
+      final controller = await pumpOverview(tester, tabCount: 40);
+      final modes = <TabOverviewMode>[];
+      controller.addModeChangedListener(modes.add);
+
+      controller.expand(38);
+      controller.collapse();
+      await tester.pumpAndSettle();
+
+      expect(modes, isEmpty);
+      expect(controller.activeTab, 38);
+      expectNothingFlying(controller);
+      await expectThumbShows(tester, controller, 38);
+    });
+  });
+
+  // An off-screen tab's collapse waited a frame for its stand-in too, which
+  // it doesn't need: the stand-in is where its flight lands, which the
+  // switch looks for after its frame. An expand in the same event, while
+  // still expanded, was lost.
+  group('in the same event as an off-screen collapse', () {
+    for (final tab in [1, 38]) {
+      testWidgets('an expand of tab $tab expands it', (tester) async {
+        final controller = await pumpOffScreenExpanded(tester);
+
+        controller.collapse();
+        controller.expand(tab);
+        await tester.pumpAndSettle();
+
+        expect(controller.mode, TabOverviewMode.expanded);
+        expect(controller.activeTab, tab);
+        expectNothingFlying(controller);
+        await expectThumbShows(tester, controller, 38);
+      });
+    }
+
+    testWidgets('removing the tab switches to the grid once', (tester) async {
+      final controller = await pumpOffScreenExpanded(tester);
+      final modes = <TabOverviewMode>[];
+      controller.addModeChangedListener(modes.add);
+
+      controller.collapse();
+      controller.remove(38);
+      await tester.pumpAndSettle();
+
+      expect(modes, [TabOverviewMode.overview]);
+      expect(controller.activeTab, 39);
+      expectNothingFlying(controller);
+      await expectThumbShows(tester, controller, 39);
+    });
+  });
+
+  // The pages are built on the frame after the expand, so the second expand
+  // had no pages to scroll, and threw.
+  for (final scroll in [false, true]) {
+    final how = scroll ? 'scrolling to another tab' : 'expanding another tab';
+    testWidgets('$how in the same event as an expand shows that tab', (
+      tester,
+    ) async {
+      final controller = await pumpOverview(tester, tabCount: 40);
+
+      controller.expand(1);
+      scroll ? controller.scrollToTab(38) : controller.expand(38);
+      await tester.pumpAndSettle();
+
+      expect(controller.mode, TabOverviewMode.expanded);
+      expect(controller.activeTab, 38);
+      expectNothingFlying(controller);
+      expect(
+        find
+            .descendant(of: find.byType(PageView), matching: find.text('T38'))
+            .hitTestable(),
+        findsOneWidget,
+      );
+      await expectThumbShows(tester, controller, 1);
+    });
+  }
 }

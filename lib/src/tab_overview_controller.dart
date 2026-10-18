@@ -26,6 +26,11 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
   GlobalKey<_TabThumbnailsGridState>? _thumbnailsGridKey;
   GlobalKey<_ExpandedTabState>? _expandedTabKey;
 
+  // The tab whose expand waits a frame for its stand-in, as its thumb is
+  // off screen, if any. A call that asks for something else in the
+  // meantime takes it back.
+  _TabEntry<T>? _waitingExpand;
+
   /// Constructor for [TabOverviewController] to initialize with optional tabs and display mode.
   ///
   /// - [initialTabs]: An optional list of tabs to initialize.
@@ -143,6 +148,9 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
     final removedTab = removed.tab;
     _notifyTabRemoved(removedTab);
 
+    // A tab removed as its expand waits for its stand-in stays in the grid.
+    if (_waitingExpand == removed) _takeBackWaitingExpand();
+
     if (isActiveTab(removedTab)) {
       if (expanded) _collapseRemoved(removed, duration: duration);
       activeTab = _neighbourOfRemovedTabAt(index);
@@ -168,7 +176,7 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
       return;
     }
 
-    if (_model.addStandIn(removed)) _notifyOffScreenThumbTabAdded(removed.tab);
+    _addStandIn(removed);
     _doCollapse(
       removed,
       TabFlight(
@@ -222,11 +230,19 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
       throw ArgumentError('Tab $tab not found');
     }
 
-    if (expanded) {
+    if (expanded && _expandedTabState != null) {
       scrollToTab(tab, duration: duration, curve: curve);
       return;
     }
 
+    if (expanded) {
+      // Expanded since the last frame, the overview has no pages to scroll
+      // yet. The expand turns to this tab instead.
+      if (isActiveTab(tab)) return;
+      _takeBackExpand(_model.entryOf(activeTab as T)!);
+    }
+
+    if (_waitingExpand != entry) _takeBackWaitingExpand();
     activeTab = tab;
 
     final flight = TabFlight(toPage: true, duration: duration, curve: curve);
@@ -255,7 +271,13 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
     Curve curve = Curves.easeInOut,
   }) {
     if (expanded) {
-      _expandedTabState!.animateToPage(index, duration: duration, curve: curve);
+      final pages = _expandedTabState;
+      if (pages == null) {
+        // Expanded since the last frame, with no pages to scroll yet.
+        expand(tabs[index], duration: duration, curve: curve);
+      } else {
+        pages.animateToPage(index, duration: duration, curve: curve);
+      }
     } else {
       final offset = _thumbnailsGridState!.getThumbScrollOffset(index);
       _thumbnailsGridState!.animateTo(offset, duration: duration, curve: curve);
@@ -292,7 +314,10 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
     double? velocity,
     double? expansion,
   }) {
-    if (overview) return;
+    if (overview) {
+      _takeBackWaitingExpand();
+      return;
+    }
 
     final tab = activeTab as T;
     final entry = _model.entryOf(tab);
@@ -306,16 +331,16 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
       velocity: velocity,
       expansion: expansion,
     );
-    if (_thumbnailsGridState!.thumbOffScreen(tab)) {
-      _collapseOffScreen(entry, flight);
-    } else {
-      _doCollapse(entry, flight);
-    }
+    // The stand-in is where the flight lands, which the switch looks for
+    // after its frame, so it's there in time.
+    if (_thumbnailsGridState!.thumbOffScreen(tab)) _addStandIn(entry);
+    _doCollapse(entry, flight);
   }
 
   /// Disposes resources used by the controller.
   void dispose() {
     _activeTab = null;
+    _waitingExpand = null;
 
     for (final entry in _flyingEntries) {
       entry.flight = null;
@@ -336,17 +361,31 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
     _notifyTabsReordered();
   }
 
+  // The stand-in is where the flight sets off, which the switch finds in the
+  // frame before it, so the switch waits a frame for it to be built.
   void _expandOffScreen(_TabEntry<T> entry, TabFlight flight) {
-    if (_model.addStandIn(entry)) _notifyOffScreenThumbTabAdded(entry.tab);
+    _addStandIn(entry);
+    _waitingExpand = entry;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // A tab removed since stays in the overview.
-      if (_model.indexOfEntry(entry) == -1) {
+      if (_waitingExpand != entry) return;
+      _waitingExpand = null;
+      // Made another tab active in the meantime, by the activeTab setter.
+      if (!isActiveTab(entry.tab)) {
         _removeStandIn(entry);
-      } else {
-        _doExpand(entry, flight);
+        return;
       }
+      _doExpand(entry, flight);
     });
+  }
+
+  // Takes back the expand waiting for its stand-in, if any: the tab stays
+  // on its thumbnail.
+  void _takeBackWaitingExpand() {
+    final entry = _waitingExpand;
+    if (entry == null) return;
+    _waitingExpand = null;
+    _removeStandIn(entry);
   }
 
   void _doExpand(_TabEntry<T> entry, TabFlight flight) {
@@ -374,14 +413,6 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
     _notifyModeChanged(_mode);
   }
 
-  void _collapseOffScreen(_TabEntry<T> entry, TabFlight flight) {
-    if (_model.addStandIn(entry)) _notifyOffScreenThumbTabAdded(entry.tab);
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _doCollapse(entry, flight);
-    });
-  }
-
   void _doCollapse(_TabEntry<T> entry, TabFlight flight) {
     _askForTabFlight(entry, flight);
 
@@ -398,8 +429,10 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
     if (flight == null) {
       _setFlight(entry, asked);
     } else if (!flight.started && flight.headsToPage == toPage) {
-      // Asked back to where it is before the switch, which now won't come.
+      // Asked back to where it is before the switch, which now won't come,
+      // nor a flight for its stand-in.
       _setFlight(entry, null);
+      _removeStandIn(entry);
     } else {
       flight.ask(toPage: toPage);
     }
@@ -475,6 +508,10 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
         _thumbnailsGridState?.jumpToThumb(tab);
       });
     }
+  }
+
+  void _addStandIn(_TabEntry<T> entry) {
+    if (_model.addStandIn(entry)) _notifyOffScreenThumbTabAdded(entry.tab);
   }
 
   void _removeStandIn(_TabEntry<T> entry) {
