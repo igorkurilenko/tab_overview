@@ -214,7 +214,12 @@ class _TabOverviewState<T> extends State<TabOverview<T>> {
     }
   }
 
-  void _handleModeChanged(TabOverviewMode _) => setState(() {});
+  // How many times the controller told of a mode change, to the mode it was
+  // in too. With the mode, it keys the switch, so a change and a change
+  // back in the same frame run one too: the flights asked for wait for it.
+  var _modeChanges = 0;
+
+  void _handleModeChanged(TabOverviewMode _) => setState(() => _modeChanges++);
 
   BoxConstraints? _defaultGridDelegateConstraints;
   SliverGridDelegate? _defaultGridDelegate;
@@ -251,8 +256,9 @@ class _TabOverviewState<T> extends State<TabOverview<T>> {
   @override
   Widget build(BuildContext context) => HeroHereSwitcher(
     // Only a mode change moves the heroes. Any other rebuild, such as the
-    // parent's, shows the new child in place, with no snapshot.
-    switchKey: controller.mode,
+    // parent's, shows the new child in place, with no snapshot. A new
+    // controller in the same mode shows in place too.
+    switchKey: (controller.mode, _modeChanges),
     // Tabs and their flights take the overview's size, not the screen's.
     layoutBuilder: (child, sky) => LayoutBuilder(
       builder: (context, constraints) => TabContentSize(

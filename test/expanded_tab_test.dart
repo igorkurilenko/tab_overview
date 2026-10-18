@@ -98,5 +98,22 @@ void main() {
       expect(controller.activeTab, 2);
       expect(shown(2), findsOneWidget);
     });
+
+    // A switch to the grid and back to the pages in the same event ran no
+    // switch, so the flights both asked for waited for one forever.
+    testWidgets('expands another tab asked for in the same event as its '
+        'collapse', (tester) async {
+      final controller = await expand(tester, 1);
+
+      controller.collapse();
+      controller.expand(3);
+      await tester.pumpAndSettle();
+
+      expect(controller.mode, TabOverviewMode.expanded);
+      expect(controller.activeTab, 3);
+      expect(shown(3), findsOneWidget);
+      expect(controller.isAnyExpanding, isFalse);
+      expect(controller.isAnyCollapsing, isFalse);
+    });
   });
 }

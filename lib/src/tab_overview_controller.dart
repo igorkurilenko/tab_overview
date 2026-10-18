@@ -344,6 +344,9 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
 
   void _doExpand(_TabEntry<T> entry, TabFlight flight) {
     _askForTabFlight(entry, flight);
+    // Collapsed in the same frame, the overview still has the pages, and
+    // switches back to them with the page where the collapse left it.
+    _expandedTabState?.jumpToPage(_model.indexOfEntry(entry));
 
     _mode = TabOverviewMode.expanded;
     _notifyModeChanged(_mode);
