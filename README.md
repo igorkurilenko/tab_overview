@@ -162,7 +162,6 @@ class Tab {
 
 - **TabOverview**: The main widget for managing and displaying tabs.
 - **TabOverviewController**: Manages state and tab actions: `add` and `remove` return whether they changed anything, `removeAt` removes the tab at an index, and `activeIndex` is the active tab's index, or `null`.
-- **ReorderableTab** and **RemovableTab**: Deprecated. Use `isTabReorderable` and `isTabRemovable`; the interfaces go in 0.2.0.
 
 ### Enums
 

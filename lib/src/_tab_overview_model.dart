@@ -143,27 +143,3 @@ class _Notifier extends ChangeNotifier {
 /// - [expanded]: Displays the currently active tab in an expanded, detailed view.
 /// - [overview]: Displays all tabs as thumbnails in an overview grid for easy selection and navigation.
 enum TabOverviewMode { expanded, overview }
-
-/// An abstract class that provides a property to determine if a tab can be reordered within the [TabOverview].
-///
-/// Implement this class in a tab model to enable/disable reordering functionality,
-/// allowing tabs to be dragged and rearranged within the overview interface.
-@Deprecated(
-  'Use TabOverview.isTabReorderable, which keeps the rule out of your tab '
-  'model. ReorderableTab goes in 0.2.0.',
-)
-abstract class ReorderableTab {
-  bool get reorderable;
-}
-
-/// An abstract class that provides a property to determine if a tab can be removed from the [TabOverview].
-///
-/// Implement this class in a tab model to allow removal functionality,
-/// enabling tabs to be deleted by the user when `removable` is `true`.
-@Deprecated(
-  'Use TabOverview.isTabRemovable, which keeps the rule out of your tab '
-  'model. RemovableTab goes in 0.2.0.',
-)
-abstract class RemovableTab {
-  bool get removable;
-}

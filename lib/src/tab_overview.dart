@@ -131,25 +131,17 @@ class TabOverview<T> extends StatefulWidget {
   /// Whether the user may remove a tab: its thumbnail shows a remove button
   /// and swipes away, and its expanded page shows the remove button too.
   ///
-  /// If null, a tab that implements the deprecated [RemovableTab] decides,
-  /// and any other tab may be removed.
+  /// If null, every tab may be removed.
   final bool Function(T tab)? isTabRemovable;
 
   /// Whether the user may drag a tab's thumbnail to a new place in the grid.
   ///
-  /// If null, a tab that implements the deprecated [ReorderableTab] decides,
-  /// and any other tab may be moved.
+  /// If null, every tab may be moved.
   final bool Function(T tab)? isTabReorderable;
 
-  bool _isRemovable(T tab) =>
-      isTabRemovable?.call(tab) ??
-      // ignore: deprecated_member_use_from_same_package
-      (tab is RemovableTab ? tab.removable : true);
+  bool _isRemovable(T tab) => isTabRemovable?.call(tab) ?? true;
 
-  bool _isReorderable(T tab) =>
-      isTabReorderable?.call(tab) ??
-      // ignore: deprecated_member_use_from_same_package
-      (tab is ReorderableTab ? tab.reorderable : true);
+  bool _isReorderable(T tab) => isTabReorderable?.call(tab) ?? true;
 
   /// Constructor to create a customizable [TabOverview] with various builders and configurations.
   ///
