@@ -155,7 +155,7 @@ class Tab implements RemovableTab, ReorderableTab {
 
 ### Explanation of Key Components
 
-- **TabOverviewController**: Manages the active tab, mode switching, and tab list.
+- **TabOverviewController**: Manages the active tab, mode switching, and tab list. It's a `ChangeNotifier`, so a `ListenableBuilder` can rebuild with it.
 - **TabOverview.builder**: Creates a `TabOverview` with customizable `tabBuilder` for expanded views and `tabThumbnailBuilder` for the thumbnail grid.
 - **ReorderableTab & RemovableTab**: Interfaces for tabs that can be reordered or removed, enabling flexible tab interactions.
 - **Expanded and Thumbnail Views**: Customize how each tab appears in both overview and expanded modes.

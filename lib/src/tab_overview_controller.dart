@@ -19,7 +19,12 @@ part of 'tab_overview.dart';
 ///
 /// This controller provides methods to add, remove, reorder, and activate tabs, as well as listeners for changes
 /// in tab states, allowing detailed customization of the tab-switching experience.
-class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
+///
+/// It's a [ChangeNotifier]: it notifies its listeners when the mode, the
+/// active tab or the tabs change, so a [ListenableBuilder] can rebuild with
+/// it, as with a [ScrollController].
+class TabOverviewController<T> extends ChangeNotifier
+    with _TabAnimations<T>, _Listeners<T> {
   TabOverviewMode _mode;
   T? _activeTab;
   final _TabOverviewModel<T> _model;
@@ -374,6 +379,7 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
   }
 
   /// Disposes resources used by the controller.
+  @override
   void dispose() {
     _activeTab = null;
     _waitingExpand = null;
@@ -390,6 +396,7 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
     _offScreenThumbTabAddedListeners.clear();
     _offScreenThumbTabRemovedListeners.clear();
     _tabsReorderedListeners.clear();
+    super.dispose();
   }
 
   void _reorderTabs(Permutations permutations) {
@@ -581,7 +588,9 @@ typedef ActiveTabChangedListener = VoidCallback;
 /// A callback type that is triggered when tabs are reordered within the [TabOverview].
 typedef TabsReorderedListener = VoidCallback;
 
-mixin _Listeners<T> {
+// The typed listeners. Each change also notifies the controller's
+// ChangeNotifier listeners.
+mixin _Listeners<T> on ChangeNotifier {
   final _modeChangedListeners = <ModeChangedListener>[];
   final _activeTabChangedListeners = <ActiveTabChangedListener>[];
   final _tabAddedListeners = <TabAddedListener<T>>[];
@@ -620,15 +629,31 @@ mixin _Listeners<T> {
   void removeTabsReorderedListener(TabsReorderedListener listener) =>
       _tabsReorderedListeners.remove(listener);
 
+  @Deprecated(
+    'Stand-ins are placeholders the overview keeps for its flights. '
+    'This listener goes in 0.2.0.',
+  )
   void addOffScreenThumbTabAddedListener(TabAddedListener<T> listener) =>
       _offScreenThumbTabAddedListeners.add(listener);
 
+  @Deprecated(
+    'Stand-ins are placeholders the overview keeps for its flights. '
+    'This listener goes in 0.2.0.',
+  )
   void addOffScreenThumbTabRemovedListener(TabRemovedListener<T> listener) =>
       _offScreenThumbTabRemovedListeners.add(listener);
 
+  @Deprecated(
+    'Stand-ins are placeholders the overview keeps for its flights. '
+    'This listener goes in 0.2.0.',
+  )
   void removeOffScreenThumbTabAddedListener(TabAddedListener<T> listener) =>
       _offScreenThumbTabAddedListeners.remove(listener);
 
+  @Deprecated(
+    'Stand-ins are placeholders the overview keeps for its flights. '
+    'This listener goes in 0.2.0.',
+  )
   void removeOffScreenThumbTabRemovedListener(TabRemovedListener<T> listener) =>
       _offScreenThumbTabRemovedListeners.remove(listener);
 
@@ -636,24 +661,28 @@ mixin _Listeners<T> {
     for (var listener in _modeChangedListeners) {
       listener(mode);
     }
+    notifyListeners();
   }
 
   void _notifyActiveTabChanged() {
     for (var listener in _activeTabChangedListeners) {
       listener();
     }
+    notifyListeners();
   }
 
   void _notifyTabAdded(T tab) {
     for (var listener in _tabAddedListeners) {
       listener(tab);
     }
+    notifyListeners();
   }
 
   void _notifyTabRemoved(T removedTab) {
     for (var listener in _tabRemovedListeners) {
       listener(removedTab);
     }
+    notifyListeners();
   }
 
   void _notifyOffScreenThumbTabAdded(T tab) {
@@ -672,6 +701,7 @@ mixin _Listeners<T> {
     for (var listener in _tabsReorderedListeners) {
       listener();
     }
+    notifyListeners();
   }
 }
 
