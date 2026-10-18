@@ -23,8 +23,7 @@ part of 'tab_overview.dart';
 /// It's a [ChangeNotifier]: it notifies its listeners when the mode, the
 /// active tab or the tabs change, so a [ListenableBuilder] can rebuild with
 /// it, as with a [ScrollController].
-class TabOverviewController<T> extends ChangeNotifier
-    with _TabAnimations<T>, _Listeners<T> {
+class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
   TabOverviewMode _mode;
   T? _activeTab;
   final _TabOverviewModel<T> _model;
@@ -38,6 +37,9 @@ class TabOverviewController<T> extends ChangeNotifier
   // off screen, if any. A call that asks for something else in the
   // meantime takes it back.
   _TabEntry<T>? _waitingExpand;
+
+  // The tabs' flights between their thumbnails and their pages.
+  late final _flights = _TabFlights<T>(this);
 
   /// Constructor for [TabOverviewController] to initialize with optional tabs and display mode.
   ///
@@ -409,10 +411,7 @@ class TabOverviewController<T> extends ChangeNotifier
     _activeTab = null;
     _waitingExpand = null;
 
-    for (final entry in _flyingEntries) {
-      entry.flight = null;
-    }
-    _flyingEntries.clear();
+    _flights.clear();
 
     _modeChangedListeners.clear();
     _activeTabChangedListeners.clear();
@@ -452,7 +451,7 @@ class TabOverviewController<T> extends ChangeNotifier
   }
 
   void _doExpand(_TabEntry<T> entry, TabFlight flight) {
-    _askForTabFlight(entry, flight);
+    _flights.ask(entry, flight);
     // Collapsed in the same frame, the overview still has the pages, and
     // switches back to them with the page where the collapse left it.
     _pages?.jumpToPage(_model.indexOfEntry(entry));
@@ -468,7 +467,7 @@ class TabOverviewController<T> extends ChangeNotifier
     if (flight != null && flight.started) {
       flight.ask(toPage: false);
     } else {
-      _setFlight(entry, null);
+      _flights.set(entry, null);
       _removeStandIn(entry);
     }
 
@@ -477,101 +476,10 @@ class TabOverviewController<T> extends ChangeNotifier
   }
 
   void _doCollapse(_TabEntry<T> entry, TabFlight flight) {
-    _askForTabFlight(entry, flight);
+    _flights.ask(entry, flight);
 
     _mode = TabOverviewMode.overview;
     _notifyModeChanged(_mode);
-  }
-
-  // Asks for the tab to fly where [asked] goes, to its page or its
-  // thumbnail: in [asked], which the coming switch starts, or in the flight
-  // it's in, which the switch diverts.
-  void _askForTabFlight(_TabEntry<T> entry, TabFlight asked) {
-    final toPage = asked.toPage;
-    final flight = entry.flight;
-    if (flight == null) {
-      _setFlight(entry, asked);
-    } else if (!flight.started && flight.headsToPage == toPage) {
-      // Asked back to where it is before the switch, which now won't come,
-      // nor a flight for its stand-in.
-      _setFlight(entry, null);
-      _removeStandIn(entry);
-    } else {
-      flight.ask(toPage: toPage);
-    }
-  }
-
-  // hero_here asks the hero the flight lands on for its controller, else the
-  // hero it leaves, as the flight starts. [toPage] is whether that's the
-  // tab's page, for a flight nobody asked for.
-  AnimationController _createTabFlightController(
-    _TabEntry<T> entry,
-    TickerProvider vsync, {
-    required bool toPage,
-  }) {
-    var flight = entry.flight;
-    if (flight == null) {
-      flight = TabFlight(
-        toPage: toPage,
-        duration: HeroHere.defaultFlightAnimationDuration,
-        curve: HeroHere.defaultFlightAnimationCurve,
-      );
-      _setFlight(entry, flight);
-    }
-    final startedFlight = flight;
-    return TabFlightController(
-      vsync: vsync,
-      duration: flight.duration,
-      onDispose: () => _tabFlightEnded(entry, startedFlight),
-    );
-  }
-
-  Animation<double> _createTabFlightAnimation(
-    _TabEntry<T> entry,
-    AnimationController controller,
-  ) {
-    final flight = entry.flight!;
-    // A fling sets its own pace.
-    final animation = flight.velocity != null
-        ? controller
-        : CurvedAnimation(parent: controller, curve: flight.curve);
-    flight.start(animation);
-    return animation;
-  }
-
-  // Starts each run of the tab's flight: the first, and one on each divert.
-  TickerFuture _runTabFlight(
-    _TabEntry<T> entry,
-    AnimationController controller, {
-    double? from,
-  }) {
-    final velocity = entry.flight?.setOff();
-    return velocity != null
-        ? controller.fling(velocity: velocity)
-        : controller.forward(from: from);
-  }
-
-  // However the flight ended: landed, or stopped by a switch that left no
-  // hero for it, or by the overview going away.
-  void _tabFlightEnded(_TabEntry<T> entry, TabFlight flight) {
-    final tab = entry.tab;
-    final landedOnPage = flight.headsToPage;
-    if (flight.toPage == landedOnPage) {
-      _setFlight(entry, null);
-      _removeStandIn(entry);
-    } else {
-      // Asked elsewhere after the switch that sent it. The next switch
-      // starts a flight for that, which needs the stand-in, if any.
-      flight.land();
-    }
-
-    final grid = _thumbnails;
-    if (landedOnPage && grid != null && !grid.thumbInView(tab)) {
-      // After the frame: a flight also ends as the overview goes away.
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _thumbnails?.jumpToThumb(tab);
-      });
-    }
   }
 
   void _addStandIn(_TabEntry<T> entry) {
@@ -580,6 +488,34 @@ class TabOverviewController<T> extends ChangeNotifier
 
   void _removeStandIn(_TabEntry<T> entry) {
     if (_model.removeStandIn(entry)) _notifyOffScreenThumbTabRemoved(entry.tab);
+  }
+
+  bool get isAnyExpanding => _flights.anyToPage;
+
+  bool get isAnyCollapsing => _flights.anyToThumbnail;
+
+  bool isExpanding(T tab) => _flights.of(tab)?.toPage ?? false;
+
+  bool isCollapsing(T tab) => !(_flights.of(tab)?.toPage ?? true);
+
+  // Keeps [animation] as the entry's add or remove animation until it ends.
+  // The grid builds an item on every rebuild while it animates, so it may
+  // ask for the same animation many times.
+  void _trackTabPresence(
+    _TabEntry<T> entry,
+    Animation<double> animation, {
+    required AnimationStatus endsAt,
+  }) {
+    if (animation.status == endsAt || entry.presence == animation) return;
+    entry.presence = animation;
+
+    void handleStatus(AnimationStatus status) {
+      if (status != endsAt) return;
+      animation.removeStatusListener(handleStatus);
+      if (entry.presence == animation) entry.presence = null;
+    }
+
+    animation.addStatusListener(handleStatus);
   }
 
   void _handleExpandedTabPageChanged(int page) {
@@ -727,57 +663,5 @@ mixin _Listeners<T> on ChangeNotifier {
       listener();
     }
     notifyListeners();
-  }
-}
-
-mixin _TabAnimations<T> {
-  /// The entries with a flight, a removed tab's among them.
-  final _flyingEntries = <_TabEntry<T>>{};
-
-  /// Tells when a tab starts or stops flying, as the grid ignores taps
-  /// while any does.
-  final _flightsChanged = _Notifier();
-
-  void _setFlight(_TabEntry<T> entry, TabFlight? flight) {
-    entry.flight = flight;
-    final changed = flight == null
-        ? _flyingEntries.remove(entry)
-        : _flyingEntries.add(entry);
-    if (changed) _flightsChanged.notify();
-  }
-
-  bool get isAnyExpanding =>
-      _flyingEntries.any((entry) => entry.flight!.toPage);
-
-  bool get isAnyCollapsing =>
-      _flyingEntries.any((entry) => !entry.flight!.toPage);
-
-  bool isExpanding(T tab) => _flightOf(tab)?.toPage ?? false;
-
-  bool isCollapsing(T tab) => !(_flightOf(tab)?.toPage ?? true);
-
-  // The flight of the tab, a removed one too, found by equality, which a tab
-  // keeps with itself however its hash code changes.
-  TabFlight? _flightOf(T? tab) =>
-      _flyingEntries.where((entry) => entry.tab == tab).firstOrNull?.flight;
-
-  // Keeps [animation] as the entry's add or remove animation until it ends.
-  // The grid builds an item on every rebuild while it animates, so it may
-  // ask for the same animation many times.
-  void _trackTabPresence(
-    _TabEntry<T> entry,
-    Animation<double> animation, {
-    required AnimationStatus endsAt,
-  }) {
-    if (animation.status == endsAt || entry.presence == animation) return;
-    entry.presence = animation;
-
-    void handleStatus(AnimationStatus status) {
-      if (status != endsAt) return;
-      animation.removeStatusListener(handleStatus);
-      if (entry.presence == animation) entry.presence = null;
-    }
-
-    animation.addStatusListener(handleStatus);
   }
 }

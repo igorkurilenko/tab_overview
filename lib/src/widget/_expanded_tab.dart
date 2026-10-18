@@ -130,11 +130,12 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
             key: expandedTabHeroKey(entry),
             flightRedirect: HeroHereFlightRedirect.divert,
             flightAnimationControllerFactory: (vsync, duration) => controller
-                ._createTabFlightController(entry, vsync, toPage: true),
-            flightAnimationFactory: (animationController) => controller
-                ._createTabFlightAnimation(entry, animationController),
-            forwardFlightAnimation: (animationController, {from}) => controller
-                ._runTabFlight(entry, animationController, from: from),
+                ._flights
+                .createController(entry, vsync, toPage: true),
+            flightAnimationFactory: (animationController) =>
+                controller._flights.createAnimation(entry, animationController),
+            forwardFlightAnimation: (animationController, {from}) =>
+                controller._flights.run(entry, animationController, from: from),
             child: tabWidget,
           ),
         ),

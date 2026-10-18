@@ -81,10 +81,10 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
       : 1.0;
 
   Duration? get activeTabHeroAnimationDuration =>
-      controller._flightOf(controller.activeTab)?.duration;
+      controller._flights.of(controller.activeTab)?.duration;
 
   Curve? get activeTabHeroAnimationCurve =>
-      controller._flightOf(controller.activeTab)?.curve;
+      controller._flights.of(controller.activeTab)?.curve;
 
   // The scroll offset of the thumb at [index] in the grid as last laid out,
   // up to how far the grid scrolls.
@@ -163,7 +163,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
   void _revealActiveThumb() {
     final tab = controller.activeTab;
     if (!controller.expanded || tab == null) return;
-    if (controller._flightOf(tab) != null) return;
+    if (controller._flights.of(tab) != null) return;
     if (!thumbInView(tab)) _jumpToThumbNow(tab);
   }
 
@@ -230,7 +230,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
     return Stack(
       children: [
         ListenableBuilder(
-          listenable: controller._flightsChanged,
+          listenable: controller._flights.changed,
           builder: (context, thumbs) => IgnorePointer(
             ignoring: controller.isAnyExpanding || controller.isAnyCollapsing,
             child: thumbs,
@@ -376,11 +376,11 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
       key: tabThumbHeroKey(entry),
       flightRedirect: HeroHereFlightRedirect.divert,
       flightAnimationControllerFactory: (vsync, duration) =>
-          controller._createTabFlightController(entry, vsync, toPage: false),
+          controller._flights.createController(entry, vsync, toPage: false),
       flightAnimationFactory: (animationController) =>
-          controller._createTabFlightAnimation(entry, animationController),
+          controller._flights.createAnimation(entry, animationController),
       forwardFlightAnimation: (animationController, {from}) =>
-          controller._runTabFlight(entry, animationController, from: from),
+          controller._flights.run(entry, animationController, from: from),
       child: thumb,
     );
   }

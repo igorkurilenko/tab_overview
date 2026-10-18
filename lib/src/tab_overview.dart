@@ -31,6 +31,7 @@ import 'util/model_widget_builder.dart';
 import 'widget/fitted_tab.dart';
 
 part '_overview_views.dart';
+part '_tab_flights.dart';
 part '_tab_overview_model.dart';
 part 'tab_overview_controller.dart';
 part 'widget/_tab_thumbnails_grid.dart';
