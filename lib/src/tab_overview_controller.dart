@@ -168,8 +168,15 @@ class TabOverviewController<T> extends ChangeNotifier
   /// Removes the specified [tab] and animates its removal.
   ///
   /// Optionally accepts a [duration] for the removal animation.
-  void remove(T tab, {Duration duration = const Duration(milliseconds: 350)}) =>
-      removeTabAt(tabs.indexOf(tab), duration: duration);
+  ///
+  /// Returns `false`, and does nothing, if the tab isn't in the overview, as
+  /// [add] does for a tab that already is.
+  bool remove(T tab, {Duration duration = const Duration(milliseconds: 350)}) {
+    final index = _model.indexOfTab(tab);
+    if (index == -1) return false;
+    removeTabAt(index, duration: duration);
+    return true;
+  }
 
   /// Removes the tab at a specified [index] and animates its removal.
   ///

@@ -58,6 +58,27 @@ Future<void> dragThumbnail3Over2(WidgetTester tester) async {
 }
 
 void main() {
+  group('remove', () {
+    testWidgets('returns false, and does nothing, for a tab that isn\'t '
+        'there', (tester) async {
+      final controller = await pumpOverview(tester);
+
+      expect(controller.remove(9), isFalse);
+      await tester.pumpAndSettle();
+
+      expect(controller.tabs, [0, 1, 2, 3]);
+    });
+
+    testWidgets('returns true for a tab it removes', (tester) async {
+      final controller = await pumpOverview(tester);
+
+      expect(controller.remove(1), isTrue);
+      await tester.pumpAndSettle();
+
+      expect(controller.tabs, [0, 2, 3]);
+    });
+  });
+
   group('the controller as a ChangeNotifier', () {
     testWidgets('tells its listeners of tabs added and removed, the mode and '
         'the active tab', (tester) async {
