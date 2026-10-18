@@ -5,6 +5,8 @@ import 'package:tab_overview/tab_overview.dart';
 Future<TabOverviewController<int>> pumpOverview(
   WidgetTester tester, {
   int tabCount = 4,
+  bool Function(int tab)? isTabRemovable,
+  bool Function(int tab)? isTabReorderable,
 }) async {
   final controller = TabOverviewController<int>(
     initialTabs: List.generate(tabCount, (tab) => tab),
@@ -24,6 +26,8 @@ Future<TabOverviewController<int>> pumpOverview(
           Expanded(
             child: TabOverview<int>.builder(
               controller: controller,
+              isTabRemovable: isTabRemovable,
+              isTabReorderable: isTabReorderable,
               tabBuilder: (context, tab) => ColoredBox(
                 color: Colors.white,
                 child: Center(child: Text('T$tab')),
@@ -36,6 +40,21 @@ Future<TabOverviewController<int>> pumpOverview(
   );
   await tester.pumpAndSettle();
   return controller;
+}
+
+// Drags tab 3's thumbnail over tab 2's, after holding it long enough to pick
+// it up.
+Future<void> dragThumbnail3Over2(WidgetTester tester) async {
+  final from = tester.getCenter(find.text('T3'));
+  final to = tester.getCenter(find.text('T2'));
+  final gesture = await tester.startGesture(from);
+  await tester.pump(const Duration(milliseconds: 600));
+  for (var step = 1; step <= 10; step++) {
+    await gesture.moveTo(Offset.lerp(from, to, step / 10)!);
+    await tester.pump(const Duration(milliseconds: 16));
+  }
+  await gesture.up();
+  await tester.pumpAndSettle();
 }
 
 void main() {
@@ -88,6 +107,66 @@ void main() {
       await tester.pump();
 
       expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('isTabRemovable', () {
+    testWidgets('leaves a remove button off a tab it rules out', (
+      tester,
+    ) async {
+      final controller = await pumpOverview(
+        tester,
+        isTabRemovable: (tab) => tab != 2,
+      );
+      expect(find.byIcon(Icons.close), findsNWidgets(3));
+
+      controller.expand(2);
+      await tester.pumpAndSettle();
+      expect(
+        find.descendant(
+          of: find.byType(PageView),
+          matching: find.byIcon(Icons.close),
+        ),
+        findsNothing,
+      );
+    });
+
+    testWidgets('keeps a tab it rules out from being swiped away', (
+      tester,
+    ) async {
+      final controller = await pumpOverview(
+        tester,
+        isTabRemovable: (tab) => tab != 2,
+      );
+
+      await tester.fling(find.text('T2'), const Offset(-400, 0), 2000);
+      await tester.pumpAndSettle();
+      expect(controller.tabs, [0, 1, 2, 3]);
+
+      await tester.fling(find.text('T1'), const Offset(-400, 0), 2000);
+      await tester.pumpAndSettle();
+      expect(controller.tabs, [0, 2, 3]);
+    });
+  });
+
+  group('isTabReorderable', () {
+    testWidgets('lets every tab move when not given', (tester) async {
+      final controller = await pumpOverview(tester);
+
+      await dragThumbnail3Over2(tester);
+
+      expect(controller.tabs, [0, 1, 3, 2]);
+    });
+
+    testWidgets('keeps a tab it rules out in its place', (tester) async {
+      final controller = await pumpOverview(
+        tester,
+        isTabReorderable: (tab) => tab != 3,
+      );
+
+      await dragThumbnail3Over2(tester);
+
+      expect(controller.tabs, [0, 1, 2, 3]);
     });
   });
 }

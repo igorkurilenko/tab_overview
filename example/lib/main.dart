@@ -64,6 +64,9 @@ class TabOverviewExampleState extends State<TabOverviewExample> {
         ),
         // Pull the expanded tab down to collapse it.
         pullToCollapse: true,
+        // Which tabs the user may close or move. Every tab may, by default.
+        isTabRemovable: (tab) => tab.removable,
+        isTabReorderable: (tab) => tab.reorderable,
         // Drag with the mouse too, to turn the page and to pull the expanded
         // tab down, as hero_here's examples do.
         scrollBehavior: const MaterialScrollBehavior().copyWith(
@@ -123,23 +126,15 @@ class TabWidget extends StatelessWidget {
   );
 }
 
-// A Tab model that implements RemovableTab and ReorderableTab.
-//
-// Note: Implementing `RemovableTab` and `ReorderableTab` interfaces in your tab model is optional.
-// By default, all tabs are reorderable and removable (closeable).
-// If you want to disable reordering or removing functionality for specific tabs,
-// you can implement these interfaces in your tab model and set `reorderable` or `removable` to `false`.
-class Tab implements RemovableTab, ReorderableTab {
+// A Tab model. TabOverview's isTabRemovable and isTabReorderable read its
+// `removable` and `reorderable`, which a tab could set to false to stay put.
+class Tab {
   final int num;
 
   Tab(this.num);
 
-  // Define if the tab is removable.
-  @override
   bool get removable => true;
 
-  // Define if the tab is reorderable.
-  @override
   bool get reorderable => true;
 
   @override

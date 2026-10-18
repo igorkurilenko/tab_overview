@@ -52,14 +52,6 @@ class _TabOverviewModel<T> {
   /// The key of the grid's item for the tab at [index].
   Key keyAt(int index) => _entries[index].key;
 
-  bool reorderableAt(int index) => reorderable(tabs[index]);
-
-  bool reorderable(T tab) => tab is ReorderableTab ? tab.reorderable : true;
-
-  bool removableAt(int index) => removable(tabs[index]);
-
-  bool removable(T tab) => tab is RemovableTab ? tab.removable : true;
-
   void addTab(T tab, {required Duration duration}) {
     final entry = _TabEntry(tab);
     _entries.add(entry);
@@ -157,6 +149,10 @@ enum TabOverviewMode { expanded, overview }
 ///
 /// Implement this class in a tab model to enable/disable reordering functionality,
 /// allowing tabs to be dragged and rearranged within the overview interface.
+@Deprecated(
+  'Use TabOverview.isTabReorderable, which keeps the rule out of your tab '
+  'model. ReorderableTab goes in 0.2.0.',
+)
 abstract class ReorderableTab {
   bool get reorderable;
 }
@@ -165,6 +161,10 @@ abstract class ReorderableTab {
 ///
 /// Implement this class in a tab model to allow removal functionality,
 /// enabling tabs to be deleted by the user when `removable` is `true`.
+@Deprecated(
+  'Use TabOverview.isTabRemovable, which keeps the rule out of your tab '
+  'model. RemovableTab goes in 0.2.0.',
+)
 abstract class RemovableTab {
   bool get removable;
 }

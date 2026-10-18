@@ -263,13 +263,14 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
       reorder: ReorderOptions(
         onReorder: controller._reorderTabs,
         draggableGetter: (index) =>
-            model.removableAt(index) || model.reorderableAt(index),
-        reorderableGetter: model.reorderableAt,
+            overview._isRemovable(model[index]) ||
+            overview._isReorderable(model[index]),
+        reorderableGetter: (index) => overview._isReorderable(model[index]),
       ),
       swipeToRemove: SwipeToRemoveOptions(
         onSwipeToRemove: controller.removeTabAt,
         directionGetter: (index) =>
-            model.removableAt(index) ? AxisDirection.left : null,
+            overview._isRemovable(model[index]) ? AxisDirection.left : null,
       ),
       insertTransition: _buildItemPresence,
       gridView: GridView.builder(
@@ -343,7 +344,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
     return Stack(
       children: [
         Positioned.fill(child: _buildThumbHero(thumb, entry)),
-        if (model.removable(tab))
+        if (overview._isRemovable(tab))
           _buildThumbRemoveButtonHero(removeButton, entry),
       ],
     );

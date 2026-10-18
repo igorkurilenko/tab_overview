@@ -126,6 +126,29 @@ class TabOverview<T> extends StatefulWidget {
   /// same pull.
   final bool pullToCollapse;
 
+  /// Whether the user may remove a tab: its thumbnail shows a remove button
+  /// and swipes away, and its expanded page shows the remove button too.
+  ///
+  /// If null, a tab that implements the deprecated [RemovableTab] decides,
+  /// and any other tab may be removed.
+  final bool Function(T tab)? isTabRemovable;
+
+  /// Whether the user may drag a tab's thumbnail to a new place in the grid.
+  ///
+  /// If null, a tab that implements the deprecated [ReorderableTab] decides,
+  /// and any other tab may be moved.
+  final bool Function(T tab)? isTabReorderable;
+
+  bool _isRemovable(T tab) =>
+      isTabRemovable?.call(tab) ??
+      // ignore: deprecated_member_use_from_same_package
+      (tab is RemovableTab ? tab.removable : true);
+
+  bool _isReorderable(T tab) =>
+      isTabReorderable?.call(tab) ??
+      // ignore: deprecated_member_use_from_same_package
+      (tab is ReorderableTab ? tab.reorderable : true);
+
   /// Constructor to create a customizable [TabOverview] with various builders and configurations.
   ///
   /// - [controller] manages the state and behavior of the widget.
@@ -139,6 +162,8 @@ class TabOverview<T> extends StatefulWidget {
   /// - [scrollBehavior] configures input device interactions.
   /// - [thumbnailDecoration] and [expandedTabDecoration] allow styling for each mode.
   /// - [pullToCollapse] lets the expanded tab be pulled down to collapse it.
+  /// - [isTabRemovable] and [isTabReorderable] tell which tabs the user may
+  ///   remove or move.
   TabOverview.builder({
     super.key,
     required this.controller,
@@ -153,6 +178,8 @@ class TabOverview<T> extends StatefulWidget {
     Decoration? thumbnailDecoration,
     Decoration? expandedTabDecoration,
     this.pullToCollapse = false,
+    this.isTabRemovable,
+    this.isTabReorderable,
   }) : thumbnailDecoration = thumbnailDecoration ?? const BoxDecoration(),
        expandedTabDecoration = expandedTabDecoration ?? const BoxDecoration(),
        tabThumbnailBuilder =
