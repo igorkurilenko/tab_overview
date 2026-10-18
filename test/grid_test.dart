@@ -51,4 +51,41 @@ void main() {
     expect(path, everyElement(start));
     expect(tester.getCenter(find.text('T1')), end);
   });
+
+  // An anti-aliased path clip costs more than a square one, and only a
+  // rounded or shaped decoration needs it.
+  for (final (name, decoration, clip) in [
+    ('square', const BoxDecoration(), Clip.hardEdge),
+    (
+      'rounded',
+      BoxDecoration(borderRadius: BorderRadius.circular(16)),
+      Clip.antiAlias,
+    ),
+    ('round', const BoxDecoration(shape: BoxShape.circle), Clip.antiAlias),
+  ]) {
+    testWidgets('clips a $name thumbnail with $clip', (tester) async {
+      final controller = TabOverviewController<int>(initialTabs: [0, 1]);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: TabOverview<int>.builder(
+            controller: controller,
+            thumbnailDecoration: decoration,
+            tabBuilder: (context, tab) => Center(child: Text('T$tab')),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final clips = tester
+          .widgetList<Container>(
+            find.ancestor(
+              of: find.text('T0'),
+              matching: find.byType(Container),
+            ),
+          )
+          .where((container) => container.decoration != null)
+          .map((container) => container.clipBehavior);
+      expect(clips, [clip]);
+    });
+  }
 }
