@@ -64,8 +64,34 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
   @override
   void jumpToPage(int page) => pageController.jumpToPage(page);
 
+  // The pages built again, for the tabs as they are now. A tab added or
+  // removed off screen changes no page on screen, so the page view's sliver
+  // would skip its next layout and keep the scroll extent it had. A jump or
+  // a scroll to a page past it would then stop short, and the view would
+  // report the page it stopped at, making that tab active.
   @override
-  void stateChanged() => setState(() {});
+  void stateChanged() {
+    setState(() {});
+    _renderPages?.markNeedsLayout();
+  }
+
+  // The page view's sliver, found from its own Scrollable.
+  RenderSliverMultiBoxAdaptor? get _renderPages {
+    if (!pageController.hasClients) return null;
+    RenderSliverMultiBoxAdaptor? pages;
+    void visit(RenderObject object) {
+      if (object is RenderSliverMultiBoxAdaptor) {
+        pages = object;
+      } else if (pages == null) {
+        object.visitChildren(visit);
+      }
+    }
+
+    final scrollable = pageController.position.context.notificationContext;
+    final scrollableObject = scrollable?.findRenderObject();
+    if (scrollableObject != null) visit(scrollableObject);
+    return pages;
+  }
 
   @override
   void animateToPage(
