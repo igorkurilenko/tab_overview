@@ -78,6 +78,20 @@ double flyingExpansion(WidgetTester tester) => tester
     .color!
     .b;
 
+// The tab's thumb shows in the grid once scrolled to: no stand-in is left
+// in its place.
+Future<void> expectThumbShows(
+  WidgetTester tester,
+  TabOverviewController<int> controller,
+  int tab,
+) async {
+  if (controller.expanded) controller.collapse();
+  await tester.pumpAndSettle();
+  controller.scrollToTab(tab);
+  await tester.pumpAndSettle();
+  expect(find.text('T$tab').hitTestable(), findsOneWidget, reason: 'T$tab');
+}
+
 void main() {
   for (final frames in [1, 5, 10]) {
     group('$frames frame${frames == 1 ? '' : 's'} into a flight', () {
@@ -177,7 +191,8 @@ void main() {
       'overview, however late in the flight it turns', (tester) async {
     // Late enough, the tab lands on its page before the switch that turns it
     // around, which then starts a flight back to the stand-in of its own.
-    for (var frames = 1; frames <= 20; frames++) {
+    // Early enough, before its flight starts, the collapse cancels it.
+    for (var frames = 0; frames <= 20; frames++) {
       await tester.pumpWidget(const SizedBox());
       final controller = await pumpOverview(tester, tabCount: 40);
       expect(find.text('T38'), findsNothing);
@@ -190,6 +205,7 @@ void main() {
       expect(controller.mode, TabOverviewMode.overview, reason: '$frames');
       expect(controller.isAnyExpanding, isFalse, reason: '$frames');
       expect(controller.isAnyCollapsing, isFalse, reason: '$frames');
+      await expectThumbShows(tester, controller, 38);
     }
   });
 
@@ -282,5 +298,38 @@ void main() {
     expect(controller.mode, TabOverviewMode.overview);
     expectNothingFlying(controller);
     await expectTapOnThumbnailExpands(tester, controller);
+  });
+
+  // An off-screen tab's expand waits a frame for its stand-in, where its
+  // flight sets off. A call in the same event took effect before it, and so
+  // lost to it.
+  group('in the same event as an off-screen expand', () {
+    testWidgets('an expand of another tab expands that tab', (tester) async {
+      final controller = await pumpOverview(tester, tabCount: 40);
+
+      controller.expand(38);
+      controller.expand(1);
+      await tester.pumpAndSettle();
+
+      expect(controller.mode, TabOverviewMode.expanded);
+      expect(controller.activeTab, 1);
+      expectNothingFlying(controller);
+      await expectThumbShows(tester, controller, 38);
+    });
+
+    testWidgets('a collapse cancels it', (tester) async {
+      final controller = await pumpOverview(tester, tabCount: 40);
+      final modes = <TabOverviewMode>[];
+      controller.addModeChangedListener(modes.add);
+
+      controller.expand(38);
+      controller.collapse();
+      await tester.pumpAndSettle();
+
+      expect(modes, isEmpty);
+      expect(controller.activeTab, 38);
+      expectNothingFlying(controller);
+      await expectThumbShows(tester, controller, 38);
+    });
   });
 }

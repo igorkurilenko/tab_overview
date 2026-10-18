@@ -26,6 +26,11 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
   GlobalKey<_TabThumbnailsGridState>? _thumbnailsGridKey;
   GlobalKey<_ExpandedTabState>? _expandedTabKey;
 
+  // The tab whose expand waits a frame for its stand-in, as its thumb is
+  // off screen, if any. A call that asks for something else in the
+  // meantime takes it back.
+  _TabEntry<T>? _waitingExpand;
+
   /// Constructor for [TabOverviewController] to initialize with optional tabs and display mode.
   ///
   /// - [initialTabs]: An optional list of tabs to initialize.
@@ -143,6 +148,9 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
     final removedTab = removed.tab;
     _notifyTabRemoved(removedTab);
 
+    // A tab removed as its expand waits for its stand-in stays in the grid.
+    if (_waitingExpand == removed) _takeBackWaitingExpand();
+
     if (isActiveTab(removedTab)) {
       if (expanded) _collapseRemoved(removed, duration: duration);
       activeTab = _neighbourOfRemovedTabAt(index);
@@ -227,6 +235,7 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
       return;
     }
 
+    if (_waitingExpand != entry) _takeBackWaitingExpand();
     activeTab = tab;
 
     final flight = TabFlight(toPage: true, duration: duration, curve: curve);
@@ -292,7 +301,10 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
     double? velocity,
     double? expansion,
   }) {
-    if (overview) return;
+    if (overview) {
+      _takeBackWaitingExpand();
+      return;
+    }
 
     final tab = activeTab as T;
     final entry = _model.entryOf(tab);
@@ -316,6 +328,7 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
   /// Disposes resources used by the controller.
   void dispose() {
     _activeTab = null;
+    _waitingExpand = null;
 
     for (final entry in _flyingEntries) {
       entry.flight = null;
@@ -336,17 +349,31 @@ class TabOverviewController<T> with _TabAnimations<T>, _Listeners<T> {
     _notifyTabsReordered();
   }
 
+  // The stand-in is where the flight sets off, which the switch finds in the
+  // frame before it, so the switch waits a frame for it to be built.
   void _expandOffScreen(_TabEntry<T> entry, TabFlight flight) {
     _addStandIn(entry);
+    _waitingExpand = entry;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // A tab removed since stays in the overview.
-      if (_model.indexOfEntry(entry) == -1) {
+      if (_waitingExpand != entry) return;
+      _waitingExpand = null;
+      // Made another tab active in the meantime, by the activeTab setter.
+      if (!isActiveTab(entry.tab)) {
         _removeStandIn(entry);
-      } else {
-        _doExpand(entry, flight);
+        return;
       }
+      _doExpand(entry, flight);
     });
+  }
+
+  // Takes back the expand waiting for its stand-in, if any: the tab stays
+  // on its thumbnail.
+  void _takeBackWaitingExpand() {
+    final entry = _waitingExpand;
+    if (entry == null) return;
+    _waitingExpand = null;
+    _removeStandIn(entry);
   }
 
   void _doExpand(_TabEntry<T> entry, TabFlight flight) {
