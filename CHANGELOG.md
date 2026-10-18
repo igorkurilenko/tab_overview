@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.1.16]
+### Fixed
+- The expanded tab keeps its State when a tab before it is removed: what was typed in a text field, its focus, and any other State of the tab's content. Its page was built anew one place down. It goes back to 0.0.5, where adding or removing any tab lost it.
+
 ## [0.1.15]
 ### Fixed
 - Removing the expanded tab no longer leaves the overview ignoring taps when a tab is added or removed in the same event or the next frame, or when the overview's parent rebuilds then, as `setState(() => controller.remove(tab))` does. The removed tab's collapse never started, and adding or removing a tab showed the first tab's page for a frame.
