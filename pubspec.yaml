@@ -12,8 +12,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  animated_reorderable: ^2.0.0
-  hero_here: ^1.5.1
+  animated_reorderable: ^2.1.0
+  hero_here: ^1.5.4
 
 dev_dependencies:
   flutter_test:
