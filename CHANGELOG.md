@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.1.20]
+### Added
+- `TabOverviewController` is a `ChangeNotifier`. It notifies its listeners when the mode, the active tab or the tabs change, so a `ListenableBuilder` can rebuild with it. The typed listeners stay.
+- `TabOverview.isTabRemovable` and `isTabReorderable` tell which tabs the user may close or move. The tab model no longer has to implement an interface.
+- `removeAt(index)`, the name `List` uses.
+
+### Fixed
+- `remove(tab)` for a tab that isn't in the overview does nothing and returns `false`. Before, it threw a `RangeError`. It returns `true` once the tab is removed, so `remove` now returns a `bool`.
+
+### Changed
+- Requires hero_here 1.5.4 and animated_reorderable 2.1.0. Both fix problems found while testing tab_overview:
+  - A flight no longer throws when the page view moves the page it's flying to.
+  - A flight whose destination goes away mid-flight shows its source again.
+  - Thumbnails move in place.
+  - Opening the keyboard no longer rebuilds every thumbnail's content on each frame.
+- Calling `dispose` twice, or using the controller after it, fails an assertion in debug mode, as Flutter's own controllers do.
+- The `activeTab` docs say what the active tab is: the tab the expanded view shows and that `toggleMode` expands, wherever its thumbnail is scrolled.
+
+### Deprecated
+These go in 0.2.0:
+- `removeTabAt`: use `removeAt`.
+- `RemovableTab` and `ReorderableTab`: use `isTabRemovable` and `isTabReorderable`.
+- The four stand-in listener methods, `add`/`removeOffScreenThumbTabAddedListener` and `add`/`removeOffScreenThumbTabRemovedListener`. Stand-ins are placeholders the overview keeps for its own animations, and nothing an app can act on.
+
 ## [0.1.19]
 ### Fixed
 - A collapse lands in view when the expanded tab's thumbnail was built just past the edge of the grid's view. The grid builds thumbnails a little beyond its edges. It scrolled to the expanded tab's thumbnail only if that thumbnail wasn't built, so the tab flew out of view in two cases:
