@@ -23,18 +23,20 @@ part of 'tab_overview.dart';
 /// It's a [ChangeNotifier]: it notifies its listeners when the mode, the
 /// active tab or the tabs change, so a [ListenableBuilder] can rebuild with
 /// it, as with a [ScrollController].
-class TabOverviewController<T> extends ChangeNotifier
-    with _TabAnimations<T>, _Listeners<T> {
-  TabOverviewMode _mode;
+class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
+  // Where the overview's switch heads: to the grid, to the pages, or to the
+  // pages once an off-screen tab's stand-in is built.
+  _Phase<T> _phase;
   T? _activeTab;
   final _TabOverviewModel<T> _model;
-  GlobalKey<_TabThumbnailsGridState>? _thumbnailsGridKey;
-  GlobalKey<_ExpandedTabState>? _expandedTabKey;
 
-  // The tab whose expand waits a frame for its stand-in, as its thumb is
-  // off screen, if any. A call that asks for something else in the
-  // meantime takes it back.
-  _TabEntry<T>? _waitingExpand;
+  // The overview's thumbnails grid and its pages, while they're built. They
+  // attach themselves, and a newer overview's take over from an older one's.
+  _ThumbnailsView<T>? _thumbnails;
+  _PagesView? _pages;
+
+  // The tabs' flights between their thumbnails and their pages.
+  late final _flights = _TabFlights<T>(this);
 
   /// Constructor for [TabOverviewController] to initialize with optional tabs and display mode.
   ///
@@ -44,7 +46,9 @@ class TabOverviewController<T> extends ChangeNotifier
     List<T>? initialTabs,
     TabOverviewMode initialMode = TabOverviewMode.overview,
     T? activeTab,
-  }) : _mode = initialMode,
+  }) : _phase = initialMode == TabOverviewMode.expanded
+           ? const _Expanded()
+           : const _Overview(),
        _model = _TabOverviewModel<T>(initialTabs: initialTabs),
        _activeTab = (initialTabs?.contains(activeTab) ?? false)
            ? activeTab
@@ -53,18 +57,16 @@ class TabOverviewController<T> extends ChangeNotifier
   /// The current display mode of the [TabOverview], either `overview` or `expanded`.
   ///
   /// In `overview` mode, tabs are shown as thumbnails; in `expanded` mode, the active tab is shown in detail.
-  TabOverviewMode get mode => _mode;
+  TabOverviewMode get mode => switch (_phase) {
+    _Expanded() => TabOverviewMode.expanded,
+    _Overview() || _ExpandWaiting() => TabOverviewMode.overview,
+  };
 
   /// Returns `true` if the current mode is [TabOverviewMode.expanded].
   bool get expanded => mode == TabOverviewMode.expanded;
 
   /// Returns `true` if the current mode is [TabOverviewMode.overview].
   bool get overview => mode == TabOverviewMode.overview;
-
-  _TabThumbnailsGridState? get _thumbnailsGridState =>
-      _thumbnailsGridKey?.currentState;
-
-  _ExpandedTabState? get _expandedTabState => _expandedTabKey?.currentState;
 
   /// The tab the expanded view shows, and that [toggleMode] expands: the
   /// last one expanded, swiped to in the expanded view, or set here,
@@ -83,18 +85,18 @@ class TabOverviewController<T> extends ChangeNotifier
 
     final entry = value == null ? null : _model.entryOf(value);
     final active = _activeTab == null ? null : _model.entryOf(_activeTab as T);
-    if (_waitingExpand != null && entry != null) {
+    if (_phase is _ExpandWaiting && entry != null) {
       // An expand waits for its stand-in: it turns to this tab.
       expand(entry.tab);
       return;
     }
     // Before the overview is built, it builds the pages at the active tab.
-    if (!expanded || entry == null || _thumbnailsGridState == null) {
+    if (!expanded || entry == null || _thumbnails == null) {
       _setActiveTab(value);
       return;
     }
 
-    final pages = _expandedTabState;
+    final pages = _pages;
     if (pages == null && active != null) {
       // Expanded since the last frame, the overview has no pages yet. The
       // expand turns to this tab, as it would for an expand of it.
@@ -120,8 +122,22 @@ class TabOverviewController<T> extends ChangeNotifier
     _notifyActiveTabChanged();
   }
 
+  /// The active tab's index in [tabs], or `null` if no tab is active.
+  int? get activeIndex {
+    final index = _indexOfActiveTab();
+    return index == -1 ? null : index;
+  }
+
   /// Returns the index of the current active tab in the [tabs] list.
-  int? indexOfActiveTab() =>
+  @Deprecated(
+    'Use activeIndex, which is null rather than -1 for an active tab not in '
+    'the overview. This method goes in 0.2.0.',
+  )
+  int? indexOfActiveTab() => _indexOfActiveTab();
+
+  // -1 for an active tab not in the overview, which the activeTab setter
+  // still lets an app set.
+  int? _indexOfActiveTab() =>
       activeTab != null ? _model.indexOfTab(activeTab as T) : null;
 
   /// Checks if the specified [tab] is currently active.
@@ -142,13 +158,23 @@ class TabOverviewController<T> extends ChangeNotifier
   /// Returns `true` if the tab at [index] is active and the mode is `expanded`.
   bool isTabExpandedAt(int index) => isTabExpanded(tabs[index]);
 
-  void _setThumbnailsGridKey(GlobalKey<_TabThumbnailsGridState>? key) {
-    _thumbnailsGridKey = key;
-    _model._thumbnailsGridKey = key;
+  void _attachThumbnails(_ThumbnailsView<T> grid) {
+    _thumbnails = grid;
+    _model._thumbnails = grid;
   }
 
-  void _setExpandedTabKey(GlobalKey<_ExpandedTabState>? key) {
-    _expandedTabKey = key;
+  // Unless a newer overview's grid has taken over.
+  void _detachThumbnails(_ThumbnailsView<T> grid) {
+    if (!identical(_thumbnails, grid)) return;
+    _thumbnails = null;
+    _model._thumbnails = null;
+  }
+
+  void _attachPages(_PagesView pages) => _pages = pages;
+
+  // Unless a newer overview's pages have taken over.
+  void _detachPages(_PagesView pages) {
+    if (identical(_pages, pages)) _pages = null;
   }
 
   /// Adds a new tab and animates its appearance, if the tab does not already exist.
@@ -162,8 +188,8 @@ class TabOverviewController<T> extends ChangeNotifier
 
     activeTab ??= newTab;
 
-    _expandedTabState?.jumpToPage(indexOfActiveTab()!);
-    _expandedTabState?.stateChanged();
+    _pages?.jumpToPage(_indexOfActiveTab()!);
+    _pages?.stateChanged();
 
     return true;
   }
@@ -207,14 +233,17 @@ class TabOverviewController<T> extends ChangeNotifier
     _notifyTabRemoved(removedTab);
 
     // A tab removed as its expand waits for its stand-in stays in the grid.
-    if (_waitingExpand == removed) _takeBackWaitingExpand();
+    if (_phase case _ExpandWaiting(entry: final waiting)
+        when waiting == removed) {
+      _takeBackWaitingExpand();
+    }
 
     if (isActiveTab(removedTab)) {
       if (expanded) _collapseRemoved(removed, duration: duration);
       _setActiveTab(_neighbourOfRemovedTabAt(index));
     } else if (expanded) {
-      _expandedTabState?.jumpToPage(indexOfActiveTab()!);
-      _expandedTabState?.stateChanged();
+      _pages?.jumpToPage(_indexOfActiveTab()!);
+      _pages?.stateChanged();
     }
 
     return removedTab;
@@ -226,7 +255,7 @@ class TabOverviewController<T> extends ChangeNotifier
   // for a tab added, or the parent's, builds them without it, and leaves the
   // flight nothing to set off from.
   void _collapseRemoved(_TabEntry<T> removed, {required Duration duration}) {
-    if (_expandedTabState == null) {
+    if (_pages == null) {
       // Removed before the overview built its page, so it has no page to
       // collapse from. The overview goes back to the grid before it shows a
       // page, and stays where it was.
@@ -288,7 +317,15 @@ class TabOverviewController<T> extends ChangeNotifier
       throw ArgumentError('Tab $tab not found');
     }
 
-    if (expanded && _expandedTabState != null) {
+    if (_thumbnails == null) {
+      // Before the overview is built, with nothing to fly between: it
+      // builds the pages at the active tab.
+      _setActiveTab(tab);
+      if (!expanded) _switchTo(const _Expanded());
+      return;
+    }
+
+    if (expanded && _pages != null) {
       scrollToTab(tab, duration: duration, curve: curve);
       return;
     }
@@ -300,11 +337,14 @@ class TabOverviewController<T> extends ChangeNotifier
       _takeBackExpand(_model.entryOf(activeTab as T)!);
     }
 
-    if (_waitingExpand != entry) _takeBackWaitingExpand();
+    if (_phase case _ExpandWaiting(entry: final waiting)
+        when waiting != entry) {
+      _takeBackWaitingExpand();
+    }
     _setActiveTab(tab);
 
     final flight = TabFlight(toPage: true, duration: duration, curve: curve);
-    if (!_thumbnailsGridState!.thumbBuilt(tab)) {
+    if (!_thumbnails!.thumbBuilt(tab)) {
       _expandOffScreen(entry, flight);
     } else {
       _doExpand(entry, flight);
@@ -329,7 +369,7 @@ class TabOverviewController<T> extends ChangeNotifier
     Curve curve = Curves.easeInOut,
   }) {
     if (expanded) {
-      final pages = _expandedTabState;
+      final pages = _pages;
       if (pages == null) {
         // Expanded since the last frame, with no pages to scroll yet.
         expand(tabs[index], duration: duration, curve: curve);
@@ -337,8 +377,11 @@ class TabOverviewController<T> extends ChangeNotifier
         pages.animateToPage(index, duration: duration, curve: curve);
       }
     } else {
-      final offset = _thumbnailsGridState!.getThumbScrollOffset(index);
-      _thumbnailsGridState!.animateTo(offset, duration: duration, curve: curve);
+      // Before the overview is built, there's no grid to scroll.
+      final grid = _thumbnails;
+      if (grid == null) return;
+      final offset = grid.getThumbScrollOffset(index);
+      grid.animateTo(offset, duration: duration, curve: curve);
     }
   }
 
@@ -382,6 +425,12 @@ class TabOverviewController<T> extends ChangeNotifier
     // An active tab removed while expanded collapses on its own.
     if (entry == null) return;
 
+    if (_thumbnails == null) {
+      // Before the overview is built, with nothing to fly between.
+      _switchTo(const _Overview());
+      return;
+    }
+
     final flight = TabFlight(
       toPage: false,
       duration: duration,
@@ -391,7 +440,7 @@ class TabOverviewController<T> extends ChangeNotifier
     );
     // The stand-in is where the flight lands, which the switch looks for
     // after its frame, so it's there in time.
-    if (!_thumbnailsGridState!.thumbBuilt(tab)) _addStandIn(entry);
+    if (!_thumbnails!.thumbBuilt(tab)) _addStandIn(entry);
     _doCollapse(entry, flight);
   }
 
@@ -399,12 +448,9 @@ class TabOverviewController<T> extends ChangeNotifier
   @override
   void dispose() {
     _activeTab = null;
-    _waitingExpand = null;
+    if (_phase is _ExpandWaiting) _phase = const _Overview();
 
-    for (final entry in _flyingEntries) {
-      entry.flight = null;
-    }
-    _flyingEntries.clear();
+    _flights.clear();
 
     _modeChangedListeners.clear();
     _activeTabChangedListeners.clear();
@@ -416,6 +462,12 @@ class TabOverviewController<T> extends ChangeNotifier
     super.dispose();
   }
 
+  // Switches the overview to the grid or to the pages, and tells of it.
+  void _switchTo(_Phase<T> phase) {
+    _phase = phase;
+    _notifyModeChanged(mode);
+  }
+
   void _reorderTabs(Permutations permutations) {
     _model.reorderTabs(permutations);
     _notifyTabsReordered();
@@ -425,11 +477,13 @@ class TabOverviewController<T> extends ChangeNotifier
   // frame before it, so the switch waits a frame for it to be built.
   void _expandOffScreen(_TabEntry<T> entry, TabFlight flight) {
     _addStandIn(entry);
-    _waitingExpand = entry;
+    final waiting = _ExpandWaiting(entry);
+    _phase = waiting;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_waitingExpand != entry) return;
-      _waitingExpand = null;
+      // Taken back, or turned to another tab, in the meantime.
+      if (!identical(_phase, waiting)) return;
+      _phase = const _Overview();
       _doExpand(entry, flight);
     });
   }
@@ -437,20 +491,19 @@ class TabOverviewController<T> extends ChangeNotifier
   // Takes back the expand waiting for its stand-in, if any: the tab stays
   // on its thumbnail.
   void _takeBackWaitingExpand() {
-    final entry = _waitingExpand;
-    if (entry == null) return;
-    _waitingExpand = null;
-    _removeStandIn(entry);
+    if (_phase case _ExpandWaiting(:final entry)) {
+      _phase = const _Overview();
+      _removeStandIn(entry);
+    }
   }
 
   void _doExpand(_TabEntry<T> entry, TabFlight flight) {
-    _askForTabFlight(entry, flight);
+    _flights.ask(entry, flight);
     // Collapsed in the same frame, the overview still has the pages, and
     // switches back to them with the page where the collapse left it.
-    _expandedTabState?.jumpToPage(_model.indexOfEntry(entry));
+    _pages?.jumpToPage(_model.indexOfEntry(entry));
 
-    _mode = TabOverviewMode.expanded;
-    _notifyModeChanged(_mode);
+    _switchTo(const _Expanded());
   }
 
   // Takes back the switch to the tab's page before the overview builds it:
@@ -460,110 +513,17 @@ class TabOverviewController<T> extends ChangeNotifier
     if (flight != null && flight.started) {
       flight.ask(toPage: false);
     } else {
-      _setFlight(entry, null);
+      _flights.set(entry, null);
       _removeStandIn(entry);
     }
 
-    _mode = TabOverviewMode.overview;
-    _notifyModeChanged(_mode);
+    _switchTo(const _Overview());
   }
 
   void _doCollapse(_TabEntry<T> entry, TabFlight flight) {
-    _askForTabFlight(entry, flight);
+    _flights.ask(entry, flight);
 
-    _mode = TabOverviewMode.overview;
-    _notifyModeChanged(_mode);
-  }
-
-  // Asks for the tab to fly where [asked] goes, to its page or its
-  // thumbnail: in [asked], which the coming switch starts, or in the flight
-  // it's in, which the switch diverts.
-  void _askForTabFlight(_TabEntry<T> entry, TabFlight asked) {
-    final toPage = asked.toPage;
-    final flight = entry.flight;
-    if (flight == null) {
-      _setFlight(entry, asked);
-    } else if (!flight.started && flight.headsToPage == toPage) {
-      // Asked back to where it is before the switch, which now won't come,
-      // nor a flight for its stand-in.
-      _setFlight(entry, null);
-      _removeStandIn(entry);
-    } else {
-      flight.ask(toPage: toPage);
-    }
-  }
-
-  // hero_here asks the hero the flight lands on for its controller, else the
-  // hero it leaves, as the flight starts. [toPage] is whether that's the
-  // tab's page, for a flight nobody asked for.
-  AnimationController _createTabFlightController(
-    _TabEntry<T> entry,
-    TickerProvider vsync, {
-    required bool toPage,
-  }) {
-    var flight = entry.flight;
-    if (flight == null) {
-      flight = TabFlight(
-        toPage: toPage,
-        duration: HeroHere.defaultFlightAnimationDuration,
-        curve: HeroHere.defaultFlightAnimationCurve,
-      );
-      _setFlight(entry, flight);
-    }
-    final startedFlight = flight;
-    return TabFlightController(
-      vsync: vsync,
-      duration: flight.duration,
-      onDispose: () => _tabFlightEnded(entry, startedFlight),
-    );
-  }
-
-  Animation<double> _createTabFlightAnimation(
-    _TabEntry<T> entry,
-    AnimationController controller,
-  ) {
-    final flight = entry.flight!;
-    // A fling sets its own pace.
-    final animation = flight.velocity != null
-        ? controller
-        : CurvedAnimation(parent: controller, curve: flight.curve);
-    flight.start(animation);
-    return animation;
-  }
-
-  // Starts each run of the tab's flight: the first, and one on each divert.
-  TickerFuture _runTabFlight(
-    _TabEntry<T> entry,
-    AnimationController controller, {
-    double? from,
-  }) {
-    final velocity = entry.flight?.setOff();
-    return velocity != null
-        ? controller.fling(velocity: velocity)
-        : controller.forward(from: from);
-  }
-
-  // However the flight ended: landed, or stopped by a switch that left no
-  // hero for it, or by the overview going away.
-  void _tabFlightEnded(_TabEntry<T> entry, TabFlight flight) {
-    final tab = entry.tab;
-    final landedOnPage = flight.headsToPage;
-    if (flight.toPage == landedOnPage) {
-      _setFlight(entry, null);
-      _removeStandIn(entry);
-    } else {
-      // Asked elsewhere after the switch that sent it. The next switch
-      // starts a flight for that, which needs the stand-in, if any.
-      flight.land();
-    }
-
-    final grid = _thumbnailsGridState;
-    if (landedOnPage && grid != null && !grid.thumbInView(tab)) {
-      // After the frame: a flight also ends as the overview goes away.
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _thumbnailsGridState?.jumpToThumb(tab);
-      });
-    }
+    _switchTo(const _Overview());
   }
 
   void _addStandIn(_TabEntry<T> entry) {
@@ -574,11 +534,64 @@ class TabOverviewController<T> extends ChangeNotifier
     if (_model.removeStandIn(entry)) _notifyOffScreenThumbTabRemoved(entry.tab);
   }
 
+  bool get isAnyExpanding => _flights.anyToPage;
+
+  bool get isAnyCollapsing => _flights.anyToThumbnail;
+
+  bool isExpanding(T tab) => _flights.of(tab)?.toPage ?? false;
+
+  bool isCollapsing(T tab) => !(_flights.of(tab)?.toPage ?? true);
+
+  // Keeps [animation] as the entry's add or remove animation until it ends.
+  // The grid builds an item on every rebuild while it animates, so it may
+  // ask for the same animation many times.
+  void _trackTabPresence(
+    _TabEntry<T> entry,
+    Animation<double> animation, {
+    required AnimationStatus endsAt,
+  }) {
+    if (animation.status == endsAt || entry.presence == animation) return;
+    entry.presence = animation;
+
+    void handleStatus(AnimationStatus status) {
+      if (status != endsAt) return;
+      animation.removeStatusListener(handleStatus);
+      if (entry.presence == animation) entry.presence = null;
+    }
+
+    animation.addStatusListener(handleStatus);
+  }
+
   void _handleExpandedTabPageChanged(int page) {
     final tab = _model[page];
     _setActiveTab(tab);
-    _thumbnailsGridState?.jumpToThumb(tab);
+    _thumbnails?.jumpToThumb(tab);
   }
+}
+
+/// Where the overview's switch heads. The mode is `expanded` in [_Expanded]
+/// only: an off-screen tab's expand shows the grid while it waits.
+sealed class _Phase<T> {
+  const _Phase();
+}
+
+/// The grid, shown or switched to.
+final class _Overview<T> extends _Phase<T> {
+  const _Overview();
+}
+
+/// An expand that waits a frame for the stand-in of its tab's thumb, which
+/// is off screen, before it switches to the pages. The stand-in is where
+/// its flight sets off, which the switch finds in the frame before it.
+final class _ExpandWaiting<T> extends _Phase<T> {
+  final _TabEntry<T> entry;
+
+  const _ExpandWaiting(this.entry);
+}
+
+/// The pages, shown or switched to.
+final class _Expanded<T> extends _Phase<T> {
+  const _Expanded();
 }
 
 /// A callback type that is triggered when a new tab is added to the [TabOverview].
@@ -719,57 +732,5 @@ mixin _Listeners<T> on ChangeNotifier {
       listener();
     }
     notifyListeners();
-  }
-}
-
-mixin _TabAnimations<T> {
-  /// The entries with a flight, a removed tab's among them.
-  final _flyingEntries = <_TabEntry<T>>{};
-
-  /// Tells when a tab starts or stops flying, as the grid ignores taps
-  /// while any does.
-  final _flightsChanged = _Notifier();
-
-  void _setFlight(_TabEntry<T> entry, TabFlight? flight) {
-    entry.flight = flight;
-    final changed = flight == null
-        ? _flyingEntries.remove(entry)
-        : _flyingEntries.add(entry);
-    if (changed) _flightsChanged.notify();
-  }
-
-  bool get isAnyExpanding =>
-      _flyingEntries.any((entry) => entry.flight!.toPage);
-
-  bool get isAnyCollapsing =>
-      _flyingEntries.any((entry) => !entry.flight!.toPage);
-
-  bool isExpanding(T tab) => _flightOf(tab)?.toPage ?? false;
-
-  bool isCollapsing(T tab) => !(_flightOf(tab)?.toPage ?? true);
-
-  // The flight of the tab, a removed one too, found by equality, which a tab
-  // keeps with itself however its hash code changes.
-  TabFlight? _flightOf(T? tab) =>
-      _flyingEntries.where((entry) => entry.tab == tab).firstOrNull?.flight;
-
-  // Keeps [animation] as the entry's add or remove animation until it ends.
-  // The grid builds an item on every rebuild while it animates, so it may
-  // ask for the same animation many times.
-  void _trackTabPresence(
-    _TabEntry<T> entry,
-    Animation<double> animation, {
-    required AnimationStatus endsAt,
-  }) {
-    if (animation.status == endsAt || entry.presence == animation) return;
-    entry.presence = animation;
-
-    void handleStatus(AnimationStatus status) {
-      if (status != endsAt) return;
-      animation.removeStatusListener(handleStatus);
-      if (entry.presence == animation) entry.presence = null;
-    }
-
-    animation.addStatusListener(handleStatus);
   }
 }

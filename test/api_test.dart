@@ -100,6 +100,38 @@ void main() {
     expect(controller.tabs, [0, 1, 3]);
   });
 
+  group('activeIndex', () {
+    testWidgets('is the active tab\'s index in tabs', (tester) async {
+      final controller = await pumpOverview(tester);
+      expect(controller.activeIndex, 0);
+
+      controller.expand(2);
+      await tester.pumpAndSettle();
+      expect(controller.activeIndex, 2);
+
+      controller.remove(0);
+      await tester.pumpAndSettle();
+      expect(controller.activeIndex, 1);
+    });
+
+    testWidgets('is null with no tab active', (tester) async {
+      final controller = TabOverviewController<int>();
+
+      expect(controller.activeIndex, isNull);
+    });
+
+    testWidgets('is null for an active tab not in the overview, where '
+        'indexOfActiveTab is -1', (tester) async {
+      final controller = TabOverviewController<int>(initialTabs: [0, 1, 2]);
+
+      controller.activeTab = 42;
+
+      expect(controller.activeIndex, isNull);
+      // ignore: deprecated_member_use_from_same_package
+      expect(controller.indexOfActiveTab(), -1);
+    });
+  });
+
   group('the controller as a ChangeNotifier', () {
     testWidgets('tells its listeners of tabs added and removed, the mode and '
         'the active tab', (tester) async {
@@ -149,6 +181,92 @@ void main() {
       await tester.pump();
 
       expect(tester.takeException(), isNull);
+    });
+  });
+
+  // An app may call the controller from its own initState, before the
+  // overview is first built. These threw on a null check.
+  group('before the overview is built', () {
+    Future<void> pumpLater(
+      WidgetTester tester,
+      TabOverviewController<int> controller,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: TabOverview<int>.builder(
+            controller: controller,
+            tabBuilder: (context, tab) => ColoredBox(
+              color: Colors.white,
+              child: Center(child: Text('T$tab')),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    Finder page(int tab) => find
+        .descendant(of: find.byType(PageView), matching: find.text('T$tab'))
+        .hitTestable();
+
+    testWidgets('expand shows the tab\'s page once it is', (tester) async {
+      final controller = TabOverviewController<int>(initialTabs: [0, 1, 2]);
+
+      controller.expand(2);
+      await pumpLater(tester, controller);
+
+      expect(controller.mode, TabOverviewMode.expanded);
+      expect(controller.activeTab, 2);
+      expect(page(2), findsOneWidget);
+      expect(controller.isAnyExpanding, isFalse);
+    });
+
+    testWidgets('toggleMode expands the active tab', (tester) async {
+      final controller = TabOverviewController<int>(initialTabs: [0, 1, 2]);
+
+      controller.toggleMode();
+      await pumpLater(tester, controller);
+
+      expect(controller.mode, TabOverviewMode.expanded);
+      expect(page(0), findsOneWidget);
+    });
+
+    testWidgets('collapse takes an expand back', (tester) async {
+      final controller = TabOverviewController<int>(initialTabs: [0, 1, 2]);
+
+      controller.expand(2);
+      controller.collapse();
+      await pumpLater(tester, controller);
+
+      expect(controller.mode, TabOverviewMode.overview);
+      expect(controller.activeTab, 2);
+      expect(find.byType(PageView), findsNothing);
+    });
+
+    testWidgets('scrollToTab does nothing in the overview, with no grid to '
+        'scroll', (tester) async {
+      final controller = TabOverviewController<int>(initialTabs: [0, 1, 2]);
+
+      controller.scrollToTab(2);
+      await pumpLater(tester, controller);
+
+      expect(controller.mode, TabOverviewMode.overview);
+      expect(controller.activeTab, 0);
+    });
+
+    testWidgets('scrollToTab shows the tab\'s page when expanded', (
+      tester,
+    ) async {
+      final controller = TabOverviewController<int>(
+        initialTabs: [0, 1, 2],
+        initialMode: TabOverviewMode.expanded,
+      );
+
+      controller.scrollToTab(2);
+      await pumpLater(tester, controller);
+
+      expect(controller.activeTab, 2);
+      expect(page(2), findsOneWidget);
     });
   });
 

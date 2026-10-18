@@ -32,7 +32,8 @@ class _TabThumbnailsGrid<T> extends StatefulWidget {
 }
 
 class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
-    with HeroTabHelper {
+    with HeroTabHelper
+    implements _ThumbnailsView<T> {
   final thumbsGridKey = GlobalKey<AnimatedReorderableState>();
   final scrollController = ScrollController();
 
@@ -40,6 +41,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
 
   // Whether the tab's thumb is built, so has a hero for a flight to fly to
   // or from. A thumb that isn't needs a stand-in.
+  @override
   bool thumbBuilt(T tab) =>
       thumbsGridState!.isItemRendered(model.indexOfTab(tab));
 
@@ -47,6 +49,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
   // as last laid out, so a flight to it lands in view. The grid builds
   // thumbs a little past the viewport's edges too, so a thumb may be built,
   // with a hero to fly to, and still be out of view.
+  @override
   bool thumbInView(T tab) {
     final index = model.indexOfTab(tab);
     final grid = _renderGrid;
@@ -78,13 +81,14 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
       : 1.0;
 
   Duration? get activeTabHeroAnimationDuration =>
-      controller._flightOf(controller.activeTab)?.duration;
+      controller._flights.of(controller.activeTab)?.duration;
 
   Curve? get activeTabHeroAnimationCurve =>
-      controller._flightOf(controller.activeTab)?.curve;
+      controller._flights.of(controller.activeTab)?.curve;
 
   // The scroll offset of the thumb at [index] in the grid as last laid out,
   // up to how far the grid scrolls.
+  @override
   double getThumbScrollOffset(int index) {
     final grid = _renderGrid;
     // A sliver has no geometry until it's laid out.
@@ -121,8 +125,19 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
   Widget? _items;
 
   @override
+  void initState() {
+    super.initState();
+    controller._attachThumbnails(this);
+  }
+
+  @override
   void didUpdateWidget(_TabThumbnailsGrid<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
+    final oldController = oldWidget.overview.controller;
+    if (controller != oldController) {
+      oldController._detachThumbnails(this);
+      controller._attachThumbnails(this);
+    }
     if (widget.overview != oldWidget.overview ||
         widget.gridDelegate != oldWidget.gridDelegate) {
       _items = null;
@@ -131,6 +146,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
 
   @override
   void dispose() {
+    controller._detachThumbnails(this);
     scrollController.dispose();
     super.dispose();
   }
@@ -147,13 +163,14 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
   void _revealActiveThumb() {
     final tab = controller.activeTab;
     if (!controller.expanded || tab == null) return;
-    if (controller._flightOf(tab) != null) return;
+    if (controller._flights.of(tab) != null) return;
     if (!thumbInView(tab)) _jumpToThumbNow(tab);
   }
 
   // Jumps to the tab's thumb now, and once more after the next layout. A
   // tab added or removed in the same frame moves the thumb, and changes the
   // grid's scroll extent only at that layout.
+  @override
   void jumpToThumb(T tab) {
     _jumpToThumbNow(tab);
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -168,6 +185,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
     if (index != -1) scrollController.jumpTo(getThumbScrollOffset(index));
   }
 
+  @override
   void animateTo(
     double offset, {
     required Duration duration,
@@ -177,11 +195,13 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
   }
 
   // The tab's thumb enters through _buildItemPresence.
+  @override
   void addTab(_TabEntry<T> entry, {required Duration duration}) {
     thumbsGridState!.insertItem(model.indexOfEntry(entry), duration: duration);
     _relayoutGrid();
   }
 
+  @override
   void removeTab(
     int index,
     _TabEntry<T> removed, {
@@ -210,7 +230,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
     return Stack(
       children: [
         ListenableBuilder(
-          listenable: controller._flightsChanged,
+          listenable: controller._flights.changed,
           builder: (context, thumbs) => IgnorePointer(
             ignoring: controller.isAnyExpanding || controller.isAnyCollapsing,
             child: thumbs,
@@ -356,11 +376,11 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
       key: tabThumbHeroKey(entry),
       flightRedirect: HeroHereFlightRedirect.divert,
       flightAnimationControllerFactory: (vsync, duration) =>
-          controller._createTabFlightController(entry, vsync, toPage: false),
+          controller._flights.createController(entry, vsync, toPage: false),
       flightAnimationFactory: (animationController) =>
-          controller._createTabFlightAnimation(entry, animationController),
+          controller._flights.createAnimation(entry, animationController),
       forwardFlightAnimation: (animationController, {from}) =>
-          controller._runTabFlight(entry, animationController, from: from),
+          controller._flights.run(entry, animationController, from: from),
       child: thumb,
     );
   }

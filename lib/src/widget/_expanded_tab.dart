@@ -23,7 +23,9 @@ class _ExpandedTab<T> extends StatefulWidget {
   State<_ExpandedTab<T>> createState() => _ExpandedTabState<T>();
 }
 
-class _ExpandedTabState<T> extends State<_ExpandedTab<T>> with HeroTabHelper {
+class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
+    with HeroTabHelper
+    implements _PagesView {
   late final PageController pageController;
 
   _TabOverviewModel<T> get model => controller._model;
@@ -36,21 +38,36 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>> with HeroTabHelper {
   void initState() {
     super.initState();
     pageController = PageController(
-      initialPage: controller.indexOfActiveTab() ?? 0,
+      initialPage: controller._indexOfActiveTab() ?? 0,
       viewportFraction: kExpandedTabPageViewportFraction,
     );
+    controller._attachPages(this);
+  }
+
+  @override
+  void didUpdateWidget(_ExpandedTab<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final oldController = oldWidget.overview.controller;
+    if (controller != oldController) {
+      oldController._detachPages(this);
+      controller._attachPages(this);
+    }
   }
 
   @override
   void dispose() {
+    controller._detachPages(this);
     pageController.dispose();
     super.dispose();
   }
 
+  @override
   void jumpToPage(int page) => pageController.jumpToPage(page);
 
+  @override
   void stateChanged() => setState(() {});
 
+  @override
   void animateToPage(
     int index, {
     required Duration duration,
@@ -113,11 +130,12 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>> with HeroTabHelper {
             key: expandedTabHeroKey(entry),
             flightRedirect: HeroHereFlightRedirect.divert,
             flightAnimationControllerFactory: (vsync, duration) => controller
-                ._createTabFlightController(entry, vsync, toPage: true),
-            flightAnimationFactory: (animationController) => controller
-                ._createTabFlightAnimation(entry, animationController),
-            forwardFlightAnimation: (animationController, {from}) => controller
-                ._runTabFlight(entry, animationController, from: from),
+                ._flights
+                .createController(entry, vsync, toPage: true),
+            flightAnimationFactory: (animationController) =>
+                controller._flights.createAnimation(entry, animationController),
+            forwardFlightAnimation: (animationController, {from}) =>
+                controller._flights.run(entry, animationController, from: from),
             child: tabWidget,
           ),
         ),

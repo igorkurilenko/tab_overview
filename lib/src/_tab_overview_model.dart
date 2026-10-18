@@ -20,13 +20,12 @@ class _TabOverviewModel<T> {
 
   /// Tells when a stand-in is added or removed.
   final standInsChanged = _Notifier();
-  GlobalKey<_TabThumbnailsGridState>? _thumbnailsGridKey;
+
+  /// The overview's thumbnails grid, while it's built.
+  _ThumbnailsView<T>? _thumbnails;
 
   _TabOverviewModel({Iterable<T>? initialTabs})
     : _entries = [for (final tab in initialTabs ?? <T>[]) _TabEntry(tab)];
-
-  _TabThumbnailsGridState? get _thumbnailsGridState =>
-      _thumbnailsGridKey?.currentState;
 
   List<T> get tabs => UnmodifiableListView(_entries.map((entry) => entry.tab));
 
@@ -55,12 +54,12 @@ class _TabOverviewModel<T> {
   void addTab(T tab, {required Duration duration}) {
     final entry = _TabEntry(tab);
     _entries.add(entry);
-    _thumbnailsGridState?.addTab(entry, duration: duration);
+    _thumbnails?.addTab(entry, duration: duration);
   }
 
   _TabEntry<T> removeTabAt(int index, {required Duration duration}) {
     final removed = _entries.removeAt(index);
-    _thumbnailsGridState?.removeTab(index, removed, duration: duration);
+    _thumbnails?.removeTab(index, removed, duration: duration);
 
     return removed;
   }

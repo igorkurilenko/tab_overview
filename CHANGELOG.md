@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.1.21]
+### Added
+- `activeIndex`: the active tab's index in `tabs`, or `null` if no tab is active.
+
+### Fixed
+- `expand`, `toggleMode`, `collapse` and `scrollToTab` no longer throw when called before the overview is first built, as from an app's `initState`. With nothing to animate yet:
+  - `expand` makes the tab active and the mode expanded, and the overview builds showing that tab's page.
+  - `collapse` makes the mode overview.
+  - `scrollToTab` does nothing in overview mode, with no grid to scroll yet, and shows the tab's page in expanded mode.
+
+### Changed
+- The controller is restructured inside, with no change in behaviour or public API:
+  - The grid and the expanded pages connect to the controller through two small interfaces, rather than GlobalKeys.
+  - The tabs' animations between thumbnail and page are tracked in a class of their own.
+  - One sealed type tracks whether the overview is heading to the grid or to the expanded view, including an off-screen tab's expand while it waits a frame.
+
+### Deprecated
+- `indexOfActiveTab()`: use `activeIndex`. It goes in 0.2.0.
+
 ## [0.1.20]
 ### Added
 - `TabOverviewController` is a `ChangeNotifier`. It notifies its listeners when the mode, the active tab or the tabs change, so a `ListenableBuilder` can rebuild with it. The typed listeners stay.
