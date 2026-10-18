@@ -77,6 +77,9 @@ class TabOverviewExampleState extends State<TabOverviewExample> {
             borderRadius:
                 BorderRadius.circular(32), // Add rounded corners to thumbnails
           ),
+          // Which tabs the user may close or move. Every tab may, by default.
+          isTabRemovable: (tab) => tab.removable,
+          isTabReorderable: (tab) => tab.reorderable,
         ),
         floatingActionButton: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -129,23 +132,15 @@ class TabWidget extends StatelessWidget {
       );
 }
 
-// A Tab model that implements RemovableTab and ReorderableTab.
-//
-// Note: Implementing `RemovableTab` and `ReorderableTab` interfaces in your tab model is optional.
-// By default, all tabs are reorderable and removable (closeable).
-// If you want to disable reordering or removing functionality for specific tabs,
-// you can implement these interfaces in your tab model and set `reorderable` or `removable` to `false`.
-class Tab implements RemovableTab, ReorderableTab {
+// A Tab model. TabOverview's isTabRemovable and isTabReorderable read its
+// `removable` and `reorderable`, which a tab could set to false to stay put.
+class Tab {
   final int num;
 
   Tab(this.num);
 
-  // Define if the tab is removable.
-  @override
   bool get removable => true;
 
-  // Define if the tab is reorderable.
-  @override
   bool get reorderable => true;
 
   @override
@@ -155,9 +150,10 @@ class Tab implements RemovableTab, ReorderableTab {
 
 ### Explanation of Key Components
 
-- **TabOverviewController**: Manages the active tab, mode switching, and tab list.
+- **TabOverviewController**: Manages the active tab, mode switching, and tab list. It's a `ChangeNotifier`, so a `ListenableBuilder` can rebuild with it.
+- **Active tab**: The tab the expanded view shows, and that `toggleMode` expands: the last one expanded, swiped to in the expanded view, or set with `activeTab`, wherever its thumbnail is scrolled in the overview.
 - **TabOverview.builder**: Creates a `TabOverview` with customizable `tabBuilder` for expanded views and `tabThumbnailBuilder` for the thumbnail grid.
-- **ReorderableTab & RemovableTab**: Interfaces for tabs that can be reordered or removed, enabling flexible tab interactions.
+- **isTabRemovable & isTabReorderable**: Tell which tabs the user may close or move. Every tab may, by default.
 - **Expanded and Thumbnail Views**: Customize how each tab appears in both overview and expanded modes.
 
 ## API Overview
@@ -165,9 +161,8 @@ class Tab implements RemovableTab, ReorderableTab {
 ### Classes
 
 - **TabOverview**: The main widget for managing and displaying tabs.
-- **TabOverviewController**: Manages state and tab actions (add, remove, reorder).
-- **ReorderableTab**: Abstract class for tabs that can be reordered.
-- **RemovableTab**: Abstract class for tabs that can be removed.
+- **TabOverviewController**: Manages state and tab actions: `add` and `remove` return whether they changed anything, and `removeAt` removes the tab at an index.
+- **ReorderableTab** and **RemovableTab**: Deprecated. Use `isTabReorderable` and `isTabRemovable`; the interfaces go in 0.2.0.
 
 ### Enums
 

@@ -2,7 +2,7 @@ name: tab_overview
 description: >
   A widget that enables smooth tab transitions with a grid view of 
   thumbnails for easy tab management and navigation.
-version: 0.1.19
+version: 0.1.20
 homepage: https://github.com/igorkurilenko/tab_overview
 
 environment:
@@ -12,8 +12,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  animated_reorderable: ^2.0.0
-  hero_here: ^1.5.1
+  animated_reorderable: ^2.1.0
+  hero_here: ^1.5.4
 
 dev_dependencies:
   flutter_test:

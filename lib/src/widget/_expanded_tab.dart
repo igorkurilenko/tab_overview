@@ -121,7 +121,7 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>> with HeroTabHelper {
             child: tabWidget,
           ),
         ),
-        if (model.removable(tab))
+        if (overview._isRemovable(tab))
           HeroHere(
             tag: removeButtonHeroTag(entry),
             key: expandedTabRemoveButtonHeroKey(entry),
