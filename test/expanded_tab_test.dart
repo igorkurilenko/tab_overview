@@ -6,10 +6,12 @@ void main() {
   group('an expanded tab', () {
     late StateSetter rebuildParent;
 
+    // Expands [tab], and lets it land, or only lets [frames] pass.
     Future<TabOverviewController<int>> expand(
       WidgetTester tester,
-      int tab,
-    ) async {
+      int tab, {
+      int? frames,
+    }) async {
       final controller = TabOverviewController<int>(initialTabs: [0, 1, 2, 3]);
       await tester.pumpWidget(
         MaterialApp(
@@ -26,7 +28,13 @@ void main() {
       );
       await tester.pumpAndSettle();
       controller.expand(tab);
-      await tester.pumpAndSettle();
+      if (frames == null) {
+        await tester.pumpAndSettle();
+      } else {
+        for (var frame = 0; frame < frames; frame++) {
+          await tester.pump(const Duration(milliseconds: 16));
+        }
+      }
       return controller;
     }
 
@@ -211,5 +219,49 @@ void main() {
       expect(controller.isAnyExpanding, isFalse);
       expect(controller.isAnyCollapsing, isFalse);
     });
+
+    // The setter only set the field: the pages went on showing the tab
+    // that was active, and a collapse then froze the overview.
+    testWidgets('shows the page of a tab made active at once', (tester) async {
+      final controller = await expand(tester, 1);
+
+      controller.activeTab = 3;
+      await tester.pump();
+
+      expect(controller.mode, TabOverviewMode.expanded);
+      expect(shown(3), findsOneWidget);
+
+      controller.collapse();
+      await tester.pumpAndSettle();
+      expect(controller.isAnyCollapsing, isFalse);
+      for (final tab in controller.tabs) {
+        expect(find.text('T$tab').hitTestable(), findsOneWidget);
+      }
+    });
+
+    // Made active before the expand's flight sets off, its page had none to
+    // land on, and the flight waited forever. Made active as it flies, its
+    // page went from under it, and its thumbnail stayed hidden.
+    for (final frames in [0, 1, 5]) {
+      testWidgets('shows the page of a tab made active $frames frames into '
+          'its expand', (tester) async {
+        final controller = await expand(tester, 1, frames: frames);
+
+        controller.activeTab = 3;
+        await tester.pumpAndSettle();
+
+        expect(controller.mode, TabOverviewMode.expanded);
+        expect(controller.activeTab, 3);
+        expect(shown(3), findsOneWidget);
+        expect(controller.isAnyExpanding, isFalse);
+        expect(controller.isAnyCollapsing, isFalse);
+
+        controller.collapse();
+        await tester.pumpAndSettle();
+        for (final tab in controller.tabs) {
+          expect(find.text('T$tab').hitTestable(), findsOneWidget);
+        }
+      });
+    }
   });
 }
