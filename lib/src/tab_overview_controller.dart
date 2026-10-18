@@ -431,6 +431,12 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
     super.dispose();
   }
 
+  // Switches the overview to the grid or to the pages, and tells of it.
+  void _switchTo(_Phase<T> phase) {
+    _phase = phase;
+    _notifyModeChanged(mode);
+  }
+
   void _reorderTabs(Permutations permutations) {
     _model.reorderTabs(permutations);
     _notifyTabsReordered();
@@ -466,8 +472,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
     // switches back to them with the page where the collapse left it.
     _pages?.jumpToPage(_model.indexOfEntry(entry));
 
-    _phase = const _Expanded();
-    _notifyModeChanged(mode);
+    _switchTo(const _Expanded());
   }
 
   // Takes back the switch to the tab's page before the overview builds it:
@@ -481,15 +486,13 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
       _removeStandIn(entry);
     }
 
-    _phase = const _Overview();
-    _notifyModeChanged(mode);
+    _switchTo(const _Overview());
   }
 
   void _doCollapse(_TabEntry<T> entry, TabFlight flight) {
     _flights.ask(entry, flight);
 
-    _phase = const _Overview();
-    _notifyModeChanged(mode);
+    _switchTo(const _Overview());
   }
 
   void _addStandIn(_TabEntry<T> entry) {
