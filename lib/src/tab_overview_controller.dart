@@ -271,7 +271,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
       return;
     }
 
-    _addStandIn(removed);
+    _model.addStandIn(removed);
     _collapseWith(
       removed,
       TabFlight(toPage: false, duration: duration, curve: transition.curve),
@@ -446,7 +446,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
     );
     // The stand-in is where the flight lands, which the switch looks for
     // after its frame, so it's there in time.
-    if (!_thumbnails!.thumbBuilt(tab)) _addStandIn(entry);
+    if (!_thumbnails!.thumbBuilt(tab)) _model.addStandIn(entry);
     _collapseWith(entry, flight);
   }
 
@@ -476,7 +476,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
   // The stand-in is where the flight sets off, which the switch finds in the
   // frame before it, so the switch waits a frame for it to be built.
   void _expandOffScreen(_TabEntry<T> entry, TabFlight flight) {
-    _addStandIn(entry);
+    _model.addStandIn(entry);
     final waiting = _ExpandWaiting(entry);
     _phase = waiting;
 
@@ -493,7 +493,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
   void _takeBackWaitingExpand() {
     if (_phase case _ExpandWaiting(:final entry)) {
       _phase = const _Overview();
-      _removeStandIn(entry);
+      _model.removeStandIn(entry);
     }
   }
 
@@ -523,14 +523,6 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
     _flights.ask(entry, flight);
 
     _switchTo(const _Overview());
-  }
-
-  void _addStandIn(_TabEntry<T> entry) {
-    _model.addStandIn(entry);
-  }
-
-  void _removeStandIn(_TabEntry<T> entry) {
-    _model.removeStandIn(entry);
   }
 
   /// Whether any tab is flying between its thumbnail and its page, as it

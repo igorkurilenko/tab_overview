@@ -40,7 +40,7 @@ class _TabFlights<T> {
   // Leaves the tab where it is, with no flight, nor a stand-in for one.
   void settle(_TabEntry<T> entry) {
     set(entry, null);
-    _controller._removeStandIn(entry);
+    _controller._model.removeStandIn(entry);
   }
 
   // The flight of the tab, a removed one too, found by equality, which a tab
