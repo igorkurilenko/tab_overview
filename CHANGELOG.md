@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.2.3]
+### Fixed
+- On Android, a list pulled from its top to collapse its tab no longer stretches or glows with its own overscroll as the page moves. A fling into the top, which pulls nothing, still shows it.
+
 ## [0.2.2]
 ### Fixed
 - Removing the only tab on the grid's last row, scrolled to the end, slides the tabs above down into its place as it fades. The grid jumped down a row in one frame, so the tab that took its place on screen covered the removed tab, and its removal didn't show. Fixed in animated_reorderable 2.4.0, which this release requires.
