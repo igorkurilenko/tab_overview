@@ -64,6 +64,10 @@ class _PullToCollapseState<T> extends State<_PullToCollapse<T>>
   // Whether a drag on the page, rather than in a scroll view, pulls it.
   var _dragging = false;
 
+  // Whether a pointer drags a vertical scroll view in the page, whose
+  // overscroll past its top the page may take as a pull.
+  var _draggingScrollView = false;
+
   // How fast the pointer moves, for a pull by a scroll view, let go when
   // the pointer is.
   VelocityTracker? _pointerVelocity;
@@ -113,25 +117,28 @@ class _PullToCollapseState<T> extends State<_PullToCollapse<T>>
       onPointerPanZoomEnd: on ? _handlePanZoomEnd : null,
       child: NotificationListener<ScrollNotification>(
         onNotification: on ? _handleScrollNotification : null,
-        child: GestureDetector(
-          supportedDevices:
-              (overview.scrollBehavior ?? ScrollConfiguration.of(context))
-                  .dragDevices,
-          onVerticalDragStart: on ? _handleDragStart : null,
-          onVerticalDragUpdate: on ? _handleDragUpdate : null,
-          onVerticalDragEnd: on ? _handleDragEnd : null,
-          onVerticalDragCancel: on ? _handleDragCancel : null,
-          child: AnimatedBuilder(
-            animation: _distance,
-            builder: (context, child) => Transform.translate(
-              offset: Offset(0, _followsPull ? _distance.value : 0),
-              child: FractionallySizedBox(
-                widthFactor: _scale,
-                heightFactor: _scale,
-                child: child,
+        child: NotificationListener<OverscrollIndicatorNotification>(
+          onNotification: on ? _handleOverscrollIndicator : null,
+          child: GestureDetector(
+            supportedDevices:
+                (overview.scrollBehavior ?? ScrollConfiguration.of(context))
+                    .dragDevices,
+            onVerticalDragStart: on ? _handleDragStart : null,
+            onVerticalDragUpdate: on ? _handleDragUpdate : null,
+            onVerticalDragEnd: on ? _handleDragEnd : null,
+            onVerticalDragCancel: on ? _handleDragCancel : null,
+            child: AnimatedBuilder(
+              animation: _distance,
+              builder: (context, child) => Transform.translate(
+                offset: Offset(0, _followsPull ? _distance.value : 0),
+                child: FractionallySizedBox(
+                  widthFactor: _scale,
+                  heightFactor: _scale,
+                  child: child,
+                ),
               ),
+              child: widget.child,
             ),
-            child: widget.child,
           ),
         ),
       ),
@@ -187,6 +194,20 @@ class _PullToCollapseState<T> extends State<_PullToCollapse<T>>
   }
 
   bool _handleScrollNotification(ScrollNotification notification) {
+    // A fling goes on from a drag with no end or start between them, and
+    // only its updates tell it's no longer dragged.
+    final dragged = switch (notification) {
+      ScrollStartNotification(:final dragDetails) => dragDetails != null,
+      ScrollUpdateNotification(:final dragDetails) => dragDetails != null,
+      OverscrollNotification(:final dragDetails) => dragDetails != null,
+      ScrollEndNotification() => false,
+      _ => null,
+    };
+    if (dragged != null) {
+      _draggingScrollView =
+          dragged && notification.metrics.axis == Axis.vertical;
+    }
+
     if (_collapsing || notification.metrics.axis != Axis.vertical) {
       return false;
     }
@@ -210,6 +231,19 @@ class _PullToCollapseState<T> extends State<_PullToCollapse<T>>
           when overscroll < 0:
         // Held at its top, as a scroll view that doesn't bounce is.
         _pull(_distance.value - overscroll, follows: true);
+    }
+    return false;
+  }
+
+  // A pull takes the overscroll of a scroll view dragged past its top, and
+  // the page moves instead. So the scroll view shows no overscroll of its
+  // own, such as Android's stretch or glow, as a bouncing one moves with
+  // the page. A fling into the top, which pulls nothing, still shows one.
+  bool _handleOverscrollIndicator(
+    OverscrollIndicatorNotification notification,
+  ) {
+    if (notification.leading && _draggingScrollView && _canPull) {
+      notification.disallowIndicator();
     }
     return false;
   }

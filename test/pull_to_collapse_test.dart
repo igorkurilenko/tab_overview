@@ -86,6 +86,15 @@ double gridOpacity(WidgetTester tester) => tester
     .opacity
     .value;
 
+// The strongest stretch a list's overscroll shows, as on Android.
+double stretch(WidgetTester tester) => tester
+    .widgetList<StretchEffect>(find.byType(StretchEffect))
+    .map((effect) => effect.stretchStrength.abs())
+    .fold(
+      0,
+      (strongest, strength) => strength > strongest ? strength : strongest,
+    );
+
 void expectCollapsed(WidgetTester tester, TabOverviewController<int> c) {
   expect(c.mode, TabOverviewMode.overview);
   expect(c.isTransitioning, isFalse);
@@ -427,6 +436,79 @@ void main() {
     await tester.pumpAndSettle();
     expectCollapsed(tester, controller);
   });
+
+  final android = TargetPlatformVariant.only(TargetPlatform.android);
+
+  // Drags tab 1's list down by 5 pixels a frame, [frames] times, and
+  // returns the strongest stretch any list showed meanwhile.
+  Future<double> dragDown(WidgetTester tester, {int frames = 8}) async {
+    final gesture = await tester.startGesture(tester.getCenter(page()));
+    var strongest = 0.0;
+    for (var frame = 0; frame < frames; frame++) {
+      await gesture.moveBy(const Offset(0, 5));
+      await tester.pump(const Duration(milliseconds: 16));
+      strongest = [strongest, stretch(tester)].reduce((a, b) => a > b ? a : b);
+    }
+    await gesture.up();
+    await tester.pumpAndSettle();
+    return strongest;
+  }
+
+  testWidgets('a list the pull takes from its top shows no overscroll', (
+    tester,
+  ) async {
+    await pumpExpanded(tester, tabBuilder: (tab) => listTab(tab));
+
+    final gesture = await tester.startGesture(tester.getCenter(page()));
+    var strongest = 0.0;
+    var pulled = 0.0;
+    for (var frame = 0; frame < 8; frame++) {
+      await gesture.moveBy(const Offset(0, 5));
+      await tester.pump(const Duration(milliseconds: 16));
+      strongest = [strongest, stretch(tester)].reduce((a, b) => a > b ? a : b);
+      pulled = gridOpacity(tester);
+    }
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    // The page was pulled, and the list didn't stretch with it.
+    expect(pulled, greaterThan(0));
+    expect(strongest, 0);
+  }, variant: android);
+
+  testWidgets('a list shows its overscroll with pulling off', (tester) async {
+    await pumpExpanded(
+      tester,
+      pullToCollapse: false,
+      tabBuilder: (tab) => listTab(tab),
+    );
+
+    expect(await dragDown(tester), greaterThan(0));
+  }, variant: android);
+
+  testWidgets('a list flung into its top shows its overscroll', (tester) async {
+    final scroll = ScrollController();
+    addTearDown(scroll.dispose);
+    final controller = await pumpExpanded(
+      tester,
+      tabBuilder: (tab) => listTab(tab, scroll: tab == 1 ? scroll : null),
+    );
+    scroll.jumpTo(600);
+    await tester.pump();
+
+    await tester.fling(page(), const Offset(0, 100), 3000);
+    var strongest = 0.0;
+    for (var frame = 0; frame < 40; frame++) {
+      await tester.pump(const Duration(milliseconds: 16));
+      strongest = [strongest, stretch(tester)].reduce((a, b) => a > b ? a : b);
+    }
+    await tester.pumpAndSettle();
+
+    // A fling pulls nothing, so its impact shows.
+    expect(scroll.offset, 0);
+    expect(strongest, greaterThan(0));
+    expectExpandedAtFullSize(tester, controller);
+  }, variant: android);
 
   testWidgets('pulling is off by default', (tester) async {
     final controller = TabOverviewController<int>(initialTabs: [0, 1, 2, 3]);
