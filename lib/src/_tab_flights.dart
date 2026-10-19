@@ -98,10 +98,11 @@ class _TabFlights<T> {
     AnimationController controller,
   ) {
     final flight = entry.flight!;
-    // A fling sets its own pace.
-    final animation = flight.velocity != null
-        ? controller
-        : CurvedAnimation(parent: controller, curve: flight.curve);
+    final animation = _animate(
+      controller,
+      flung: flight.velocity != null,
+      curve: flight.curve,
+    );
     flight.start(animation);
     return animation;
   }
@@ -113,9 +114,7 @@ class _TabFlights<T> {
     double? from,
   }) {
     final velocity = entry.flight?.setOff();
-    return velocity != null
-        ? controller.fling(velocity: velocity)
-        : controller.forward(from: from);
+    return _runForward(controller, velocity: velocity, from: from);
   }
 
   // The tab's remove button flies in step with the tab: for as long, along
@@ -134,12 +133,11 @@ class _TabFlights<T> {
     AnimationController controller,
   ) {
     final flight = entry.flight;
-    return flight?.velocity != null
-        ? controller
-        : CurvedAnimation(
-            parent: controller,
-            curve: flight?.curve ?? _controller.transition.curve,
-          );
+    return _animate(
+      controller,
+      flung: flight?.velocity != null,
+      curve: flight?.curve ?? _controller.transition.curve,
+    );
   }
 
   TickerFuture runButton(
@@ -148,10 +146,25 @@ class _TabFlights<T> {
     double? from,
   }) {
     final velocity = entry.flight?.runVelocity;
-    return velocity != null
-        ? controller.fling(velocity: velocity)
-        : controller.forward(from: from);
+    return _runForward(controller, velocity: velocity, from: from);
   }
+
+  // A flight that's flung sets its own pace. Any other follows its curve.
+  static Animation<double> _animate(
+    AnimationController controller, {
+    required bool flung,
+    required Curve curve,
+  }) => flung ? controller : CurvedAnimation(parent: controller, curve: curve);
+
+  // Flings a run at [velocity], if it's flung, or runs it forward [from]
+  // where it is told.
+  static TickerFuture _runForward(
+    AnimationController controller, {
+    double? velocity,
+    double? from,
+  }) => velocity != null
+      ? controller.fling(velocity: velocity)
+      : controller.forward(from: from);
 
   // However the flight ended: landed, or stopped by a switch that left no
   // hero for it, or by the overview going away.
