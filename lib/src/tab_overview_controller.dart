@@ -662,37 +662,25 @@ mixin _Listeners<T> on ChangeNotifier {
     _tabsReorderedListeners.clear();
   }
 
-  void _notifyModeChanged(TabOverviewMode mode) {
-    for (var listener in _modeChangedListeners) {
-      listener(mode);
-    }
-    notifyListeners();
-  }
+  void _notifyModeChanged(TabOverviewMode mode) =>
+      _notify(_modeChangedListeners, (listener) => listener(mode));
 
-  void _notifyActiveTabChanged() {
-    for (var listener in _activeTabChangedListeners) {
-      listener();
-    }
-    notifyListeners();
-  }
+  void _notifyActiveTabChanged() =>
+      _notify(_activeTabChangedListeners, (listener) => listener());
 
-  void _notifyTabAdded(T tab) {
-    for (var listener in _tabAddedListeners) {
-      listener(tab);
-    }
-    notifyListeners();
-  }
+  void _notifyTabAdded(T tab) =>
+      _notify(_tabAddedListeners, (listener) => listener(tab));
 
-  void _notifyTabRemoved(T removedTab) {
-    for (var listener in _tabRemovedListeners) {
-      listener(removedTab);
-    }
-    notifyListeners();
-  }
+  void _notifyTabRemoved(T removedTab) =>
+      _notify(_tabRemovedListeners, (listener) => listener(removedTab));
 
-  void _notifyTabsReordered() {
-    for (var listener in _tabsReorderedListeners) {
-      listener();
+  void _notifyTabsReordered() =>
+      _notify(_tabsReorderedListeners, (listener) => listener());
+
+  // Calls each of [listeners], then the ChangeNotifier's.
+  void _notify<L>(List<L> listeners, void Function(L listener) call) {
+    for (var listener in listeners) {
+      call(listener);
     }
     notifyListeners();
   }
