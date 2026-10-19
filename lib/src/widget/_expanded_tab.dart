@@ -170,6 +170,13 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
             tag: removeButtonHeroTag(entry),
             key: expandedTabRemoveButtonHeroKey(entry),
             flightRedirect: HeroHereFlightRedirect.divert,
+            flightAnimationControllerFactory: (vsync, duration) =>
+                controller._flights.createButtonController(entry, vsync),
+            flightAnimationFactory: (animationController) => controller._flights
+                .createButtonAnimation(entry, animationController),
+            forwardFlightAnimation: (animationController, {from}) => controller
+                ._flights
+                .runButton(entry, animationController, from: from),
             flightShuttleBuilder: _buildRemoveButtonHeroFlightShuttle,
             child: IgnorePointer(
               ignoring: true,

@@ -118,6 +118,41 @@ class _TabFlights<T> {
         : controller.forward(from: from);
   }
 
+  // The tab's remove button flies in step with the tab: for as long, along
+  // the same curve, and flung as fast. Its hero comes after the tab's, so
+  // each run of its flight starts after the tab's run has set off.
+  AnimationController createButtonController(
+    _TabEntry<T> entry,
+    TickerProvider vsync,
+  ) => AnimationController(
+    vsync: vsync,
+    duration: entry.flight?.duration ?? _controller.transition.duration,
+  );
+
+  Animation<double> createButtonAnimation(
+    _TabEntry<T> entry,
+    AnimationController controller,
+  ) {
+    final flight = entry.flight;
+    return flight?.velocity != null
+        ? controller
+        : CurvedAnimation(
+            parent: controller,
+            curve: flight?.curve ?? _controller.transition.curve,
+          );
+  }
+
+  TickerFuture runButton(
+    _TabEntry<T> entry,
+    AnimationController controller, {
+    double? from,
+  }) {
+    final velocity = entry.flight?.runVelocity;
+    return velocity != null
+        ? controller.fling(velocity: velocity)
+        : controller.forward(from: from);
+  }
+
   // However the flight ended: landed, or stopped by a switch that left no
   // hero for it, or by the overview going away.
   void _ended(_TabEntry<T> entry, TabFlight flight) {
