@@ -36,6 +36,7 @@ part '_tab_flights.dart';
 part 'tab_transition.dart';
 part '_tab_overview_model.dart';
 part 'tab_overview_controller.dart';
+part 'widget/_tab_heroes.dart';
 part 'widget/_tab_thumbnails_grid.dart';
 part 'widget/_expanded_tab.dart';
 part 'widget/_pull_to_collapse.dart';

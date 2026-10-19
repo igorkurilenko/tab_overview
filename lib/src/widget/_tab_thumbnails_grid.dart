@@ -32,7 +32,7 @@ class _TabThumbnailsGrid<T> extends StatefulWidget {
 }
 
 class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
-    with HeroTabHelper
+    with HeroTabHelper, _TabHeroes<T>
     implements _ThumbnailsView<T> {
   final thumbsGridKey = GlobalKey<AnimatedReorderableState>();
   final scrollController = ScrollController();
@@ -68,6 +68,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
 
   TabOverview<T> get overview => widget.overview;
 
+  @override
   TabOverviewController<T> get controller => overview.controller;
 
   AnimatedReorderableState? get thumbsGridState => thumbsGridKey.currentState;
@@ -391,40 +392,10 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
 
     return Stack(
       children: [
-        Positioned.fill(child: _buildThumbHero(thumb, entry)),
+        Positioned.fill(child: tabHero(entry, onPage: false, child: thumb)),
         if (overview._isRemovable(tab))
-          _buildThumbRemoveButtonHero(removeButton, entry),
+          removeButtonHero(entry, onPage: false, child: removeButton),
       ],
-    );
-  }
-
-  Widget _buildThumbHero(Widget thumb, _TabEntry<T> entry) {
-    return HeroHere(
-      tag: tabHeroTag(entry),
-      key: tabThumbHeroKey(entry),
-      flightRedirect: HeroHereFlightRedirect.divert,
-      flightAnimationControllerFactory: (vsync, duration) =>
-          controller._flights.createController(entry, vsync, toPage: false),
-      flightAnimationFactory: (animationController) =>
-          controller._flights.createAnimation(entry, animationController),
-      forwardFlightAnimation: (animationController, {from}) =>
-          controller._flights.run(entry, animationController, from: from),
-      child: thumb,
-    );
-  }
-
-  Widget _buildThumbRemoveButtonHero(Widget removeButton, _TabEntry<T> entry) {
-    return HeroHere(
-      tag: removeButtonHeroTag(entry),
-      key: tabThumbRemoveButtonHeroKey(entry),
-      flightRedirect: HeroHereFlightRedirect.divert,
-      flightAnimationControllerFactory: (vsync, duration) =>
-          controller._flights.createButtonController(entry, vsync),
-      flightAnimationFactory: (animationController) =>
-          controller._flights.createButtonAnimation(entry, animationController),
-      forwardFlightAnimation: (animationController, {from}) =>
-          controller._flights.runButton(entry, animationController, from: from),
-      child: removeButton,
     );
   }
 
@@ -470,7 +441,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
       entry: entry,
       builder: (context) => HeroMode(
         enabled: !controller.isTabExpanded(tab),
-        child: _buildThumbHero(thumb, entry),
+        child: tabHero(entry, onPage: false, child: thumb),
       ),
     );
   }
