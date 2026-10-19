@@ -361,11 +361,8 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
     Animation<double> presence,
   ) {
     final tab = entry.tab;
-    if (controller.isTabExpanded(tab)) {
-      return const SizedBox.shrink();
-    }
-
-    if (entry.hasStandIn) {
+    // The tab shows on its page, or its stand-in shows for it.
+    if (controller.isTabExpanded(tab) || entry.hasStandIn) {
       return const SizedBox.shrink();
     }
 
