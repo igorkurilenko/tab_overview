@@ -17,9 +17,11 @@ part of 'tab_overview.dart';
 /// How long one of the overview's animations takes, and how it eases.
 ///
 /// [TabOverviewController.transition] holds the default for a tab expanding
-/// to its page and collapsing to its thumbnail, and
-/// [TabOverview.thumbnailsMotion] the one for thumbnails moving to new
-/// places in the grid.
+/// to its page and collapsing to its thumbnail,
+/// [TabOverviewController.addRemoveTransition] the one for a tab added or
+/// removed, [TabOverviewController.scrollTransition] the one for scrolling
+/// to a tab, and [TabOverview.thumbnailsMotion] the one for thumbnails
+/// moving to new places in the grid.
 @immutable
 class TabTransition {
   /// How long the animation takes.

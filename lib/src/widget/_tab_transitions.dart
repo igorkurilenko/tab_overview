@@ -93,19 +93,31 @@ class _ItemPresence extends InheritedWidget {
 }
 
 /// Scales and fades a tab's thumbnail, page or remove button with
-/// [animation], in as the tab is added, and out as it's removed.
+/// [animation] along [curve], in as the tab is added, and out as it's
+/// removed.
 ///
 /// The same widgets whether or not the tab is being added or removed, so
 /// its content keeps its State when the animation ends.
 class _TabPresence extends StatelessWidget {
   final Animation<double> animation;
+  final Curve curve;
   final Widget child;
 
-  const _TabPresence({required this.animation, required this.child});
+  const _TabPresence({
+    required this.animation,
+    required this.curve,
+    required this.child,
+  });
 
   @override
-  Widget build(BuildContext context) => ScaleTransition(
-    scale: animation,
-    child: FadeTransition(opacity: animation, child: child),
-  );
+  Widget build(BuildContext context) {
+    // Driven anew on each build, a curve listens to nothing of its own.
+    final curved = curve == Curves.linear
+        ? animation
+        : animation.drive(CurveTween(curve: curve));
+    return ScaleTransition(
+      scale: curved,
+      child: FadeTransition(opacity: curved, child: child),
+    );
+  }
 }

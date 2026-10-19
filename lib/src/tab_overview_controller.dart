@@ -49,6 +49,18 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
   /// 300 ms along [Curves.easeInOut] by default.
   final TabTransition transition;
 
+  /// How a tab added or removed scales and fades in or out, unless a call to
+  /// [add], [remove] or [removeAt] says otherwise: 350 ms, linear, by
+  /// default. A removal runs the curve backward, from 1 to 0.
+  ///
+  /// The expanded tab, removed, flies to its thumbnail's place for as long,
+  /// along [transition]'s curve.
+  final TabTransition addRemoveTransition;
+
+  /// How [scrollToTab] and [scrollToTabAt] scroll, unless a call says
+  /// otherwise: 350 ms along [Curves.easeInOut] by default.
+  final TabTransition scrollTransition;
+
   /// Constructor for [TabOverviewController] to initialize with optional tabs and display mode.
   ///
   /// - [initialTabs]: An optional list of tabs to initialize.
@@ -57,12 +69,21 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
   ///   [initialTabs], as the [activeTab] setter refuses a tab that isn't in
   ///   the overview. If null, the first of them is.
   /// - [transition]: How tabs expand and collapse.
+  /// - [addRemoveTransition]: How tabs are added and removed.
+  /// - [scrollTransition]: How the overview scrolls to a tab.
   TabOverviewController({
     List<T>? initialTabs,
     TabOverviewMode initialMode = TabOverviewMode.overview,
     T? activeTab,
     this.transition = const TabTransition(
       duration: HeroHere.defaultFlightAnimationDuration,
+    ),
+    this.addRemoveTransition = const TabTransition(
+      duration: Duration(milliseconds: 350),
+      curve: Curves.linear,
+    ),
+    this.scrollTransition = const TabTransition(
+      duration: Duration(milliseconds: 350),
     ),
   }) : _phase = initialMode == TabOverviewMode.expanded
            ? const _Expanded()
@@ -191,11 +212,18 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
 
   /// Adds a new tab and animates its appearance, if the tab does not already exist.
   ///
+  /// A [duration] and [curve] override the controller's
+  /// [addRemoveTransition].
+  ///
   /// Returns `true` if the tab was added successfully.
-  bool add(T newTab, {Duration duration = const Duration(milliseconds: 350)}) {
+  bool add(T newTab, {Duration? duration, Curve? curve}) {
     if (_model.containsTab(newTab)) return false;
 
-    _model.addTab(newTab, duration: duration);
+    _model.addTab(
+      newTab,
+      duration: duration ?? addRemoveTransition.duration,
+      curve: curve ?? addRemoveTransition.curve,
+    );
     _notifyTabAdded(newTab);
 
     activeTab ??= newTab;
@@ -212,14 +240,15 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
 
   /// Removes the specified [tab] and animates its removal.
   ///
-  /// Optionally accepts a [duration] for the removal animation.
+  /// A [duration] and [curve] override the controller's
+  /// [addRemoveTransition].
   ///
   /// Returns `false`, and does nothing, if the tab isn't in the overview, as
   /// [add] does for a tab that already is.
-  bool remove(T tab, {Duration duration = const Duration(milliseconds: 350)}) {
+  bool remove(T tab, {Duration? duration, Curve? curve}) {
     final index = _model.indexOfTab(tab);
     if (index == -1) return false;
-    removeAt(index, duration: duration);
+    removeAt(index, duration: duration, curve: curve);
     return true;
   }
 
@@ -229,15 +258,20 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
   /// the one before it if it was the last. Removing the expanded tab also
   /// collapses it, and the mode is `overview` by the time this returns.
   ///
+  /// A [duration] and [curve] override the controller's
+  /// [addRemoveTransition].
+  ///
   /// Returns the removed tab.
-  T removeAt(
-    int index, {
-    Duration duration = const Duration(milliseconds: 350),
-  }) {
+  T removeAt(int index, {Duration? duration, Curve? curve}) {
+    duration ??= addRemoveTransition.duration;
     // Its add animation, if any, is over, and may never end if its item
     // goes first.
     _model.entryAt(index).presence = null;
-    final removed = _model.removeAt(index, duration: duration);
+    final removed = _model.removeAt(
+      index,
+      duration: duration,
+      curve: curve ?? addRemoveTransition.curve,
+    );
     final removedTab = removed.tab;
     _notifyTabRemoved(removedTab);
 
@@ -355,25 +389,19 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
 
   /// Scrolls to a specified [tab].
   ///
-  /// An optional [duration] and [curve] can control the scroll animation.
-  void scrollToTab(
-    T tab, {
-    Duration duration = const Duration(milliseconds: 350),
-    Curve curve = Curves.easeInOut,
-  }) {
+  /// A [duration] and [curve] override the controller's [scrollTransition].
+  void scrollToTab(T tab, {Duration? duration, Curve? curve}) {
     final index = _model.indexOfEntry(_entryOrThrow(tab));
     scrollToTabAt(index, duration: duration, curve: curve);
   }
 
   /// Scrolls to the tab at the specified [index].
   ///
-  /// Optionally, [duration] and [curve] can be specified for smooth animation.
-  void scrollToTabAt(
-    int index, {
-    Duration duration = const Duration(milliseconds: 350),
-    Curve curve = Curves.easeInOut,
-  }) {
+  /// A [duration] and [curve] override the controller's [scrollTransition].
+  void scrollToTabAt(int index, {Duration? duration, Curve? curve}) {
     RangeError.checkValidIndex(index, tabs, 'index');
+    duration ??= scrollTransition.duration;
+    curve ??= scrollTransition.curve;
     if (expanded) {
       final pages = _pages;
       if (pages == null) {

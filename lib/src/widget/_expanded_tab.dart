@@ -132,6 +132,7 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
     );
     tabWidget = _TabPresence(
       animation: entry.presence ?? kAlwaysCompleteAnimation,
+      curve: entry.presenceCurve,
       child: tabWidget,
     );
 
