@@ -418,6 +418,12 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
       tag: removeButtonHeroTag(entry),
       key: tabThumbRemoveButtonHeroKey(entry),
       flightRedirect: HeroHereFlightRedirect.divert,
+      flightAnimationControllerFactory: (vsync, duration) =>
+          controller._flights.createButtonController(entry, vsync),
+      flightAnimationFactory: (animationController) =>
+          controller._flights.createButtonAnimation(entry, animationController),
+      forwardFlightAnimation: (animationController, {from}) =>
+          controller._flights.runButton(entry, animationController, from: from),
       child: removeButton,
     );
   }

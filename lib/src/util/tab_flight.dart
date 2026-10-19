@@ -55,6 +55,8 @@ class TabFlight {
 
   var _runs = 0;
 
+  double? _runVelocity;
+
   final _animation = ProxyAnimation(kAlwaysDismissedAnimation);
 
   /// Whether the tab is asked to go to its page, rather than its thumbnail.
@@ -70,6 +72,9 @@ class TabFlight {
   /// The animation of the run under way, from 0 to 1. Until the flight
   /// starts, it stays at 0.
   Animation<double> get animation => _animation;
+
+  /// The speed the run under way was flung at, if it was.
+  double? get runVelocity => _runVelocity;
 
   /// How far the tab is from its thumbnail, at 0, to its page, at 1.
   double get expansion =>
@@ -90,7 +95,7 @@ class TabFlight {
   double? setOff() {
     _expansionAtSetOff = expansion;
     _headsToPage = _toPage;
-    return _runs++ == 0 ? velocity : null;
+    return _runVelocity = _runs++ == 0 ? velocity : null;
   }
 
   /// Lands where it headed, to wait for the next switch to start a flight
