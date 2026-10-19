@@ -272,7 +272,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
     }
 
     _addStandIn(removed);
-    _doCollapse(
+    _collapseWith(
       removed,
       TabFlight(toPage: false, duration: duration, curve: transition.curve),
     );
@@ -349,7 +349,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
     if (!_thumbnails!.thumbBuilt(tab)) {
       _expandOffScreen(entry, flight);
     } else {
-      _doExpand(entry, flight);
+      _expandWith(entry, flight);
     }
   }
 
@@ -447,7 +447,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
     // The stand-in is where the flight lands, which the switch looks for
     // after its frame, so it's there in time.
     if (!_thumbnails!.thumbBuilt(tab)) _addStandIn(entry);
-    _doCollapse(entry, flight);
+    _collapseWith(entry, flight);
   }
 
   /// Disposes resources used by the controller.
@@ -484,7 +484,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
       // Taken back, or turned to another tab, in the meantime.
       if (!identical(_phase, waiting)) return;
       _phase = const _Overview();
-      _doExpand(entry, flight);
+      _expandWith(entry, flight);
     });
   }
 
@@ -497,7 +497,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
     }
   }
 
-  void _doExpand(_TabEntry<T> entry, TabFlight flight) {
+  void _expandWith(_TabEntry<T> entry, TabFlight flight) {
     _flights.ask(entry, flight);
     // Collapsed in the same frame, the overview still has the pages, and
     // switches back to them with the page where the collapse left it.
@@ -520,7 +520,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
     _switchTo(const _Overview());
   }
 
-  void _doCollapse(_TabEntry<T> entry, TabFlight flight) {
+  void _collapseWith(_TabEntry<T> entry, TabFlight flight) {
     _flights.ask(entry, flight);
 
     _switchTo(const _Overview());
