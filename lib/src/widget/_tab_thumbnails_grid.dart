@@ -420,10 +420,11 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
     return _TabCellBuilder<T>(
       controller: controller,
       entry: entry,
-      builder: (context) => HeroMode(
-        enabled: !controller.isTabExpanded(tab),
-        child: tabHero(entry, onPage: false, child: thumb),
-      ),
+      // The stand-in's hero goes away as its tab expands, so the tab flies
+      // from it, and comes back as the tab collapses, so the tab flies to it.
+      builder: (context) => controller.isTabExpanded(tab)
+          ? const SizedBox.shrink()
+          : tabHero(entry, onPage: false, child: thumb),
     );
   }
 

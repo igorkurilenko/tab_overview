@@ -79,10 +79,10 @@ packages:
     dependency: transitive
     description:
       name: hero_here
-      sha256: a197af8673c8b920fde38738293052605f73d40e0b06c6a1a9cb81faa3566f06
+      sha256: "6cc195ba0f2461c32ae9b16ad98b49114fc7a570ce163d84c965fb9c77425642"
       url: "https://pub.dev"
     source: hosted
-    version: "2.0.0"
+    version: "2.2.0"
   leak_tracker:
     dependency: transitive
     description:
@@ -190,7 +190,7 @@ packages:
       path: ".."
       relative: true
     source: path
-    version: "0.2.4"
+    version: "0.2.5"
   term_glyph:
     dependency: transitive
     description:
