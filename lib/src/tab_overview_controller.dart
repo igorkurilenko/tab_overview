@@ -69,9 +69,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
            : const _Overview(),
        _model = _TabOverviewModel<T>(initialTabs: initialTabs),
        _activeTab = activeTab ?? initialTabs?.firstOrNull {
-    if (activeTab != null && !(initialTabs?.contains(activeTab) ?? false)) {
-      throw ArgumentError('Tab $activeTab not found');
-    }
+    if (activeTab != null) _entryOrThrow(activeTab);
   }
 
   /// The current display mode of the [TabOverview], either `overview` or `expanded`.
@@ -106,10 +104,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
   set activeTab(T? value) {
     if (_activeTab == value) return;
 
-    final entry = value == null ? null : _model.entryOf(value);
-    if (value != null && entry == null) {
-      throw ArgumentError('Tab $value not found');
-    }
+    final entry = value == null ? null : _entryOrThrow(value);
     final active = _activeTab == null ? null : _model.entryOf(_activeTab as T);
     if (_phase is _ExpandWaiting && entry != null) {
       // An expand waits for its stand-in: it turns to this tab.
@@ -138,6 +133,9 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
       pages?.jumpToPage(_model.indexOfEntry(entry));
     }
   }
+
+  _TabEntry<T> _entryOrThrow(T tab) =>
+      _model.entryOf(tab) ?? (throw ArgumentError('Tab $tab not found'));
 
   void _setActiveTab(T? value) {
     if (_activeTab == value) return;
@@ -308,10 +306,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
   /// still flying back to its thumbnail turns toward its page from where it
   /// is, over the duration and curve of the flight it's in.
   void expand(T tab, {Duration? duration, Curve? curve}) {
-    final entry = _model.entryOf(tab);
-    if (entry == null) {
-      throw ArgumentError('Tab $tab not found');
-    }
+    final entry = _entryOrThrow(tab);
 
     if (_thumbnails == null) {
       // Before the overview is built, with nothing to fly between: it
@@ -363,8 +358,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
     Duration duration = const Duration(milliseconds: 350),
     Curve curve = Curves.easeInOut,
   }) {
-    final index = _model.indexOfTab(tab);
-    if (index == -1) throw ArgumentError('Tab $tab not found');
+    final index = _model.indexOfEntry(_entryOrThrow(tab));
     scrollToTabAt(index, duration: duration, curve: curve);
   }
 
