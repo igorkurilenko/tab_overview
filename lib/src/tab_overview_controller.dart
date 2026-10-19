@@ -458,11 +458,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
 
     _flights.clear();
 
-    _modeChangedListeners.clear();
-    _activeTabChangedListeners.clear();
-    _tabAddedListeners.clear();
-    _tabRemovedListeners.clear();
-    _tabsReorderedListeners.clear();
+    _clearListeners();
     super.dispose();
   }
 
@@ -657,6 +653,14 @@ mixin _Listeners<T> on ChangeNotifier {
 
   void removeTabsReorderedListener(TabsReorderedListener listener) =>
       _tabsReorderedListeners.remove(listener);
+
+  void _clearListeners() {
+    _modeChangedListeners.clear();
+    _activeTabChangedListeners.clear();
+    _tabAddedListeners.clear();
+    _tabRemovedListeners.clear();
+    _tabsReorderedListeners.clear();
+  }
 
   void _notifyModeChanged(TabOverviewMode mode) {
     for (var listener in _modeChangedListeners) {
