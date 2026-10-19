@@ -93,11 +93,8 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
 
   static final _notPulled = ValueNotifier<double>(0);
 
-  Duration? get activeTabHeroAnimationDuration =>
-      controller._flights.of(controller.activeTab)?.duration;
-
-  Curve? get activeTabHeroAnimationCurve =>
-      controller._flights.of(controller.activeTab)?.curve;
+  // The active tab's flight, while it flies.
+  TabFlight? get _activeFlight => controller._flights.of(controller.activeTab);
 
   // The scroll offset of the thumb at [index] in the grid as last laid out,
   // up to how far the grid scrolls.
@@ -266,14 +263,15 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
   // it back as far as the page is pulled, at once: the grid follows the
   // pull, and a collapse let go of carries on from where the pull left it.
   Widget _buildZoom(double pulled, Widget items) {
+    final flight = _activeFlight;
     final followsPull = controller.expanded && pulled > 0;
     final duration = followsPull
         ? Duration.zero
-        : activeTabHeroAnimationDuration ?? controller.transition.duration;
+        : flight?.duration ?? controller.transition.duration;
     return AnimatedScale(
       scale: thumbsGridScale(pulled),
       duration: duration,
-      curve: activeTabHeroAnimationCurve ?? controller.transition.curve,
+      curve: flight?.curve ?? controller.transition.curve,
       child: AnimatedOpacity(
         opacity: thumbsGridOpacity(pulled),
         duration: duration,
