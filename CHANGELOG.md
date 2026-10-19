@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.2.2]
+### Fixed
+- A tab's remove button flies in step with its tab as the tab collapses or expands. It followed a 300 ms flight of its own, so it trailed a tab flung to its thumbnail by a pull, or one collapsing for a duration of its own, and caught up as both landed.
+
 ## [0.2.1]
 ### Changed
 - Pulling an expanded tab's page down to collapse it now brings the grid behind it back as you pull. Half way, the grid is half faded in and half zoomed back. Let go short, and it goes back with the page. Let go to collapse, and it carries on from where the pull left it. Before, the grid stayed hidden until the tab began to collapse.
