@@ -24,7 +24,7 @@ class _ExpandedTab<T> extends StatefulWidget {
 }
 
 class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
-    with HeroTabHelper, _TabHeroes<T>
+    with _TabHeroes<T>
     implements _PagesView {
   late final PageController pageController;
 

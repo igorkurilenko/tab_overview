@@ -271,7 +271,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
       return;
     }
 
-    _addStandIn(removed);
+    _model.addStandIn(removed);
     _collapseWith(
       removed,
       TabFlight(toPage: false, duration: duration, curve: transition.curve),
@@ -446,7 +446,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
     );
     // The stand-in is where the flight lands, which the switch looks for
     // after its frame, so it's there in time.
-    if (!_thumbnails!.thumbBuilt(tab)) _addStandIn(entry);
+    if (!_thumbnails!.thumbBuilt(tab)) _model.addStandIn(entry);
     _collapseWith(entry, flight);
   }
 
@@ -476,7 +476,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
   // The stand-in is where the flight sets off, which the switch finds in the
   // frame before it, so the switch waits a frame for it to be built.
   void _expandOffScreen(_TabEntry<T> entry, TabFlight flight) {
-    _addStandIn(entry);
+    _model.addStandIn(entry);
     final waiting = _ExpandWaiting(entry);
     _phase = waiting;
 
@@ -493,7 +493,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
   void _takeBackWaitingExpand() {
     if (_phase case _ExpandWaiting(:final entry)) {
       _phase = const _Overview();
-      _removeStandIn(entry);
+      _model.removeStandIn(entry);
     }
   }
 
@@ -513,8 +513,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
     if (flight != null && flight.started) {
       flight.ask(toPage: false);
     } else {
-      _flights.set(entry, null);
-      _removeStandIn(entry);
+      _flights.settle(entry);
     }
 
     _switchTo(const _Overview());
@@ -524,14 +523,6 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
     _flights.ask(entry, flight);
 
     _switchTo(const _Overview());
-  }
-
-  void _addStandIn(_TabEntry<T> entry) {
-    _model.addStandIn(entry);
-  }
-
-  void _removeStandIn(_TabEntry<T> entry) {
-    _model.removeStandIn(entry);
   }
 
   /// Whether any tab is flying between its thumbnail and its page, as it
@@ -662,37 +653,28 @@ mixin _Listeners<T> on ChangeNotifier {
     _tabsReorderedListeners.clear();
   }
 
-  void _notifyModeChanged(TabOverviewMode mode) {
-    for (var listener in _modeChangedListeners) {
-      listener(mode);
-    }
-    notifyListeners();
-  }
+  void _notifyModeChanged(TabOverviewMode mode) =>
+      _notify(_modeChangedListeners, (listener) => listener(mode));
 
-  void _notifyActiveTabChanged() {
-    for (var listener in _activeTabChangedListeners) {
-      listener();
-    }
-    notifyListeners();
-  }
+  void _notifyActiveTabChanged() =>
+      _notify(_activeTabChangedListeners, (listener) => listener());
 
-  void _notifyTabAdded(T tab) {
-    for (var listener in _tabAddedListeners) {
-      listener(tab);
-    }
-    notifyListeners();
-  }
+  void _notifyTabAdded(T tab) =>
+      _notify(_tabAddedListeners, (listener) => listener(tab));
 
-  void _notifyTabRemoved(T removedTab) {
-    for (var listener in _tabRemovedListeners) {
-      listener(removedTab);
-    }
-    notifyListeners();
-  }
+  void _notifyTabRemoved(T removedTab) =>
+      _notify(_tabRemovedListeners, (listener) => listener(removedTab));
 
-  void _notifyTabsReordered() {
-    for (var listener in _tabsReorderedListeners) {
-      listener();
+  void _notifyTabsReordered() =>
+      _notify(_tabsReorderedListeners, (listener) => listener());
+
+  // Calls each of [listeners], then the ChangeNotifier's. A listener may
+  // add or remove listeners, itself too, as a ChangeNotifier's may: those
+  // there as the change happens are called, unless removed before their
+  // turn, and those added wait for the next change.
+  void _notify<L>(List<L> listeners, void Function(L listener) call) {
+    for (final listener in List.of(listeners)) {
+      if (listeners.contains(listener)) call(listener);
     }
     notifyListeners();
   }

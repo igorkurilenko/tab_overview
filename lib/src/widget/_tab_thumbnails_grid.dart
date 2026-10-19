@@ -32,7 +32,7 @@ class _TabThumbnailsGrid<T> extends StatefulWidget {
 }
 
 class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
-    with HeroTabHelper, _TabHeroes<T>
+    with _TabHeroes<T>
     implements _ThumbnailsView<T> {
   final thumbsGridKey = GlobalKey<AnimatedReorderableState>();
   final scrollController = ScrollController();
