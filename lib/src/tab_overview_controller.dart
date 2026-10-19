@@ -513,8 +513,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
     if (flight != null && flight.started) {
       flight.ask(toPage: false);
     } else {
-      _flights.set(entry, null);
-      _removeStandIn(entry);
+      _flights.settle(entry);
     }
 
     _switchTo(const _Overview());

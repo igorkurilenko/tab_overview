@@ -37,6 +37,12 @@ class _TabFlights<T> {
 
   bool get any => _flying.isNotEmpty;
 
+  // Leaves the tab where it is, with no flight, nor a stand-in for one.
+  void settle(_TabEntry<T> entry) {
+    set(entry, null);
+    _controller._removeStandIn(entry);
+  }
+
   // The flight of the tab, a removed one too, found by equality, which a tab
   // keeps with itself however its hash code changes.
   TabFlight? of(T? tab) =>
@@ -61,8 +67,7 @@ class _TabFlights<T> {
     } else if (!flight.started && flight.headsToPage == toPage) {
       // Asked back to where it is before the switch, which now won't come,
       // nor a flight for its stand-in.
-      set(entry, null);
-      _controller._removeStandIn(entry);
+      settle(entry);
     } else {
       flight.ask(toPage: toPage);
     }
@@ -172,8 +177,7 @@ class _TabFlights<T> {
     final tab = entry.tab;
     final landedOnPage = flight.headsToPage;
     if (flight.toPage == landedOnPage) {
-      set(entry, null);
-      _controller._removeStandIn(entry);
+      settle(entry);
     } else {
       // Asked elsewhere after the switch that sent it. The next switch
       // starts a flight for that, which needs the stand-in, if any.
