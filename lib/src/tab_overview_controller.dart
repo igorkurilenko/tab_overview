@@ -199,11 +199,15 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
     _notifyTabAdded(newTab);
 
     activeTab ??= newTab;
-
-    _pages?.jumpToPage(activeIndex!);
-    _pages?.stateChanged();
+    _showPagesAtActiveTab();
 
     return true;
+  }
+
+  // The pages, if built, for the tabs as they are now, at the active tab's.
+  void _showPagesAtActiveTab() {
+    _pages?.jumpToPage(activeIndex!);
+    _pages?.stateChanged();
   }
 
   /// Removes the specified [tab] and animates its removal.
@@ -247,8 +251,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
       if (expanded) _collapseRemoved(removed, duration: duration);
       _setActiveTab(_neighbourOfRemovedTabAt(index));
     } else if (expanded) {
-      _pages?.jumpToPage(activeIndex!);
-      _pages?.stateChanged();
+      _showPagesAtActiveTab();
     }
 
     return removedTab;
