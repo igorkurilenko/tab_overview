@@ -2,8 +2,12 @@
 
 ## [0.2.2]
 ### Fixed
+- Removing the only tab on the grid's last row, scrolled to the end, slides the tabs above down into its place as it fades. The grid jumped down a row in one frame, so the tab that took its place on screen covered the removed tab, and its removal didn't show. Fixed in animated_reorderable 2.4.0, which this release requires.
 - A tab's remove button flies in step with its tab as the tab collapses or expands. It followed a 300 ms flight of its own, so it trailed a tab flung to its thumbnail by a pull, or one collapsing for a duration of its own, and caught up as both landed.
 - A typed listener, such as one passed to `addModeChangedListener`, may add or remove listeners while it's notified, itself too. It threw a `ConcurrentModificationError`. As with a `ChangeNotifier`, a listener removed before its turn isn't called, and one added waits for the next change.
+
+### Changed
+- Requires animated_reorderable 2.4.0. Its default animations are faster, at the pace of Flutter's own lists: a thumbnail lifts as a drag begins, and drops back as it's let go or swiped, in 250 ms rather than 500, and a thumbnail flung back to its place, or swiped out, gets there in about half the time. Thumbnails moving to new places, and tabs added and removed, keep tab_overview's own pace.
 
 ## [0.2.1]
 ### Changed
