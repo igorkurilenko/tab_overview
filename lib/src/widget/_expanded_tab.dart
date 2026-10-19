@@ -76,23 +76,9 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
     _renderPages?.markNeedsLayout();
   }
 
-  // The page view's sliver, found from its own Scrollable.
-  RenderSliverMultiBoxAdaptor? get _renderPages {
-    if (!pageController.hasClients) return null;
-    RenderSliverMultiBoxAdaptor? pages;
-    void visit(RenderObject object) {
-      if (object is RenderSliverMultiBoxAdaptor) {
-        pages = object;
-      } else if (pages == null) {
-        object.visitChildren(visit);
-      }
-    }
-
-    final scrollable = pageController.position.context.notificationContext;
-    final scrollableObject = scrollable?.findRenderObject();
-    if (scrollableObject != null) visit(scrollableObject);
-    return pages;
-  }
+  // The page view's sliver.
+  RenderSliverMultiBoxAdaptor? get _renderPages =>
+      _sliverScrolledBy<RenderSliverMultiBoxAdaptor>(pageController);
 
   @override
   void animateToPage(

@@ -113,24 +113,9 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
     return min(scrollController.position.maxScrollExtent, offset);
   }
 
-  // The grid's sliver, found from the grid's own Scrollable, so as to stay
-  // out of the layer that shows the thumbnails being dragged or moved.
-  RenderSliverGrid? get _renderGrid {
-    RenderSliverGrid? grid;
-    void visit(RenderObject object) {
-      if (object is RenderSliverGrid) {
-        grid = object;
-      } else if (grid == null) {
-        object.visitChildren(visit);
-      }
-    }
-
-    if (!scrollController.hasClients) return null;
-    final scrollable = scrollController.position.context.notificationContext;
-    final scrollableObject = scrollable?.findRenderObject();
-    if (scrollableObject != null) visit(scrollableObject);
-    return grid;
-  }
+  // The grid's sliver.
+  RenderSliverGrid? get _renderGrid =>
+      _sliverScrolledBy<RenderSliverGrid>(scrollController);
 
   // The grid's items. A mode change or a flight rebuilds the rest of the
   // grid, not them: a cell listens to what changes it. Built anew when the
