@@ -69,9 +69,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
            : const _Overview(),
        _model = _TabOverviewModel<T>(initialTabs: initialTabs),
        _activeTab = activeTab ?? initialTabs?.firstOrNull {
-    if (activeTab != null && !(initialTabs?.contains(activeTab) ?? false)) {
-      throw ArgumentError('Tab $activeTab not found');
-    }
+    if (activeTab != null) _entryOrThrow(activeTab);
   }
 
   /// The current display mode of the [TabOverview], either `overview` or `expanded`.
@@ -106,10 +104,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
   set activeTab(T? value) {
     if (_activeTab == value) return;
 
-    final entry = value == null ? null : _model.entryOf(value);
-    if (value != null && entry == null) {
-      throw ArgumentError('Tab $value not found');
-    }
+    final entry = value == null ? null : _entryOrThrow(value);
     final active = _activeTab == null ? null : _model.entryOf(_activeTab as T);
     if (_phase is _ExpandWaiting && entry != null) {
       // An expand waits for its stand-in: it turns to this tab.
@@ -138,6 +133,9 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
       pages?.jumpToPage(_model.indexOfEntry(entry));
     }
   }
+
+  _TabEntry<T> _entryOrThrow(T tab) =>
+      _model.entryOf(tab) ?? (throw ArgumentError('Tab $tab not found'));
 
   void _setActiveTab(T? value) {
     if (_activeTab == value) return;
@@ -201,11 +199,15 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
     _notifyTabAdded(newTab);
 
     activeTab ??= newTab;
-
-    _pages?.jumpToPage(activeIndex!);
-    _pages?.stateChanged();
+    _showPagesAtActiveTab();
 
     return true;
+  }
+
+  // The pages, if built, for the tabs as they are now, at the active tab's.
+  void _showPagesAtActiveTab() {
+    _pages?.jumpToPage(activeIndex!);
+    _pages?.stateChanged();
   }
 
   /// Removes the specified [tab] and animates its removal.
@@ -249,8 +251,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
       if (expanded) _collapseRemoved(removed, duration: duration);
       _setActiveTab(_neighbourOfRemovedTabAt(index));
     } else if (expanded) {
-      _pages?.jumpToPage(activeIndex!);
-      _pages?.stateChanged();
+      _showPagesAtActiveTab();
     }
 
     return removedTab;
@@ -271,7 +272,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
     }
 
     _addStandIn(removed);
-    _doCollapse(
+    _collapseWith(
       removed,
       TabFlight(toPage: false, duration: duration, curve: transition.curve),
     );
@@ -308,10 +309,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
   /// still flying back to its thumbnail turns toward its page from where it
   /// is, over the duration and curve of the flight it's in.
   void expand(T tab, {Duration? duration, Curve? curve}) {
-    final entry = _model.entryOf(tab);
-    if (entry == null) {
-      throw ArgumentError('Tab $tab not found');
-    }
+    final entry = _entryOrThrow(tab);
 
     if (_thumbnails == null) {
       // Before the overview is built, with nothing to fly between: it
@@ -351,7 +349,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
     if (!_thumbnails!.thumbBuilt(tab)) {
       _expandOffScreen(entry, flight);
     } else {
-      _doExpand(entry, flight);
+      _expandWith(entry, flight);
     }
   }
 
@@ -363,8 +361,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
     Duration duration = const Duration(milliseconds: 350),
     Curve curve = Curves.easeInOut,
   }) {
-    final index = _model.indexOfTab(tab);
-    if (index == -1) throw ArgumentError('Tab $tab not found');
+    final index = _model.indexOfEntry(_entryOrThrow(tab));
     scrollToTabAt(index, duration: duration, curve: curve);
   }
 
@@ -450,7 +447,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
     // The stand-in is where the flight lands, which the switch looks for
     // after its frame, so it's there in time.
     if (!_thumbnails!.thumbBuilt(tab)) _addStandIn(entry);
-    _doCollapse(entry, flight);
+    _collapseWith(entry, flight);
   }
 
   /// Disposes resources used by the controller.
@@ -461,11 +458,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
 
     _flights.clear();
 
-    _modeChangedListeners.clear();
-    _activeTabChangedListeners.clear();
-    _tabAddedListeners.clear();
-    _tabRemovedListeners.clear();
-    _tabsReorderedListeners.clear();
+    _clearListeners();
     super.dispose();
   }
 
@@ -491,7 +484,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
       // Taken back, or turned to another tab, in the meantime.
       if (!identical(_phase, waiting)) return;
       _phase = const _Overview();
-      _doExpand(entry, flight);
+      _expandWith(entry, flight);
     });
   }
 
@@ -504,7 +497,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
     }
   }
 
-  void _doExpand(_TabEntry<T> entry, TabFlight flight) {
+  void _expandWith(_TabEntry<T> entry, TabFlight flight) {
     _flights.ask(entry, flight);
     // Collapsed in the same frame, the overview still has the pages, and
     // switches back to them with the page where the collapse left it.
@@ -527,7 +520,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
     _switchTo(const _Overview());
   }
 
-  void _doCollapse(_TabEntry<T> entry, TabFlight flight) {
+  void _collapseWith(_TabEntry<T> entry, TabFlight flight) {
     _flights.ask(entry, flight);
 
     _switchTo(const _Overview());
@@ -660,6 +653,14 @@ mixin _Listeners<T> on ChangeNotifier {
 
   void removeTabsReorderedListener(TabsReorderedListener listener) =>
       _tabsReorderedListeners.remove(listener);
+
+  void _clearListeners() {
+    _modeChangedListeners.clear();
+    _activeTabChangedListeners.clear();
+    _tabAddedListeners.clear();
+    _tabRemovedListeners.clear();
+    _tabsReorderedListeners.clear();
+  }
 
   void _notifyModeChanged(TabOverviewMode mode) {
     for (var listener in _modeChangedListeners) {

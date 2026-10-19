@@ -32,7 +32,7 @@ class _TabThumbnailsGrid<T> extends StatefulWidget {
 }
 
 class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
-    with HeroTabHelper
+    with HeroTabHelper, _TabHeroes<T>
     implements _ThumbnailsView<T> {
   final thumbsGridKey = GlobalKey<AnimatedReorderableState>();
   final scrollController = ScrollController();
@@ -68,6 +68,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
 
   TabOverview<T> get overview => widget.overview;
 
+  @override
   TabOverviewController<T> get controller => overview.controller;
 
   AnimatedReorderableState? get thumbsGridState => thumbsGridKey.currentState;
@@ -92,11 +93,8 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
 
   static final _notPulled = ValueNotifier<double>(0);
 
-  Duration? get activeTabHeroAnimationDuration =>
-      controller._flights.of(controller.activeTab)?.duration;
-
-  Curve? get activeTabHeroAnimationCurve =>
-      controller._flights.of(controller.activeTab)?.curve;
+  // The active tab's flight, while it flies.
+  TabFlight? get _activeFlight => controller._flights.of(controller.activeTab);
 
   // The scroll offset of the thumb at [index] in the grid as last laid out,
   // up to how far the grid scrolls.
@@ -112,24 +110,9 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
     return min(scrollController.position.maxScrollExtent, offset);
   }
 
-  // The grid's sliver, found from the grid's own Scrollable, so as to stay
-  // out of the layer that shows the thumbnails being dragged or moved.
-  RenderSliverGrid? get _renderGrid {
-    RenderSliverGrid? grid;
-    void visit(RenderObject object) {
-      if (object is RenderSliverGrid) {
-        grid = object;
-      } else if (grid == null) {
-        object.visitChildren(visit);
-      }
-    }
-
-    if (!scrollController.hasClients) return null;
-    final scrollable = scrollController.position.context.notificationContext;
-    final scrollableObject = scrollable?.findRenderObject();
-    if (scrollableObject != null) visit(scrollableObject);
-    return grid;
-  }
+  // The grid's sliver.
+  RenderSliverGrid? get _renderGrid =>
+      _sliverScrolledBy<RenderSliverGrid>(scrollController);
 
   // The grid's items. A mode change or a flight rebuilds the rest of the
   // grid, not them: a cell listens to what changes it. Built anew when the
@@ -280,14 +263,15 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
   // it back as far as the page is pulled, at once: the grid follows the
   // pull, and a collapse let go of carries on from where the pull left it.
   Widget _buildZoom(double pulled, Widget items) {
+    final flight = _activeFlight;
     final followsPull = controller.expanded && pulled > 0;
     final duration = followsPull
         ? Duration.zero
-        : activeTabHeroAnimationDuration ?? controller.transition.duration;
+        : flight?.duration ?? controller.transition.duration;
     return AnimatedScale(
       scale: thumbsGridScale(pulled),
       duration: duration,
-      curve: activeTabHeroAnimationCurve ?? controller.transition.curve,
+      curve: flight?.curve ?? controller.transition.curve,
       child: AnimatedOpacity(
         opacity: thumbsGridOpacity(pulled),
         duration: duration,
@@ -375,11 +359,8 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
     Animation<double> presence,
   ) {
     final tab = entry.tab;
-    if (controller.isTabExpanded(tab)) {
-      return const SizedBox.shrink();
-    }
-
-    if (entry.hasStandIn) {
+    // The tab shows on its page, or its stand-in shows for it.
+    if (controller.isTabExpanded(tab) || entry.hasStandIn) {
       return const SizedBox.shrink();
     }
 
@@ -391,40 +372,10 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
 
     return Stack(
       children: [
-        Positioned.fill(child: _buildThumbHero(thumb, entry)),
+        Positioned.fill(child: tabHero(entry, onPage: false, child: thumb)),
         if (overview._isRemovable(tab))
-          _buildThumbRemoveButtonHero(removeButton, entry),
+          removeButtonHero(entry, onPage: false, child: removeButton),
       ],
-    );
-  }
-
-  Widget _buildThumbHero(Widget thumb, _TabEntry<T> entry) {
-    return HeroHere(
-      tag: tabHeroTag(entry),
-      key: tabThumbHeroKey(entry),
-      flightRedirect: HeroHereFlightRedirect.divert,
-      flightAnimationControllerFactory: (vsync, duration) =>
-          controller._flights.createController(entry, vsync, toPage: false),
-      flightAnimationFactory: (animationController) =>
-          controller._flights.createAnimation(entry, animationController),
-      forwardFlightAnimation: (animationController, {from}) =>
-          controller._flights.run(entry, animationController, from: from),
-      child: thumb,
-    );
-  }
-
-  Widget _buildThumbRemoveButtonHero(Widget removeButton, _TabEntry<T> entry) {
-    return HeroHere(
-      tag: removeButtonHeroTag(entry),
-      key: tabThumbRemoveButtonHeroKey(entry),
-      flightRedirect: HeroHereFlightRedirect.divert,
-      flightAnimationControllerFactory: (vsync, duration) =>
-          controller._flights.createButtonController(entry, vsync),
-      flightAnimationFactory: (animationController) =>
-          controller._flights.createButtonAnimation(entry, animationController),
-      forwardFlightAnimation: (animationController, {from}) =>
-          controller._flights.runButton(entry, animationController, from: from),
-      child: removeButton,
     );
   }
 
@@ -470,7 +421,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
       entry: entry,
       builder: (context) => HeroMode(
         enabled: !controller.isTabExpanded(tab),
-        child: _buildThumbHero(thumb, entry),
+        child: tabHero(entry, onPage: false, child: thumb),
       ),
     );
   }

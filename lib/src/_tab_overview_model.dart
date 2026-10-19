@@ -68,18 +68,15 @@ class _TabOverviewModel<T> {
 
   void reorderTabs(Permutations permutations) => permutations.apply(_entries);
 
-  bool addStandIn(_TabEntry<T> entry) => _changeStandIn(entry, true);
+  void addStandIn(_TabEntry<T> entry) => _changeStandIn(entry, true);
 
-  bool hasStandIn(_TabEntry<T> entry) => entry.hasStandIn;
+  void removeStandIn(_TabEntry<T> entry) => _changeStandIn(entry, false);
 
-  bool removeStandIn(_TabEntry<T> entry) => _changeStandIn(entry, false);
-
-  bool _changeStandIn(_TabEntry<T> entry, bool hasStandIn) {
+  void _changeStandIn(_TabEntry<T> entry, bool hasStandIn) {
     final changed = hasStandIn ? _standIns.add(entry) : _standIns.remove(entry);
-    if (!changed) return false;
+    if (!changed) return;
     entry.hasStandIn = hasStandIn;
     standInsChanged.notify();
-    return true;
   }
 }
 

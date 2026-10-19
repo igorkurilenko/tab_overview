@@ -24,7 +24,7 @@ class _ExpandedTab<T> extends StatefulWidget {
 }
 
 class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
-    with HeroTabHelper
+    with HeroTabHelper, _TabHeroes<T>
     implements _PagesView {
   late final PageController pageController;
 
@@ -32,6 +32,7 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
 
   TabOverview<T> get overview => widget.overview;
 
+  @override
   TabOverviewController<T> get controller => overview.controller;
 
   @override
@@ -75,23 +76,9 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
     _renderPages?.markNeedsLayout();
   }
 
-  // The page view's sliver, found from its own Scrollable.
-  RenderSliverMultiBoxAdaptor? get _renderPages {
-    if (!pageController.hasClients) return null;
-    RenderSliverMultiBoxAdaptor? pages;
-    void visit(RenderObject object) {
-      if (object is RenderSliverMultiBoxAdaptor) {
-        pages = object;
-      } else if (pages == null) {
-        object.visitChildren(visit);
-      }
-    }
-
-    final scrollable = pageController.position.context.notificationContext;
-    final scrollableObject = scrollable?.findRenderObject();
-    if (scrollableObject != null) visit(scrollableObject);
-    return pages;
-  }
+  // The page view's sliver.
+  RenderSliverMultiBoxAdaptor? get _renderPages =>
+      _sliverScrolledBy<RenderSliverMultiBoxAdaptor>(pageController);
 
   @override
   void animateToPage(
@@ -150,34 +137,11 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
 
     return Stack(
       children: [
-        Positioned.fill(
-          child: HeroHere(
-            tag: tabHeroTag(entry),
-            key: expandedTabHeroKey(entry),
-            flightRedirect: HeroHereFlightRedirect.divert,
-            flightAnimationControllerFactory: (vsync, duration) => controller
-                ._flights
-                .createController(entry, vsync, toPage: true),
-            flightAnimationFactory: (animationController) =>
-                controller._flights.createAnimation(entry, animationController),
-            forwardFlightAnimation: (animationController, {from}) =>
-                controller._flights.run(entry, animationController, from: from),
-            child: tabWidget,
-          ),
-        ),
+        Positioned.fill(child: tabHero(entry, onPage: true, child: tabWidget)),
         if (overview._isRemovable(tab))
-          HeroHere(
-            tag: removeButtonHeroTag(entry),
-            key: expandedTabRemoveButtonHeroKey(entry),
-            flightRedirect: HeroHereFlightRedirect.divert,
-            flightAnimationControllerFactory: (vsync, duration) =>
-                controller._flights.createButtonController(entry, vsync),
-            flightAnimationFactory: (animationController) => controller._flights
-                .createButtonAnimation(entry, animationController),
-            forwardFlightAnimation: (animationController, {from}) => controller
-                ._flights
-                .runButton(entry, animationController, from: from),
-            flightShuttleBuilder: _buildRemoveButtonHeroFlightShuttle,
+          removeButtonHero(
+            entry,
+            onPage: true,
             child: IgnorePointer(
               ignoring: true,
               child: Opacity(
@@ -189,19 +153,4 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
       ],
     );
   }
-
-  Widget _buildRemoveButtonHeroFlightShuttle(
-    BuildContext flightContext,
-    Animation<double> animation,
-    HeroHere fromHero,
-    HeroHere toHero,
-  ) => Stack(
-    children: [
-      FadeTransition(
-        opacity: ReverseAnimation(animation),
-        child: fromHero.child,
-      ),
-      FadeTransition(opacity: animation, child: toHero.child),
-    ],
-  );
 }

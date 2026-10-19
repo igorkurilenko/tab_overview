@@ -40,6 +40,27 @@ abstract interface class _ThumbnailsView<T> {
   void jumpToThumb(T tab);
 }
 
+/// The first sliver of type [S] found under the Scrollable that
+/// [controller] scrolls, if it's attached. Found from the Scrollable itself,
+/// so as to stay out of any layer drawn over it, such as the one that shows
+/// the thumbnails being dragged or moved.
+S? _sliverScrolledBy<S extends RenderSliver>(ScrollController controller) {
+  S? sliver;
+  void visit(RenderObject object) {
+    if (object is S) {
+      sliver = object;
+    } else if (sliver == null) {
+      object.visitChildren(visit);
+    }
+  }
+
+  if (!controller.hasClients) return null;
+  final scrollable = controller.position.context.notificationContext;
+  final scrollableObject = scrollable?.findRenderObject();
+  if (scrollableObject != null) visit(scrollableObject);
+  return sliver;
+}
+
 /// What the controller asks of the overview's pages, the expanded tabs.
 /// They attach themselves to the controller while they're built.
 abstract interface class _PagesView {
