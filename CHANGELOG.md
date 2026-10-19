@@ -1,6 +1,9 @@
 # Changelog
 
 ## [0.2.3]
+### Added
+- `TabOverviewController.addRemoveTransition` and `scrollTransition` set how tabs are added and removed, and how the overview scrolls to a tab, for every call that doesn't say otherwise, as `transition` does for expanding and collapsing. `add`, `remove`, `removeAt`, `scrollToTab` and `scrollToTabAt` take a nullable `duration`, and `add`, `remove` and `removeAt` a `curve` too, which override them. The defaults are as before: 350 ms, linear, for adding and removing, and 350 ms along `easeInOut` for scrolling.
+
 ### Fixed
 - On Android, a list pulled from its top to collapse its tab no longer stretches or glows with its own overscroll as the page moves. A fling into the top, which pulls nothing, still shows it.
 

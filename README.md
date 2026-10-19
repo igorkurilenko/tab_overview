@@ -162,12 +162,13 @@ class Tab {
 
 - **TabOverview**: The widget that shows the tabs, as a grid of thumbnails or as the expanded tab's page.
 - **TabOverviewController**: Holds the tabs, the active tab and the mode, and animates the changes:
-  - `add` and `remove` return whether they changed anything. `removeAt` removes the tab at an index.
+  - `add` and `remove` return whether they changed anything. `removeAt` removes the tab at an index. Each takes an optional `duration` and `curve`, which override the controller's `addRemoveTransition`.
+  - `scrollToTab` and `scrollToTabAt` scroll to a tab, over the controller's `scrollTransition` unless a call says otherwise.
   - `expand`, `expandAt`, `collapse` and `toggleMode` switch the mode. Each takes an optional `duration` and `curve`, which override the controller's `transition`.
   - `activeTab` is the tab the expanded view shows, and `activeIndex` is its index, or `null`.
   - `isTransitioning` tells whether a tab is flying between its thumbnail and its page.
   - It's a `ChangeNotifier`, and also has typed listeners for each kind of change.
-- **TabTransition**: How long an animation takes, and how it eases. The controller's `transition` sets it for expanding and collapsing. The widget's `thumbnailsMotion` sets it for thumbnails moving in the grid.
+- **TabTransition**: How long an animation takes, and how it eases. The controller's `transition` sets it for expanding and collapsing, its `addRemoveTransition` for adding and removing tabs, and its `scrollTransition` for scrolling to a tab. The widget's `thumbnailsMotion` sets it for thumbnails moving in the grid.
 - **FittedTab**: Shows a tab's content scaled down to fit a thumbnail, as the default thumbnail does.
 - **RemoveTabButton**: The default remove button. Use it in a `removeTabButtonBuilder` to keep its look and do something else when it's pressed.
 
@@ -221,6 +222,18 @@ final controller = TabOverviewController<Tab>(
 ```
 
 A call can still pass its own `duration` and `curve`, as in `controller.expand(tab, duration: ...)`. Thumbnails moving to new places in the grid follow the widget's `thumbnailsMotion`.
+
+Tabs added and removed scale and fade in and out over 350 ms, linearly, and scrolling to a tab takes 350 ms along `Curves.easeInOut`. The controller's `addRemoveTransition` and `scrollTransition` change those everywhere, and a call to `add`, `remove`, `removeAt`, `scrollToTab` or `scrollToTabAt` can pass its own:
+
+```dart
+final controller = TabOverviewController<Tab>(
+  addRemoveTransition: const TabTransition(
+    duration: Duration(milliseconds: 250),
+    curve: Curves.easeOut,
+  ),
+  scrollTransition: const TabTransition(duration: Duration(milliseconds: 500)),
+);
+```
 
 ### Pull to Collapse
 

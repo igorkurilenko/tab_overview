@@ -51,14 +51,18 @@ class _TabOverviewModel<T> {
   /// The key of the grid's item for the tab at [index].
   Key keyAt(int index) => _entries[index].key;
 
-  void addTab(T tab, {required Duration duration}) {
-    final entry = _TabEntry(tab);
+  void addTab(T tab, {required Duration duration, required Curve curve}) {
+    final entry = _TabEntry(tab)..presenceCurve = curve;
     _entries.add(entry);
     _thumbnails?.addTab(entry, duration: duration);
   }
 
-  _TabEntry<T> removeAt(int index, {required Duration duration}) {
-    final removed = _entries.removeAt(index);
+  _TabEntry<T> removeAt(
+    int index, {
+    required Duration duration,
+    required Curve curve,
+  }) {
+    final removed = _entries.removeAt(index)..presenceCurve = curve;
     _thumbnails?.removeTab(index, removed, duration: duration);
 
     return removed;
@@ -100,6 +104,10 @@ class _TabEntry<T> extends ChangeNotifier {
   /// The tab's add or remove animation while it runs, which the tab's page
   /// and stand-in scale and fade with. Grid items get their own.
   Animation<double>? presence;
+
+  /// The curve the tab's last add or remove animation scales and fades it
+  /// along.
+  Curve presenceCurve = Curves.linear;
 
   /// How far the tab's page is pulled toward collapsing it, from 0 to 1.
   ///
