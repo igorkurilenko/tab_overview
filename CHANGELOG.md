@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.2.5]
+### Fixed
+- With hero_here 2.1.1 or later, a tab whose thumbnail is off screen flies in from the overview's edge again as it expands. Its page showed at once, and its expand never ended: `isTransitioning` stayed true until the tab collapsed, and the grid didn't scroll to the tab, so removing it collapsed the overview to where the grid was rather than to its neighbour. The grid hid the tab's stand-in under a disabled `HeroMode`, which hero_here 2.1.1 leaves out of flights, as Flutter's `HeroMode` does. It now removes it.
+
 ## [0.2.4]
 ### Added
 - A screen reader can move a thumbnail up or down a row, as well as left, right, and to the start or end of the grid. It comes with animated_reorderable 2.5.0, which this release requires.
