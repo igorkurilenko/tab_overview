@@ -677,10 +677,13 @@ mixin _Listeners<T> on ChangeNotifier {
   void _notifyTabsReordered() =>
       _notify(_tabsReorderedListeners, (listener) => listener());
 
-  // Calls each of [listeners], then the ChangeNotifier's.
+  // Calls each of [listeners], then the ChangeNotifier's. A listener may
+  // add or remove listeners, itself too, as a ChangeNotifier's may: those
+  // there as the change happens are called, unless removed before their
+  // turn, and those added wait for the next change.
   void _notify<L>(List<L> listeners, void Function(L listener) call) {
-    for (var listener in listeners) {
-      call(listener);
+    for (final listener in List.of(listeners)) {
+      if (listeners.contains(listener)) call(listener);
     }
     notifyListeners();
   }
