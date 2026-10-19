@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tab_overview/tab_overview.dart';
 
@@ -60,4 +61,71 @@ void main() {
       expect(farthest, lessThan(slot / 4));
     });
   }
+
+  testWidgets('a screen reader moves a thumbnail up and down a row', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    tester.view.devicePixelRatio = 1;
+    // 3 columns.
+    tester.view.physicalSize = const Size(800, 600);
+    addTearDown(tester.view.reset);
+    final controller = TabOverviewController<int>(
+      initialTabs: List.generate(9, (i) => i),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: TabOverview<int>.builder(
+          controller: controller,
+          tabBuilder: (context, tab) => ColoredBox(
+            color: Colors.white,
+            child: Center(child: Text('T$tab')),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // The thumbnail's moves by label, each with the node that holds it.
+    Map<String, (int node, int action)> moves(int tab) {
+      SemanticsNode? node = tester.getSemantics(find.text('T$tab'));
+      while (node != null) {
+        final holder = node;
+        final ids = holder.getSemanticsData().customSemanticsActionIds ?? [];
+        if (ids.isNotEmpty) {
+          return {
+            for (final id in ids)
+              CustomSemanticsAction.getAction(id)!.label!: (holder.id, id),
+          };
+        }
+        node = holder.parent;
+      }
+      return {};
+    }
+
+    Future<void> move(int tab, String label) async {
+      final (node, action) = moves(tab)[label]!;
+      tester.binding.performSemanticsAction(
+        SemanticsActionEvent(
+          type: SemanticsAction.customAction,
+          viewId: tester.view.viewId,
+          nodeId: node,
+          arguments: action,
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    expect(moves(4).keys, containsAll(['Move up', 'Move down']));
+    expect(moves(1).keys, isNot(contains('Move up')));
+    expect(moves(7).keys, isNot(contains('Move down')));
+
+    await move(4, 'Move up');
+    expect(controller.tabs, [0, 4, 1, 2, 3, 5, 6, 7, 8]);
+
+    await move(4, 'Move down');
+    expect(controller.tabs, [0, 1, 2, 3, 4, 5, 6, 7, 8]);
+
+    semantics.dispose();
+  });
 }

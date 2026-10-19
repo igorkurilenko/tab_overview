@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.2.4]
+### Added
+- A screen reader can move a thumbnail up or down a row, as well as left, right, and to the start or end of the grid. It comes with animated_reorderable 2.5.0, which this release requires.
+
 ## [0.2.3]
 ### Added
 - `TabOverviewController.addRemoveTransition` and `scrollTransition` set how tabs are added and removed, and how the overview scrolls to a tab, for every call that doesn't say otherwise, as `transition` does for expanding and collapsing. `add`, `remove`, `removeAt`, `scrollToTab` and `scrollToTabAt` take a nullable `duration`, and `add`, `remove` and `removeAt` a `curve` too, which override them. The defaults are as before: 350 ms, linear, for adding and removing, and 350 ms along `easeInOut` for scrolling.
