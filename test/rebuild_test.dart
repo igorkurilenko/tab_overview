@@ -45,4 +45,31 @@ void main() {
       await expectOnEveryFrame(tester, find.byType(PageView));
     });
   });
+
+  testWidgets('a thumbnail shows what its builder builds when the parent '
+      'rebuilds', (tester) async {
+    late StateSetter rebuildParent;
+    var label = 'T';
+    final controller = TabOverviewController<int>(initialTabs: [0, 1, 2]);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: StatefulBuilder(
+          builder: (context, setState) {
+            rebuildParent = setState;
+            return TabOverview<int>.builder(
+              controller: controller,
+              tabBuilder: (context, tab) => Center(child: Text('$label$tab')),
+            );
+          },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    rebuildParent(() => label = 'U');
+    await tester.pumpAndSettle();
+
+    expect(find.text('U1'), findsOneWidget);
+    expect(find.text('T1'), findsNothing);
+  });
 }

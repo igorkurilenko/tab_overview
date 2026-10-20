@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.6]
+### Changed
+- Removing a tab, swiping it away or dragging it past others builds no other tab's thumbnail. The tabs that moved up into its place, and those a dragged tab passed, were built again, though only their place changed. Resizing the overview builds no thumbnail again either; wider than 600 pixels, it built every visible one on each frame of a window resize or of the keyboard opening. With thumbnails of 30-row lists, in a macOS profile build, the frame a tab is swiped away or removed on takes about 8 ms rather than 28. A thumbnail still builds again when the overview does, and when anything it depends on changes.
+
+### Fixed
+- A removed tab's thumbnail keeps its state as it fades out, whether it was removed or swiped away. It was built anew, so a thumbnail with state of its own, such as a video, started over as it went.
+- A tab swiped away flies off at the speed it's let go at, and a slow swipe speeds up evenly to leave in a quarter of a second. It stood still for a frame as it was let go, went on at two to eight times the finger's speed, and slowed down on its way out. A tab swiped from the grid's right column flies over the tabs beside it, too, rather than dropping under them. Fixed in animated_reorderable 2.6.1, which this release requires.
+
 ## [0.2.5]
 ### Fixed
 - With hero_here 2.1.1 or later, a tab whose thumbnail is off screen flies in from the overview's edge again as it expands. Its page showed at once, and its expand never ended: `isTransitioning` stayed true until the tab collapsed, and the grid didn't scroll to the tab, so removing it collapsed the overview to where the grid was rather than to its neighbour. The grid hid the tab's stand-in under a disabled `HeroMode`, which hero_here 2.1.1 leaves out of flights, as Flutter's `HeroMode` does. It now removes it.

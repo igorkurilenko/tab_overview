@@ -119,6 +119,13 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
   // overview, or the delegate for its size, does.
   Widget? _items;
 
+  // Each tab's cell, by its entry. The grid gets the same widget each time
+  // it builds a tab, so a tab that only moves to another index, as the tabs
+  // after a removed one do, and those a dragged tab passes, doesn't build
+  // again. Nor does a resize, which brings a new delegate. Built anew when
+  // the overview is, as what a cell builds may change with it.
+  var _cells = Expando<Widget>();
+
   @override
   void initState() {
     super.initState();
@@ -133,10 +140,19 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
       oldController._detachThumbnails(this);
       controller._attachThumbnails(this);
     }
+    if (widget.overview != oldWidget.overview) _cells = Expando();
     if (widget.overview != oldWidget.overview ||
         widget.gridDelegate != oldWidget.gridDelegate) {
       _items = null;
     }
+  }
+
+  // A hot reload may change what a cell builds, with the same overview.
+  @override
+  void reassemble() {
+    super.reassemble();
+    _items = null;
+    _cells = Expando();
   }
 
   @override
@@ -204,11 +220,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
   }) {
     thumbsGridState!.removeItem(
       index,
-      (context, animation) => _ItemPresence(
-        animation: animation,
-        endsAt: AnimationStatus.dismissed,
-        child: _buildThumb(context, removed),
-      ),
+      (context, animation) => _buildThumb(removed, removal: animation),
       duration: duration,
     );
     _relayoutGrid();
@@ -311,8 +323,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
         padding: overview.thumbnailsGridPadding,
         gridDelegate: widget.gridDelegate,
         itemCount: model.tabCount,
-        itemBuilder: (context, index) =>
-            _buildThumb(context, model.entryAt(index)),
+        itemBuilder: (context, index) => _cellOf(model.entryAt(index)),
       ),
     ),
   );
@@ -330,7 +341,12 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
     child: child,
   );
 
-  Widget _buildThumb(BuildContext context, _TabEntry<T> entry) =>
+  Widget _cellOf(_TabEntry<T> entry) => _cells[entry] ??= _buildThumb(entry);
+
+  // A removed tab's cell is the same widget as a live tab's, given its
+  // [removal] animation rather than wrapped in another widget, so what it
+  // shows keeps its State as it goes.
+  Widget _buildThumb(_TabEntry<T> entry, {Animation<double>? removal}) =>
       _TabCellBuilder<T>(
         controller: controller,
         entry: entry,
@@ -338,17 +354,16 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
           // The thumb's add or remove animation, while it runs, which the
           // tab's page and stand-in scale and fade with too.
           final presence = _ItemPresence.maybeOf(context);
-          if (presence != null) {
-            controller._trackTabPresence(
-              entry,
-              presence.animation,
-              endsAt: presence.endsAt,
-            );
+          final (animation, endsAt) = removal != null
+              ? (removal, AnimationStatus.dismissed)
+              : (presence?.animation, presence?.endsAt);
+          if (animation != null && endsAt != null) {
+            controller._trackTabPresence(entry, animation, endsAt: endsAt);
           }
           return _buildThumbOrEmptyCell(
             context,
             entry,
-            presence?.animation ?? kAlwaysCompleteAnimation,
+            animation ?? kAlwaysCompleteAnimation,
           );
         },
       );
