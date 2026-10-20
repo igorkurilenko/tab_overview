@@ -204,11 +204,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
   }) {
     thumbsGridState!.removeItem(
       index,
-      (context, animation) => _ItemPresence(
-        animation: animation,
-        endsAt: AnimationStatus.dismissed,
-        child: _buildThumb(context, removed),
-      ),
+      (context, animation) => _buildThumb(removed, removal: animation),
       duration: duration,
     );
     _relayoutGrid();
@@ -311,8 +307,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
         padding: overview.thumbnailsGridPadding,
         gridDelegate: widget.gridDelegate,
         itemCount: model.tabCount,
-        itemBuilder: (context, index) =>
-            _buildThumb(context, model.entryAt(index)),
+        itemBuilder: (context, index) => _buildThumb(model.entryAt(index)),
       ),
     ),
   );
@@ -330,7 +325,10 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
     child: child,
   );
 
-  Widget _buildThumb(BuildContext context, _TabEntry<T> entry) =>
+  // A removed tab's cell is the same widget as a live tab's, given its
+  // [removal] animation rather than wrapped in another widget, so what it
+  // shows keeps its State as it goes.
+  Widget _buildThumb(_TabEntry<T> entry, {Animation<double>? removal}) =>
       _TabCellBuilder<T>(
         controller: controller,
         entry: entry,
@@ -338,17 +336,16 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
           // The thumb's add or remove animation, while it runs, which the
           // tab's page and stand-in scale and fade with too.
           final presence = _ItemPresence.maybeOf(context);
-          if (presence != null) {
-            controller._trackTabPresence(
-              entry,
-              presence.animation,
-              endsAt: presence.endsAt,
-            );
+          final (animation, endsAt) = removal != null
+              ? (removal, AnimationStatus.dismissed)
+              : (presence?.animation, presence?.endsAt);
+          if (animation != null && endsAt != null) {
+            controller._trackTabPresence(entry, animation, endsAt: endsAt);
           }
           return _buildThumbOrEmptyCell(
             context,
             entry,
-            presence?.animation ?? kAlwaysCompleteAnimation,
+            animation ?? kAlwaysCompleteAnimation,
           );
         },
       );
