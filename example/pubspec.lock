@@ -5,10 +5,10 @@ packages:
     dependency: transitive
     description:
       name: animated_reorderable
-      sha256: af66406c0533e24c18dd369751b2893d5064c31592c8dd08a165d5a40c0ef311
+      sha256: e58aee0b89d655531268162062e739abb490773019aaeb385b448be6617f6ac2
       url: "https://pub.dev"
     source: hosted
-    version: "2.5.0"
+    version: "2.6.1"
   async:
     dependency: transitive
     description:
