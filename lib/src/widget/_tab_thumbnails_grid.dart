@@ -119,6 +119,13 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
   // overview, or the delegate for its size, does.
   Widget? _items;
 
+  // Each tab's cell, by its entry. The grid gets the same widget each time
+  // it builds a tab, so a tab that only moves to another index, as the tabs
+  // after a removed one do, and those a dragged tab passes, doesn't build
+  // again. Nor does a resize, which brings a new delegate. Built anew when
+  // the overview is, as what a cell builds may change with it.
+  var _cells = Expando<Widget>();
+
   @override
   void initState() {
     super.initState();
@@ -133,10 +140,19 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
       oldController._detachThumbnails(this);
       controller._attachThumbnails(this);
     }
+    if (widget.overview != oldWidget.overview) _cells = Expando();
     if (widget.overview != oldWidget.overview ||
         widget.gridDelegate != oldWidget.gridDelegate) {
       _items = null;
     }
+  }
+
+  // A hot reload may change what a cell builds, with the same overview.
+  @override
+  void reassemble() {
+    super.reassemble();
+    _items = null;
+    _cells = Expando();
   }
 
   @override
@@ -307,7 +323,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
         padding: overview.thumbnailsGridPadding,
         gridDelegate: widget.gridDelegate,
         itemCount: model.tabCount,
-        itemBuilder: (context, index) => _buildThumb(model.entryAt(index)),
+        itemBuilder: (context, index) => _cellOf(model.entryAt(index)),
       ),
     ),
   );
@@ -324,6 +340,8 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
     endsAt: AnimationStatus.completed,
     child: child,
   );
+
+  Widget _cellOf(_TabEntry<T> entry) => _cells[entry] ??= _buildThumb(entry);
 
   // A removed tab's cell is the same widget as a live tab's, given its
   // [removal] animation rather than wrapped in another widget, so what it
