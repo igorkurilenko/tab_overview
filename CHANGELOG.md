@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.7]
+### Changed
+- A tab swiped away flies off as it is when let go, rather than shrinking and fading out over `addRemoveTransition`, and its thumbnail isn't built again as it goes. A tab removed with its remove button, `remove` or `removeAt` still scales and fades out. `addRemoveTransition`'s docs and the README now say so. From animated_reorderable 2.7.0.
+- A thumbnail let go short of its place, after a short swipe or a drag, springs back smoothly: it speeds up over its first frames, rather than standing still for a frame and then jumping off, and lands sooner. Let go at rest 60 pixels from its place, it's within half a pixel of it after about 270 ms rather than 350. One flicked fast at its place stops there in 50 to 100 ms rather than 210 to 290, and its lift, which enlarges it a little and makes it see-through, drops back as it lands, in about 100 ms rather than 250. From animated_reorderable 2.8.0, which this release requires.
+
 ## [0.2.6]
 ### Changed
 - Removing a tab, swiping it away or dragging it past others builds no other tab's thumbnail. The tabs that moved up into its place, and those a dragged tab passed, were built again, though only their place changed. Resizing the overview builds no thumbnail again either; wider than 600 pixels, it built every visible one on each frame of a window resize or of the keyboard opening. With thumbnails of 30-row lists, in a macOS profile build, the frame a tab is swiped away or removed on takes about 8 ms rather than 28. A thumbnail still builds again when the overview does, and when anything it depends on changes.
