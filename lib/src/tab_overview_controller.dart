@@ -53,6 +53,10 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
   /// [add], [remove] or [removeAt] says otherwise: 350 ms, linear, by
   /// default. A removal runs the curve backward, from 1 to 0.
   ///
+  /// A tab swiped away doesn't scale or fade: it flies off as it is when let
+  /// go, at the speed it's let go at, speeding up evenly if it would
+  /// otherwise take more than a quarter of a second to get out of sight.
+  ///
   /// The expanded tab, removed, flies to its thumbnail's place for as long,
   /// along [transition]'s curve.
   final TabTransition addRemoveTransition;

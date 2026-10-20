@@ -212,6 +212,8 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
     _relayoutGrid();
   }
 
+  // A tab swiped away skips the builder: animated_reorderable flies its
+  // thumb off as it is.
   @override
   void removeTab(
     int index,
