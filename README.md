@@ -235,6 +235,8 @@ final controller = TabOverviewController<Tab>(
 );
 ```
 
+A tab swiped away doesn't scale or fade, whatever `addRemoveTransition` says: it flies off as it is when let go, at the speed it's let go at, speeding up evenly if it would otherwise take more than a quarter of a second to get out of sight.
+
 ### Pull to Collapse
 
 With `pullToCollapse: true`, the expanded tab can be pulled down to collapse it, as in hero_here's show details example. It's pulled from the top of its vertical scroll view, or from anywhere on a tab without one. As it's pulled, it shrinks and its corners round toward `thumbnailDecoration`'s. Let go once it's pulled 50 pixels, or while it moves down fast, and it collapses into its thumbnail from where it is, at the speed it had. Otherwise it goes back.
