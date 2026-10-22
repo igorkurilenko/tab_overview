@@ -1,8 +1,16 @@
-`TabOverview` is a Flutter package that provides a visually rich tab management interface with both overview and expandable views. It supports smooth animations, custom styling, and flexible layouts, making it ideal for multi-tabbed applications where users can browse, reorder, and remove tabs seamlessly.
+<h1 align="center">tab_overview: Tab switcher for Flutter</h1>
 
-<p>
-  <img src="https://github.com/igorkurilenko/tab_overview/blob/main/assets/tab_overview.gif?raw=true"
-    alt="The hero_here basic example" width="180"/>
+<p align="center">Like Flutter's <code>TabBarView</code>, but with every tab shown at once as a live thumbnail that zooms into its page.</p>
+
+<p align="center">
+  <a href="#installation">Get started ›</a>&emsp;<a href="https://pub.dev/packages/tab_overview/example">See the example ›</a>
+</p>
+
+tab_overview is a Flutter package for a tab switcher: the tabs your app keeps open, such as chats, documents or forms, show as live thumbnails in a grid, and a tap zooms one into a full page. Swipe between the pages, then zoom back out to the grid with a button, or by pulling the page down with `pullToCollapse`. Drag a thumbnail to reorder the tabs, and swipe it away or tap its close button to close it. Flutter's `TabBar` switches between a row of tabs; tab_overview is for multiple tabs that people add, close and reorder as they go, as in the tab overview of Safari or the tab switcher of Chrome. Its zoom is a hero animation within the same page, from [hero_here](https://pub.dev/packages/hero_here), and its grid reorders with [animated_reorderable](https://pub.dev/packages/animated_reorderable).
+
+<p align="center">
+  <img src="https://github.com/igorkurilenko/tab_overview/blob/main/assets/tab_overview_tab_switcher.webp?raw=true"
+    alt="Flutter tab switcher: a tap zooms a thumbnail into its page, a swipe turns to the next one, and a pull down zooms back out to the grid; + adds a tab, a drag takes it to the front, and a swipe closes it" width="220"/>
 </p>
 
 ## Features

@@ -70,7 +70,7 @@ class _TabOverviewModel<T> {
 
   T operator [](int index) => _entries[index].tab;
 
-  void reorderTabs(Permutations permutations) => permutations.apply(_entries);
+  void reorderTabs(ItemMoves moves) => moves.apply(_entries);
 
   void addStandIn(_TabEntry<T> entry) => _changeStandIn(entry, true);
 

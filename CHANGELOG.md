@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.2.8]
+### Changed
+- Require animated_reorderable 2.9.0, and reorder tabs with its `ItemMoves` rather than `Permutations`, which 2.9.0 deprecates. pub.dev's analysis counted each use of `Permutations` as an issue, which cost the package 10 of its 160 points.
+
+### Docs
+- Describe the package in the words people search for. Its description now says it's a tab switcher with live thumbnails, which show the tabs an app keeps open in a grid and zoom into full pages, and it has the topics tabs, transition, animation, drag-and-drop and reorderable. The pubspec now gives the GitHub repository as its `repository` rather than its `homepage`.
+- Head the README with "Tab switcher for Flutter", and open it with what the package does, in place of a paragraph about a "visually rich tab management interface".
+- Show the example in the README as a recording in a phone frame: an animated WebP at 60 fps, centered, in place of a GIF with the debug banner. Its alt text describes it rather than calling it "The hero_here basic example". The README's recordings load from GitHub, so a `.pubignore` keeps `assets/` out of the package.
+
 ## [0.2.7]
 ### Changed
 - A tab swiped away flies off as it is when let go, rather than shrinking and fading out over `addRemoveTransition`, and its thumbnail isn't built again as it goes. A tab removed with its remove button, `remove` or `removeAt` still scales and fades out. `addRemoveTransition`'s docs and the README now say so. From animated_reorderable 2.7.0.
