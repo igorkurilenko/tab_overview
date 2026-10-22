@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.2.8]
 ### Docs
 - Describe the package in the words people search for. Its description now says it's a tab switcher with live thumbnails, which show the tabs an app keeps open in a grid and zoom into full pages, and it has the topics tabs, transition, animation, drag-and-drop and reorderable. The pubspec now gives the GitHub repository as its `repository` rather than its `homepage`.
 - Head the README with "Tab switcher for Flutter", and open it with what the package does, in place of a paragraph about a "visually rich tab management interface".
