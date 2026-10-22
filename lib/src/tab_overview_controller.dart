@@ -500,8 +500,8 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
     _notifyModeChanged(mode);
   }
 
-  void _reorderTabs(Permutations permutations) {
-    _model.reorderTabs(permutations);
+  void _reorderTabs(ItemMoves moves) {
+    _model.reorderTabs(moves);
     _notifyTabsReordered();
   }
 
