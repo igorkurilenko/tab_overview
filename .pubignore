@@ -1,0 +1,17 @@
+# Files and directories to ignore when publishing to pub.dev
+
+# Common files to ignore
+*.lock
+*.log
+*.tmp
+*.iml
+.DS_Store
+
+# Other directories to ignore
+build/
+**/doc/api/
+ios/Flutter/Flutter.framework/
+android/app/build/
+
+# The README's recordings load from GitHub, so they stay out of the package.
+assets/

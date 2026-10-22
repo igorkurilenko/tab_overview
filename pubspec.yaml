@@ -1,9 +1,13 @@
 name: tab_overview
-description: >
-  A widget that enables smooth tab transitions with a grid view of 
-  thumbnails for easy tab management and navigation.
+description: "Tab switcher with live thumbnails: show the tabs your app keeps open in a grid, zoom one into a full page, swipe between pages, drag to reorder and swipe to close."
 version: 0.2.7
-homepage: https://github.com/igorkurilenko/tab_overview
+repository: https://github.com/igorkurilenko/tab_overview
+topics:
+  - tabs
+  - transition
+  - animation
+  - drag-and-drop
+  - reorderable
 
 environment:
   sdk: ^3.13.0
