@@ -1,6 +1,6 @@
 # example
 
-The tab_overview example: a Safari-style tab overview whose tabs expand, collapse, reorder and are removed.
+The tab_overview example: a tab switcher whose tabs show as live thumbnails in a grid, zoom into their pages and back, and are reordered, closed and added. pub.dev shows it, with its recording and code, on the package's [Example tab](https://pub.dev/packages/tab_overview/example), from `example.md`.
 
 ## Signing
 

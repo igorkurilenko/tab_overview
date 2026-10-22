@@ -13,5 +13,10 @@ build/
 ios/Flutter/Flutter.framework/
 android/app/build/
 
+# The example app stays out, but its page goes in: pub.dev shows it on the
+# package's Example tab, and counts it for the package's points.
+example/*
+!example/example.md
+
 # The README's recordings load from GitHub, so they stay out of the package.
 assets/
