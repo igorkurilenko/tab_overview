@@ -20,7 +20,6 @@ import 'dart:ui' show lerpDouble;
 
 import 'package:animated_reorderable/animated_reorderable.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:hero_here/hero_here.dart';
@@ -119,14 +118,16 @@ class TabOverview<T> extends StatefulWidget {
   /// Whether the expanded tab can be pulled down to collapse it, as in
   /// hero_here's show details example.
   ///
-  /// A tab is pulled from the top of its vertical scroll view, or from
-  /// anywhere on a tab without one. As it's pulled, it shrinks and its
-  /// decoration turns toward [thumbnailDecoration]. Let go once it's pulled
-  /// 50 pixels, or while it moves down fast, and it collapses from where it
-  /// is, at the speed it had. Otherwise it goes back.
+  /// A tab is pulled by a drag on a part of it outside its scroll views,
+  /// such as an app bar above a list, or anywhere on a tab without one. A
+  /// drag in a vertical scroll view only scrolls it, so a list never pulls
+  /// its tab, whether it's at its top or, as a chat's list is, at its
+  /// bottom. As it's pulled, a tab shrinks and its decoration turns toward
+  /// [thumbnailDecoration]. Let go once it's pulled 50 pixels, or while it
+  /// moves down fast, and it collapses from where it is, at the speed it
+  /// had. Otherwise it goes back.
   ///
-  /// Off by default, as a `RefreshIndicator` at the top of a tab reads the
-  /// same pull.
+  /// Off by default.
   final bool pullToCollapse;
 
   /// Whether the user may remove a tab: its thumbnail shows a remove button

@@ -247,9 +247,9 @@ A tab swiped away doesn't scale or fade, whatever `addRemoveTransition` says: it
 
 ### Pull to Collapse
 
-With `pullToCollapse: true`, the expanded tab can be pulled down to collapse it, as in hero_here's show details example. It's pulled from the top of its vertical scroll view, or from anywhere on a tab without one. As it's pulled, it shrinks and its corners round toward `thumbnailDecoration`'s. Let go once it's pulled 50 pixels, or while it moves down fast, and it collapses into its thumbnail from where it is, at the speed it had. Otherwise it goes back.
+With `pullToCollapse: true`, the expanded tab can be pulled down to collapse it, as in hero_here's show details example. It's pulled by a drag on a part of it outside its scroll views, such as an app bar above a list, or anywhere on a tab without one. A drag in a vertical scroll view only scrolls it, so a list never pulls its tab, whether it's at its top or, as a chat's list is, at its bottom. As it's pulled, the tab shrinks and its corners round toward `thumbnailDecoration`'s. Let go once it's pulled 50 pixels, or while it moves down fast, and it collapses into its thumbnail from where it is, at the speed it had. Otherwise it goes back.
 
-It's off by default, as a `RefreshIndicator` at the top of a tab reads the same pull.
+It's off by default.
 
 ## License
 

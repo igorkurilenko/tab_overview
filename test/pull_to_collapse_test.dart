@@ -374,21 +374,82 @@ void main() {
     const BouncingScrollPhysics(),
     const ClampingScrollPhysics(),
   ]) {
-    testWidgets('a list at its top pulls the tab, with '
+    testWidgets('a list at its top scrolls rather than pulls, with '
         '${physics.runtimeType}', (tester) async {
       final controller = await pumpExpanded(
         tester,
         tabBuilder: (tab) => listTab(tab, physics: physics),
       );
 
-      // A list that bounces moves less than the pointer past its top.
       await pull(tester, 250);
       await tester.pumpAndSettle();
 
-      expect(controller.mode, TabOverviewMode.overview);
-      expect(controller.isTransitioning, isFalse);
+      expectExpandedAtFullSize(tester, controller);
+    });
+
+    testWidgets('a chat list dragged up from its newest message scrolls '
+        'rather than pulls, with ${physics.runtimeType}', (tester) async {
+      final controller = await pumpExpanded(
+        tester,
+        tabBuilder: (tab) => ListView(
+          reverse: true,
+          physics: physics,
+          children: [
+            for (var row = 0; row < 40; row++)
+              SizedBox(height: 60, child: Text('T$tab message $row')),
+          ],
+        ),
+      );
+
+      await pull(tester, -250);
+      await tester.pumpAndSettle();
+
+      expectExpandedAtFullSize(tester, controller);
     });
   }
+
+  testWidgets('a list with a RefreshIndicator refreshes rather than pulls', (
+    tester,
+  ) async {
+    var refreshes = 0;
+    final controller = await pumpExpanded(
+      tester,
+      tabBuilder: (tab) => RefreshIndicator(
+        onRefresh: () async => refreshes++,
+        child: listTab(tab),
+      ),
+    );
+
+    await pull(tester, 250);
+    await tester.pumpAndSettle();
+
+    expect(refreshes, 1);
+    expectExpandedAtFullSize(tester, controller);
+  });
+
+  testWidgets('an app bar above a list pulls the tab', (tester) async {
+    final controller = await pumpExpanded(
+      tester,
+      tabBuilder: (tab) => Column(
+        children: [
+          SizedBox(height: 80, child: Center(child: Text('Bar $tab'))),
+          Expanded(child: listTab(tab)),
+        ],
+      ),
+    );
+
+    await tester.timedDrag(
+      find
+          .descendant(of: find.byType(PageView), matching: find.text('Bar 1'))
+          .first,
+      const Offset(0, 150),
+      const Duration(seconds: 1),
+    );
+    await tester.pumpAndSettle();
+
+    expect(controller.mode, TabOverviewMode.overview);
+    expect(controller.isTransitioning, isFalse);
+  });
 
   testWidgets('a list scrolled down scrolls rather than pulls', (tester) async {
     final scroll = ScrollController();
@@ -454,26 +515,14 @@ void main() {
     return strongest;
   }
 
-  testWidgets('a list the pull takes from its top shows no overscroll', (
-    tester,
-  ) async {
-    await pumpExpanded(tester, tabBuilder: (tab) => listTab(tab));
+  testWidgets('a list at its top shows its overscroll', (tester) async {
+    final controller = await pumpExpanded(
+      tester,
+      tabBuilder: (tab) => listTab(tab),
+    );
 
-    final gesture = await tester.startGesture(tester.getCenter(page()));
-    var strongest = 0.0;
-    var pulled = 0.0;
-    for (var frame = 0; frame < 8; frame++) {
-      await gesture.moveBy(const Offset(0, 5));
-      await tester.pump(const Duration(milliseconds: 16));
-      strongest = [strongest, stretch(tester)].reduce((a, b) => a > b ? a : b);
-      pulled = gridOpacity(tester);
-    }
-    await gesture.up();
-    await tester.pumpAndSettle();
-
-    // The page was pulled, and the list didn't stretch with it.
-    expect(pulled, greaterThan(0));
-    expect(strongest, 0);
+    expect(await dragDown(tester), greaterThan(0));
+    expectExpandedAtFullSize(tester, controller);
   }, variant: android);
 
   testWidgets('a list shows its overscroll with pulling off', (tester) async {
