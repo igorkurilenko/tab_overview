@@ -19,3 +19,16 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  # Geist, the examples' type, as hero_here's examples have it. Its license
+  # is assets/fonts/OFL.txt.
+  fonts:
+    - family: Geist
+      fonts:
+        - asset: assets/fonts/Geist-Regular.ttf
+        - asset: assets/fonts/Geist-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Geist-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Geist-Bold.ttf
+          weight: 700

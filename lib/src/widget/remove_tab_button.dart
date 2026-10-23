@@ -14,9 +14,10 @@
 
 import 'package:flutter/material.dart';
 
-/// The remove (close) button the overview shows on a tab by default, at its
-/// top right corner. Use it in a `removeTabButtonBuilder` to keep its look
-/// and do something else when it's pressed, such as asking first.
+/// The close button the overview shows on a tab by default, at its top right
+/// corner, which removes the tab. Use it in a `removeTabButtonBuilder` to
+/// keep its look and do something else when it's pressed, such as asking
+/// first.
 class RemoveTabButton extends StatelessWidget {
   /// Called when the button is pressed.
   final VoidCallback onPressed;

@@ -143,8 +143,12 @@ class _Notifier extends ChangeNotifier {
   void notify() => notifyListeners();
 }
 
-/// Specifies the display mode of the [TabOverview].
-///
-/// - [expanded]: Displays the currently active tab in an expanded, detailed view.
-/// - [overview]: Displays all tabs as thumbnails in an overview grid for easy selection and navigation.
-enum TabOverviewMode { expanded, overview }
+/// Whether a [TabOverview] shows its tabs as a grid of thumbnails, or the
+/// active tab as a full page.
+enum TabOverviewMode {
+  /// The active tab's page, full size, where a swipe turns to the next tab.
+  expanded,
+
+  /// The grid of the tabs' live thumbnails.
+  overview,
+}

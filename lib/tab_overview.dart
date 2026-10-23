@@ -12,6 +12,42 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+/// A tab switcher for Flutter: the tabs your app keeps open show as live
+/// thumbnails in a grid, and a tap zooms one into a full page.
+///
+/// Flutter's `TabBar` shows a row of tab labels, and its `TabBarView` swipes
+/// between their pages. A [TabOverview] shows multiple tabs at once, each as
+/// a thumbnail of its page, for tabs that people add, close and reorder as
+/// they go, such as documents, chats or forms:
+///
+/// - Zoom a thumbnail into its page and back, with a hero animation within
+///   the same page, from hero_here. With [TabOverview.pullToCollapse], a
+///   pull down zooms a page back out too.
+/// - Swipe between the pages of the open tabs.
+/// - Drag and drop a thumbnail to reorder the tabs, from
+///   animated_reorderable.
+/// - Close a tab with its close button, a [RemoveTabButton] by default, or
+///   by swiping its thumbnail away, and add tabs with
+///   [TabOverviewController.add].
+/// - Build thumbnails of your own with [TabOverview.tabThumbnailBuilder],
+///   around a [FittedTab], which scales a tab's page down to its cell.
+///
+/// Give a [TabOverviewController] your tabs, and build their pages in
+/// [TabOverview.builder]:
+///
+/// ```dart
+/// final controller = TabOverviewController<int>(initialTabs: [1, 2, 3]);
+///
+/// TabOverview<int>.builder(
+///   controller: controller,
+///   tabBuilder: (context, tab) => GestureDetector(
+///     onTap: () => controller.isTabExpanded(tab)
+///         ? controller.collapse()
+///         : controller.expand(tab),
+///     child: Center(child: Text('Tab $tab')),
+///   ),
+/// )
+/// ```
 library;
 
 export 'src/tab_overview.dart'

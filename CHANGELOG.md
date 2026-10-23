@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.9]
+### Example
+- Open the example with tabs 1 to 5 in the grid, in hero_here's look: Geist type, neutral grays with Pinterest's red as the one accent, squircle corners, and Unicons 4.0.0 line icons, under the Apache License 2.0, painted from their SVG paths. The look lives in `lib/style/` and `lib/tab_page.dart`, and `main.dart` builds the tab switcher in numbered steps. The README's recording shows it.
+
+### Docs
+- Give the Example tab a page of its own, `example/example.md`: what the example does, its recording, its highlights, its code in three steps, and answers to the questions people ask. A test keeps its code the same as `lib/main.dart`. The package ships only that page from the example folder.
+- Lead the API docs with what the package does. The library's page says it's a tab switcher whose tabs show as live thumbnails in a grid and zoom into full pages, compares it with `TabBar`, lists what it does and gives a short example. `TabOverview`, `TabOverviewController`, `TabOverviewMode`, `RemoveTabButton` and `ModelWidgetBuilder` say first what they are. `TabOverview`'s docs pointed to a constructor that doesn't exist, rather than `TabOverview.builder`.
+
 ## [0.2.8]
 ### Changed
 - Require animated_reorderable 2.9.0, and reorder tabs with its `ItemMoves` rather than `Permutations`, which 2.9.0 deprecates. pub.dev's analysis counted each use of `Permutations` as an issue, which cost the package 10 of its 160 points.

@@ -1,21 +1,44 @@
+// Copyright 2026 Igor Kurilenko
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 import 'dart:math';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:tab_overview/tab_overview.dart';
 
-void main() {
-  runApp(const MainApp());
-}
+import 'style/style.dart';
+import 'tab_page.dart';
 
-class MainApp extends StatelessWidget {
-  const MainApp({super.key});
+void main() => runApp(
+  MaterialApp(
+    title: 'TabOverview Example',
+    debugShowCheckedModeBanner: false,
+    theme: exampleTheme,
+    home: const TabOverviewExample(),
+  ),
+);
 
-  @override
-  Widget build(BuildContext context) =>
-      const MaterialApp(home: TabOverviewExample());
-}
-
+/// Numbered tabs in a tab switcher, as live thumbnails in a grid, each of
+/// which zooms into its page:
+///
+/// 1. A [TabOverviewController] holds the tabs, and whether they show as a
+///    grid of thumbnails or as pages.
+/// 2. [TabOverview.builder] builds each tab's page, which the grid shows,
+///    scaled down, as its thumbnail.
+/// 3. A tap zooms a thumbnail into its page, and the buttons switch between
+///    the grid and the pages, close the active tab and add one.
 class TabOverviewExample extends StatefulWidget {
   const TabOverviewExample({super.key});
 
@@ -24,119 +47,55 @@ class TabOverviewExample extends StatefulWidget {
 }
 
 class TabOverviewExampleState extends State<TabOverviewExample> {
-  // Step 1: Initialize a TabOverviewController with your tab type.
-  // This controller will manage the state, including switching tabs, adding, and removing.
-  final controller = TabOverviewController<Tab>(
-    initialMode: TabOverviewMode.expanded,
-  );
+  // 1. The controller, with tabs 1 to 5 open in the grid.
+  final controller = TabOverviewController<int>(initialTabs: [1, 2, 3, 4, 5]);
 
-  // The number of the last tab added, so each new tab has a number of its own.
-  var _lastTabNum = 0;
+  // The number of the last tab added, so each new tab has one of its own.
+  var _lastTab = 5;
 
   @override
   Widget build(BuildContext context) {
-    final viewPadding = MediaQuery.viewPaddingOf(context);
-
+    final padding = MediaQuery.viewPaddingOf(context);
     return Scaffold(
-      backgroundColor: Colors.grey.shade200,
-      // Step 2: Use TabOverview.builder to create the TabOverview widget.
-      // Configure the controller, padding, tab content builder, and styling for thumbnails.
-      body: TabOverview<Tab>.builder(
-        controller: controller, // Attach the controller
-        thumbnailsGridPadding: EdgeInsets.only(
-          top: max(viewPadding.top, 16.0),
-          right: 16.0,
-          bottom: max(viewPadding.bottom, 16.0),
-          left: 16.0,
-        ), // Customize grid padding
-        tabBuilder: (context, tab) => TabWidget(
-          tab: tab,
-          // Step 3: Toggle tab expansion or collapse when a thumbnail is tapped.
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerHigh,
+      // 2. The tab switcher: the grid of thumbnails, or the tabs' pages.
+      body: TabOverview<int>.builder(
+        controller: controller,
+        tabBuilder: (context, tab) => TabPage(
+          tab,
+          // 3. A tap zooms a thumbnail into its page, and a page back out.
           onTap: () => controller.isTabExpanded(tab)
-              ? controller
-                    .collapse() // Collapse if expanded
-              : controller.expand(tab), // Expand on tap
+              ? controller.collapse()
+              : controller.expand(tab),
         ),
-        thumbnailDecoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(
-            32.0,
-          ), // Add rounded corners to thumbnails
+        removeTabButtonBuilder: (context, tab) =>
+            CloseTabButton(onPressed: () => controller.remove(tab)),
+        thumbnailsGridPadding: EdgeInsets.fromLTRB(
+          S.s4,
+          max(padding.top, S.s4),
+          S.s4,
+          max(padding.bottom, S.s4),
         ),
-        // Pull the expanded tab down to collapse it.
+        thumbnailDecoration: ShapeDecoration(shape: squircle(S.s7)),
+        // Pull a page down to zoom it back out.
         pullToCollapse: true,
-        // Which tabs the user may close or move. Every tab may, by default.
-        isTabRemovable: (tab) => tab.removable,
-        isTabReorderable: (tab) => tab.reorderable,
-        // Drag with the mouse too, to turn the page and to pull the expanded
-        // tab down, as hero_here's examples do.
+        // Drag with the mouse too, to turn the page and to pull it down.
         scrollBehavior: const MaterialScrollBehavior().copyWith(
           dragDevices: PointerDeviceKind.values.toSet(),
         ),
       ),
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          mainAxisSize: MainAxisSize.max,
-          children: [
-            // A button to toggle between overview and expanded modes.
-            IconButton(
-              onPressed: controller.toggleMode,
-              icon: const Icon(Icons.auto_awesome_motion_outlined),
-            ),
-            // A button to close the active tab, if there's any tab left.
-            IconButton(
-              onPressed: () {
-                final tab = controller.activeTab;
-                if (tab != null) controller.remove(tab);
-              },
-              icon: const Icon(Icons.remove),
-            ),
-            // A button to dynamically add new tabs.
-            IconButton(
-              onPressed: () => controller.add(Tab(++_lastTabNum)),
-              icon: const Icon(Icons.add),
-            ),
-          ],
-        ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: TabButtons(
+        // 3. Switch between the grid and the pages.
+        onSwitchView: controller.toggleMode,
+        // 3. Close the active tab, if any is left.
+        onClose: () {
+          final tab = controller.activeTab;
+          if (tab != null) controller.remove(tab);
+        },
+        // 3. Add a tab.
+        onAdd: () => controller.add(++_lastTab),
       ),
     );
   }
-}
-
-class TabWidget extends StatelessWidget {
-  final Tab tab;
-  final VoidCallback? onTap;
-
-  const TabWidget({super.key, required this.tab, this.onTap});
-
-  @override
-  Widget build(BuildContext context) => GestureDetector(
-    onTap: onTap,
-    child: Container(
-      color: Colors.grey.shade300,
-      child: Center(
-        child: Text(
-          '$tab',
-          style: Theme.of(context).textTheme.bodyLarge
-              ?.copyWith(fontWeight: FontWeight.bold, fontSize: 60),
-        ),
-      ),
-    ),
-  );
-}
-
-// A Tab model. TabOverview's isTabRemovable and isTabReorderable read its
-// `removable` and `reorderable`, which a tab could set to false to stay put.
-class Tab {
-  final int num;
-
-  Tab(this.num);
-
-  bool get removable => true;
-
-  bool get reorderable => true;
-
-  @override
-  String toString() => '$num';
 }
