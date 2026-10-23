@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.2.10]
 ### Changed
 - `pullToCollapse` pulls a tab only by a drag on a part of it outside its scroll views, such as an app bar above a list, or anywhere on a tab without one. A drag in a vertical scroll view now only scrolls it. Before, a list dragged down past its top pulled the tab, and so did a chat's list, which starts at its bottom, dragged up past its newest message. A `RefreshIndicator` at the top of a list no longer competes with the pull either.
 
