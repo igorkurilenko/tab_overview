@@ -6,6 +6,7 @@
 
 ### Docs
 - Give the Example tab a page of its own, `example/example.md`: what the example does, its recording, its highlights, its code in three steps, and answers to the questions people ask. A test keeps its code the same as `lib/main.dart`. The package ships only that page from the example folder.
+- Lead the API docs with what the package does. The library's page says it's a tab switcher whose tabs show as live thumbnails in a grid and zoom into full pages, compares it with `TabBar`, lists what it does and gives a short example. `TabOverview`, `TabOverviewController`, `TabOverviewMode`, `RemoveTabButton` and `ModelWidgetBuilder` say first what they are. `TabOverview`'s docs pointed to a constructor that doesn't exist, rather than `TabOverview.builder`.
 
 ## [0.2.8]
 ### Changed

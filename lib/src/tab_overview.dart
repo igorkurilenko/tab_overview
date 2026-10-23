@@ -47,14 +47,19 @@ const _kDefaultThumbnailsGridMainAxisSpacing = 8.0;
 const _kThumbsGridScaleWhenExpanded = 0.9;
 const _kThumbsGridOpacityWhenExpanded = 0.0;
 
-/// The [TabOverview] widget provides a flexible, animated interface for switching between multiple tabs.
-/// It supports both overview and expanded modes with customizable animations, decorations, and layouts.
+/// A tab switcher: the tabs a [TabOverviewController] holds show as live
+/// thumbnails in a grid, and [TabOverviewController.expand] zooms one into a
+/// full page, where a swipe turns to the next tab.
 ///
-/// The widget displays tabs in an overview grid by default, with each tab represented as a thumbnail.
-/// Users can switch to expanded mode to view a selected tab in detail.
+/// Build it with [TabOverview.builder], whose [tabBuilder] builds each tab's
+/// page. The grid shows that page, scaled down by a [FittedTab], as the
+/// tab's thumbnail, unless [tabThumbnailBuilder] builds one of its own. A
+/// long press drags a thumbnail to a new place, and a tab closes with its
+/// close button or a swipe of its thumbnail, unless [isTabReorderable] or
+/// [isTabRemovable] says no.
 ///
-/// Use the [TabOverview] constructor to build a [TabOverview] with custom configurations,
-/// including thumbnails layout, padding, animations, and decorations.
+/// A tab's page is built anew as it zooms in or out, so keep what should
+/// carry over, such as a scroll offset or typed text, in the tab object.
 class TabOverview<T> extends StatefulWidget {
   /// Manages the state and behavior of the tab overview.
   ///
@@ -157,7 +162,8 @@ class TabOverview<T> extends StatefulWidget {
 
   bool _isReorderable(T tab) => isTabReorderable?.call(tab) ?? true;
 
-  /// Constructor to create a customizable [TabOverview] with various builders and configurations.
+  /// Creates a tab switcher whose [tabBuilder] builds each tab's page, which
+  /// the grid also shows, scaled down, as the tab's thumbnail.
   ///
   /// - [controller] manages the state and behavior of the widget.
   /// - [tabBuilder] defines the main content for each tab.

@@ -14,11 +14,13 @@
 
 part of 'tab_overview.dart';
 
-/// The [TabOverviewController] manages the state, behavior, and animations for the [TabOverview] widget,
-/// allowing it to switch between `overview` and `expanded` modes, handle tab interactions, and manage animations.
+/// Holds a [TabOverview]'s tabs, its active tab, and whether it shows them as
+/// a grid of thumbnails or the active tab as a full page: its [mode].
 ///
-/// This controller provides methods to add, remove, reorder, and activate tabs, as well as listeners for changes
-/// in tab states, allowing detailed customization of the tab-switching experience.
+/// [add] and [remove] add and close tabs, [expand] and [collapse] zoom a tab
+/// into its page and back out, and [toggleMode] switches between the two.
+/// Listeners such as [addTabsReorderedListener] tell when tabs are added,
+/// removed or reordered, the mode changes, or another tab becomes active.
 ///
 /// It's a [ChangeNotifier]: it notifies its listeners when the mode, the
 /// active tab or the tabs change, so a [ListenableBuilder] can rebuild with

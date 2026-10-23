@@ -14,4 +14,7 @@
 
 import 'package:flutter/widgets.dart';
 
+/// Builds a widget for a tab, [model]: its page in `tabBuilder`, its
+/// thumbnail in `tabThumbnailBuilder`, or its close button in
+/// `removeTabButtonBuilder`.
 typedef ModelWidgetBuilder<T> = Widget Function(BuildContext context, T model);
