@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.2.9]
 ### Example
 - Open the example with tabs 1 to 5 in the grid, in hero_here's look: Geist type, neutral grays with Pinterest's red as the one accent, squircle corners, and Unicons 4.0.0 line icons, under the Apache License 2.0, painted from their SVG paths. The look lives in `lib/style/` and `lib/tab_page.dart`, and `main.dart` builds the tab switcher in numbered steps. The README's recording shows it.
 
