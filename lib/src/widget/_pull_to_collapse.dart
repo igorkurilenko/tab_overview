@@ -26,13 +26,13 @@ const _kPullGoBackDuration = Duration(milliseconds: 200);
 /// Lets a tab's page be pulled down to collapse the tab, if the overview's
 /// `pullToCollapse` is on.
 ///
-/// The page is pulled from the top of its vertical scroll view, by the
-/// scroll view's overscroll, or by a vertical drag on a page without one.
-/// It shrinks by its layout rather than by a transform, as the flight that
-/// collapses it sets off from the rect the page's layout gives it.
+/// The page is pulled by a vertical drag outside its scroll views, such as
+/// one on an app bar above a list. A drag in a vertical scroll view goes to
+/// the scroll view, which scrolls, so a list never pulls the page, whether
+/// it's at its top or, as a chat's list, at its bottom.
 ///
-/// A scroll view that bounces goes on moving as it's let go, and tells of no
-/// let-go, so the page tracks the pointer for that, as the example does.
+/// The page shrinks by its layout rather than by a transform, as the flight
+/// that collapses it sets off from the rect the page's layout gives it.
 ///
 /// The same widgets whether or not the page is pulled, or pulling is on, so
 /// the tab's content keeps its State.
@@ -57,20 +57,8 @@ class _PullToCollapseState<T> extends State<_PullToCollapse<T>>
   late final _distance = AnimationController.unbounded(vsync: this)
     ..addListener(_handleDistanceChanged);
 
-  // Whether the page moves down with the pull. A scroll view that bounces
-  // past its top moves the tab's content down itself, so the page doesn't.
-  var _followsPull = false;
-
-  // Whether a drag on the page, rather than in a scroll view, pulls it.
+  // Whether a drag on the page pulls it.
   var _dragging = false;
-
-  // Whether a pointer drags a vertical scroll view in the page, whose
-  // overscroll past its top the page may take as a pull.
-  var _draggingScrollView = false;
-
-  // How fast the pointer moves, for a pull by a scroll view, let go when
-  // the pointer is.
-  VelocityTracker? _pointerVelocity;
 
   // Let go to collapse, the page stays as it is until it's gone, as the
   // flight sets off from where the page is then.
@@ -108,68 +96,30 @@ class _PullToCollapseState<T> extends State<_PullToCollapse<T>>
   @override
   Widget build(BuildContext context) {
     final on = overview.pullToCollapse;
-    return Listener(
-      onPointerDown: on ? _handlePointerDown : null,
-      onPointerMove: on ? _handlePointerMove : null,
-      onPointerUp: on ? _handlePointerUp : null,
-      onPointerPanZoomStart: on ? _handlePanZoomStart : null,
-      onPointerPanZoomUpdate: on ? _handlePanZoomUpdate : null,
-      onPointerPanZoomEnd: on ? _handlePanZoomEnd : null,
-      child: NotificationListener<ScrollNotification>(
-        onNotification: on ? _handleScrollNotification : null,
-        child: NotificationListener<OverscrollIndicatorNotification>(
-          onNotification: on ? _handleOverscrollIndicator : null,
-          child: GestureDetector(
-            supportedDevices:
-                (overview.scrollBehavior ?? ScrollConfiguration.of(context))
-                    .dragDevices,
-            onVerticalDragStart: on ? _handleDragStart : null,
-            onVerticalDragUpdate: on ? _handleDragUpdate : null,
-            onVerticalDragEnd: on ? _handleDragEnd : null,
-            onVerticalDragCancel: on ? _handleDragCancel : null,
-            child: AnimatedBuilder(
-              animation: _distance,
-              builder: (context, child) => Transform.translate(
-                offset: Offset(0, _followsPull ? _distance.value : 0),
-                child: FractionallySizedBox(
-                  widthFactor: _scale,
-                  heightFactor: _scale,
-                  child: child,
-                ),
-              ),
-              child: widget.child,
-            ),
+    return GestureDetector(
+      supportedDevices:
+          (overview.scrollBehavior ?? ScrollConfiguration.of(context))
+              .dragDevices,
+      onVerticalDragStart: on ? _handleDragStart : null,
+      onVerticalDragUpdate: on ? _handleDragUpdate : null,
+      onVerticalDragEnd: on ? _handleDragEnd : null,
+      onVerticalDragCancel: on ? _handleDragCancel : null,
+      child: AnimatedBuilder(
+        animation: _distance,
+        builder: (context, child) => Transform.translate(
+          offset: Offset(0, _distance.value),
+          child: FractionallySizedBox(
+            widthFactor: _scale,
+            heightFactor: _scale,
+            child: child,
           ),
         ),
+        child: widget.child,
       ),
     );
   }
 
   void _handleDistanceChanged() => entry.pull.value = _progress;
-
-  void _handlePointerDown(PointerDownEvent event) =>
-      _pointerVelocity = VelocityTracker.withKind(event.kind)
-        ..addPosition(event.timeStamp, event.position);
-
-  void _handlePointerMove(PointerMoveEvent event) =>
-      _pointerVelocity?.addPosition(event.timeStamp, event.position);
-
-  void _handlePointerUp(PointerUpEvent event) => _letGoOfScrollView();
-
-  void _handlePanZoomStart(PointerPanZoomStartEvent event) =>
-      _pointerVelocity = VelocityTracker.withKind(event.kind)
-        ..addPosition(event.timeStamp, Offset.zero);
-
-  void _handlePanZoomUpdate(PointerPanZoomUpdateEvent event) =>
-      _pointerVelocity?.addPosition(event.timeStamp, event.pan);
-
-  void _handlePanZoomEnd(PointerPanZoomEndEvent event) => _letGoOfScrollView();
-
-  // A drag on the page lets go as it ends, which comes after this.
-  void _letGoOfScrollView() {
-    if (_dragging || _collapsing || _distance.value == 0) return;
-    _letGo(_pointerVelocity?.getVelocity() ?? Velocity.zero);
-  }
 
   void _handleDragStart(DragStartDetails details) {
     if (!_canPull) return;
@@ -178,7 +128,7 @@ class _PullToCollapseState<T> extends State<_PullToCollapse<T>>
 
   void _handleDragUpdate(DragUpdateDetails details) {
     if (!_dragging) return;
-    _pull(_distance.value + details.delta.dy, follows: true);
+    _pull(_distance.value + details.delta.dy);
   }
 
   void _handleDragEnd(DragEndDetails details) {
@@ -193,65 +143,9 @@ class _PullToCollapseState<T> extends State<_PullToCollapse<T>>
     _goBack();
   }
 
-  bool _handleScrollNotification(ScrollNotification notification) {
-    // A fling goes on from a drag with no end or start between them, and
-    // only its updates tell it's no longer dragged.
-    final dragged = switch (notification) {
-      ScrollStartNotification(:final dragDetails) => dragDetails != null,
-      ScrollUpdateNotification(:final dragDetails) => dragDetails != null,
-      OverscrollNotification(:final dragDetails) => dragDetails != null,
-      ScrollEndNotification() => false,
-      _ => null,
-    };
-    if (dragged != null) {
-      _draggingScrollView =
-          dragged && notification.metrics.axis == Axis.vertical;
-    }
-
-    if (_collapsing || notification.metrics.axis != Axis.vertical) {
-      return false;
-    }
-
-    switch (notification) {
-      case ScrollUpdateNotification(:final metrics, :final scrollDelta):
-        final overscroll = metrics.minScrollExtent - metrics.pixels;
-        final dragged = notification.dragDetails != null;
-        if (!_followsPull && _distance.value > 0) {
-          // Pulled on past its top, or bouncing back to it.
-          _pull(overscroll, follows: false);
-        } else if (overscroll > 0 && dragged) {
-          // Pulled past its top, as a scroll view that bounces is. A fling
-          // that bounces off it pulls nothing.
-          _pull(overscroll, follows: false);
-        } else if (_followsPull && dragged) {
-          // Pushed back up, the pull gives way as the content scrolls.
-          _pull(_distance.value - scrollDelta!, follows: true);
-        }
-      case OverscrollNotification(:final overscroll, dragDetails: _?)
-          when overscroll < 0:
-        // Held at its top, as a scroll view that doesn't bounce is.
-        _pull(_distance.value - overscroll, follows: true);
-    }
-    return false;
-  }
-
-  // A pull takes the overscroll of a scroll view dragged past its top, and
-  // the page moves instead. So the scroll view shows no overscroll of its
-  // own, such as Android's stretch or glow, as a bouncing one moves with
-  // the page. A fling into the top, which pulls nothing, still shows one.
-  bool _handleOverscrollIndicator(
-    OverscrollIndicatorNotification notification,
-  ) {
-    if (notification.leading && _draggingScrollView && _canPull) {
-      notification.disallowIndicator();
-    }
-    return false;
-  }
-
   // Pulls the page [distance] down, once it may be pulled.
-  void _pull(double distance, {required bool follows}) {
+  void _pull(double distance) {
     if (_distance.value == 0 && (distance <= 0 || !_canPull)) return;
-    _followsPull = follows;
     _distance.value = max(0, distance);
   }
 
@@ -277,13 +171,9 @@ class _PullToCollapseState<T> extends State<_PullToCollapse<T>>
     );
   }
 
-  // A scroll view that bounced brings the content back itself.
-  void _goBack() {
-    if (!_followsPull) return;
-    _distance.animateTo(
-      0,
-      duration: _kPullGoBackDuration,
-      curve: Curves.easeOut,
-    );
-  }
+  void _goBack() => _distance.animateTo(
+    0,
+    duration: _kPullGoBackDuration,
+    curve: Curves.easeOut,
+  );
 }

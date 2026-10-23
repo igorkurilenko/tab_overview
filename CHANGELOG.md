@@ -1,5 +1,9 @@
 # Changelog
 
+## [Unreleased]
+### Changed
+- `pullToCollapse` pulls a tab only by a drag on a part of it outside its scroll views, such as an app bar above a list, or anywhere on a tab without one. A drag in a vertical scroll view now only scrolls it. Before, a list dragged down past its top pulled the tab, and so did a chat's list, which starts at its bottom, dragged up past its newest message. A `RefreshIndicator` at the top of a list no longer competes with the pull either.
+
 ## [0.2.9]
 ### Example
 - Open the example with tabs 1 to 5 in the grid, in hero_here's look: Geist type, neutral grays with Pinterest's red as the one accent, squircle corners, and Unicons 4.0.0 line icons, under the Apache License 2.0, painted from their SVG paths. The look lives in `lib/style/` and `lib/tab_page.dart`, and `main.dart` builds the tab switcher in numbered steps. The README's recording shows it.
