@@ -36,6 +36,8 @@ class TabTransition {
   /// made this transition.
   final SpringDescription? spring;
 
+  /// Creates a transition that takes [duration] and eases along [curve],
+  /// [Curves.easeInOut] by default.
   const TabTransition({required this.duration, this.curve = Curves.easeInOut})
     : spring = null;
 

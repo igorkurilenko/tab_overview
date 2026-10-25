@@ -64,32 +64,40 @@ const _kThumbsGridOpacityWhenExpanded = 0.0;
 /// A tab's page is built anew as it zooms in or out, so keep what should
 /// carry over, such as a scroll offset or typed text, in the tab object.
 class TabOverview<T> extends StatefulWidget {
-  /// Manages the state and behavior of the tab overview.
-  ///
-  /// This controller allows for switching between tabs, setting the active tab,
-  /// and switching between overview and expanded modes.
+  /// The tabs, which one is active, and whether the grid or the active
+  /// tab's page shows. Its methods add, remove, expand and collapse tabs.
   final TabOverviewController<T> controller;
 
-  /// Builds the main content for each tab when in expanded mode.
+  /// Builds a tab's page, which shows full size while the tab is expanded.
   ///
-  /// The function takes the context and tab model data, returning a widget that
-  /// represents the main content of the tab.
+  /// Unless [tabThumbnailBuilder] builds one of its own, the grid shows the
+  /// page, scaled down by a [FittedTab], as the tab's thumbnail. The page is
+  /// built anew as the tab zooms in or out.
   final ModelWidgetBuilder<T> tabBuilder;
 
-  /// Builder function for the tab's remove (close) button in overview mode.
+  /// Builds the close button over the thumbnail of a tab that
+  /// [isTabRemovable] lets the user remove.
   ///
-  /// If null, a [RemoveTabButton] removes the tab from the controller.
+  /// If null, a [RemoveTabButton] removes the tab with
+  /// [TabOverviewController.remove]. Return a [RemoveTabButton] with an
+  /// `onPressed` of your own to keep its look and run code of your own
+  /// first, such as asking.
   final ModelWidgetBuilder<T>? removeTabButtonBuilder;
 
-  /// Padding around the thumbnails grid in overview mode.
+  /// The space around the grid of thumbnails, inside its scroll view, so it
+  /// scrolls with them.
   ///
-  /// Sets the space between the edge of the widget and the grid of thumbnails.
+  /// If null, the grid keeps clear of the safe area at its top and bottom,
+  /// as a [GridView] does.
   final EdgeInsets? thumbnailsGridPadding;
 
-  /// Defines the layout of the thumbnails grid, such as column count and spacing.
+  /// How the grid lays out its thumbnails: how many columns, how far apart,
+  /// and in what shape.
   ///
-  /// This delegate allows customization of the grid structure for displaying
-  /// thumbnails in overview mode.
+  /// If null, the grid has 2 columns of thumbnails 0.7 as wide as they're
+  /// tall, or, on an overview wider than 600 pixels, 3 columns of
+  /// thumbnails in the overview's shape, and wider than 900, 4, all 8
+  /// pixels apart.
   final SliverGridDelegate? thumbnailsGridDelegate;
 
   /// Builds a tab's thumbnail of the app's own, such as a card with the
@@ -107,21 +115,26 @@ class TabOverview<T> extends StatefulWidget {
   /// removed or reordered: 350 ms along [Curves.easeInOut] by default.
   final TabTransition thumbnailsMotion;
 
-  /// Scroll behavior configuration for the thumbnails grid and [PageView] used in expanded mode.
+  /// How the grid of thumbnails and the pages scroll: which pointers drag
+  /// them, and their physics and scrollbars. A pull with [pullToCollapse]
+  /// takes the same pointers.
   ///
-  /// Determines how scrolling interactions are handled for different devices,
-  /// including touch and mouse.
+  /// If null, the [ScrollConfiguration] around the overview sets it. On
+  /// desktop and the web, give it [ScrollBehavior.dragDevices] that include
+  /// `PointerDeviceKind.mouse`, so a mouse drag swipes between pages and
+  /// pulls a page down.
   final ScrollBehavior? scrollBehavior;
 
-  /// Decoration for the thumbnail in overview mode.
+  /// How each thumbnail looks in the grid, such as its color, its rounded
+  /// corners or a shadow. A thumbnail clips to it.
   ///
-  /// Allows customization of the appearance of each tab’s thumbnail,
-  /// including background color, border, and shadows.
+  /// As a tab zooms, its decoration turns from this into
+  /// [expandedTabDecoration], or back. An empty [BoxDecoration] by default.
   final Decoration thumbnailDecoration;
 
-  /// Decoration for the expanded tab in expanded mode.
-  ///
-  /// Provides styling options for the expanded tab view, such as background color and border.
+  /// How the expanded tab's page looks, such as its color, or square
+  /// corners where thumbnails have rounded ones. The page clips to it. An
+  /// empty [BoxDecoration] by default.
   final Decoration expandedTabDecoration;
 
   /// Whether the expanded tab can be pulled down to collapse it, as in
@@ -139,10 +152,11 @@ class TabOverview<T> extends StatefulWidget {
   /// Off by default.
   final bool pullToCollapse;
 
-  /// Whether the user may remove a tab: its thumbnail shows a remove button
-  /// and swipes away, and its expanded page shows the remove button too.
+  /// Whether the user may remove a tab: its thumbnail shows a close button
+  /// and swipes away to the left.
   ///
-  /// If null, every tab may be removed.
+  /// If null, every tab may be removed. [TabOverviewController.remove]
+  /// removes any tab, whatever this says.
   final bool Function(T tab)? isTabRemovable;
 
   /// Whether the user may drag a tab's thumbnail to a new place in the grid.
@@ -173,20 +187,8 @@ class TabOverview<T> extends StatefulWidget {
   bool _isReorderable(T tab) => isTabReorderable?.call(tab) ?? true;
 
   /// Creates a tab switcher whose [tabBuilder] builds each tab's page, which
-  /// the grid also shows, scaled down, as the tab's thumbnail.
-  ///
-  /// - [controller] manages the state and behavior of the widget.
-  /// - [tabBuilder] defines the main content for each tab.
-  /// - [removeTabButtonBuilder] allows customization of the remove button.
-  /// - [thumbnailsGridPadding] sets padding around the thumbnails grid.
-  /// - [thumbnailsGridDelegate] customizes the grid layout for thumbnails.
-  /// - [tabThumbnailBuilder] customizes each thumbnail in overview mode.
-  /// - [thumbnailsMotion] sets how thumbnails move to new places.
-  /// - [scrollBehavior] configures input device interactions.
-  /// - [thumbnailDecoration] and [expandedTabDecoration] allow styling for each mode.
-  /// - [pullToCollapse] lets the expanded tab be pulled down to collapse it.
-  /// - [isTabRemovable] and [isTabReorderable] tell which tabs the user may
-  ///   remove or move.
+  /// the grid also shows, scaled down, as the tab's thumbnail, unless
+  /// [tabThumbnailBuilder] builds one of its own.
   const TabOverview.builder({
     super.key,
     required this.controller,
