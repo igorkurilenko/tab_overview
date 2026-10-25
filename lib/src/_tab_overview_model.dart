@@ -109,6 +109,25 @@ class _TabEntry<T> extends ChangeNotifier {
   /// along.
   Curve presenceCurve = Curves.linear;
 
+  /// Keeps [animation] as [presence] until it ends, at [endsAt]. The grid
+  /// builds an item on every rebuild while it animates, so it may ask for
+  /// the same animation many times.
+  void trackPresence(
+    Animation<double> animation, {
+    required AnimationStatus endsAt,
+  }) {
+    if (animation.status == endsAt || presence == animation) return;
+    presence = animation;
+
+    void handleStatus(AnimationStatus status) {
+      if (status != endsAt) return;
+      animation.removeStatusListener(handleStatus);
+      if (presence == animation) presence = null;
+    }
+
+    animation.addStatusListener(handleStatus);
+  }
+
   /// How far the tab's page is pulled toward collapsing it, from 0 to 1.
   ///
   /// Kept here rather than by the page, as a flight may build its shuttle

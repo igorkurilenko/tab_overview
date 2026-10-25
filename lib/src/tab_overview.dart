@@ -30,6 +30,7 @@ import 'util/model_widget_builder.dart';
 import 'widget/fitted_tab.dart';
 
 part '_overview_views.dart';
+part '_mode_switch.dart';
 part '_tab_flights.dart';
 part 'tab_transition.dart';
 part '_tab_overview_model.dart';
