@@ -198,6 +198,70 @@ void main() {
     }
   });
 
+  testWidgets('a part whose widget grows as it flies flies at its new size', (
+    tester,
+  ) async {
+    // The title: one row on the thumbnail, then two, and one row on the page,
+    // twice as big.
+    final rows = ValueNotifier(1);
+    addTearDown(rows.dispose);
+    final controller = TabOverviewController<int>(initialTabs: [0]);
+    await tester.pumpWidget(
+      RepaintBoundary(
+        key: _screen,
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          home: TabOverview<int>.builder(
+            controller: controller,
+            tabThumbnailBuilder: (context, tab) => Align(
+              alignment: Alignment.topLeft,
+              child: TabHero(
+                tag: 'title',
+                child: ValueListenableBuilder(
+                  valueListenable: rows,
+                  builder: (context, rows, _) => Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (var row = 0; row < rows; row++)
+                        _box(_thumbnailTitle, const Size(60, 10)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            tabBuilder: (context, tab) => Align(
+              alignment: Alignment.bottomRight,
+              child: TabHero(
+                tag: 'title',
+                child: _box(_pageTitle, const Size(120, 20)),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    controller.expand(0);
+    await tester.pumpAndSettle();
+
+    controller.collapse();
+    await tester.pump();
+    await pumpFrames(tester, 5);
+    // A second row comes as the title flies: laid out at the size it was,
+    // the title would overflow it. Now of another shape than the page's, it
+    // flies laid out anew, its rows as wide as they are, rather than
+    // stretched to the part as a copy of the page's would be.
+    rows.value = 2;
+    await pumpFrames(tester, 3);
+    final title = (await ScreenPixels.capture(
+      tester,
+      _screen,
+    )).where((r, g, b) => r > 20 && g < 20 && b < r);
+    expect(title.bounds!.width, lessThan(64));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('a tab hero outside an overview shows its child', (tester) async {
     await tester.pumpWidget(
       const Directionality(

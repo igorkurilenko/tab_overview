@@ -225,8 +225,10 @@ const _kPartLeaves = Interval(0, .3);
 const _kPartArrives = Interval(.1, .4);
 
 /// A part's widget [from] the hero a flight leaves and [to] the one it flies
-/// to, as [animation] runs between them, each with the size it was laid out
-/// at there.
+/// to, as [animation] runs between them, each with the size it was last laid
+/// out at there, which [sizes] gives, from and to, as the flight lays itself
+/// out on each frame. So a part whose widget changes as it flies, such as a
+/// message that comes in as its tab collapses, flies at its size now.
 ///
 /// Two of a shape, such as a title in two sizes, are a copy of each other,
 /// scaled: each is laid out at its own size and stretched to the part's,
@@ -237,6 +239,24 @@ const _kPartArrives = Interval(.1, .4);
 /// and fades in as the one it leaves fades out, which may be aligned
 /// otherwise, such as centered.
 Widget _buildPartShuttle({
+  required Animation<double> animation,
+  required Widget from,
+  required Widget to,
+  required (Size?, Size?) Function() sizes,
+}) => LayoutBuilder(
+  builder: (context, constraints) {
+    final (fromSize, toSize) = sizes();
+    return _partShuttleOfSizes(
+      animation: animation,
+      from: from,
+      fromSize: fromSize,
+      to: to,
+      toSize: toSize,
+    );
+  },
+);
+
+Widget _partShuttleOfSizes({
   required Animation<double> animation,
   required Widget from,
   required Size? fromSize,
@@ -298,11 +318,15 @@ bool _ofAShape(Size? a, Size? b) {
   return (a.aspectRatio / b.aspectRatio - 1).abs() < .1;
 }
 
+// [child] laid out at [size]'s width, as tall as it is at that width, and
+// fitted to the part by [fit]. Not at [size]'s height, which may be a frame
+// behind: as a part's widget changes mid-flight, such as to a message of two
+// lines, its hero lays out anew after its flight may have on that frame.
 Widget _laidOutAt(Size? size, Widget child, BoxFit fit) => size == null
     ? child
     : FittedBox(
         fit: fit,
         alignment: AlignmentDirectional.topStart,
         clipBehavior: Clip.none,
-        child: SizedBox.fromSize(size: size, child: child),
+        child: SizedBox(width: size.width, child: child),
       );

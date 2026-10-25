@@ -146,9 +146,11 @@ mixin _TabHeroes<T> {
           return _buildPartShuttle(
             animation: animation,
             from: fromHero.child,
-            fromSize: entry.partSizes[(tag, toSide.other)],
             to: toHero.child,
-            toSize: entry.partSizes[(tag, toSide)],
+            sizes: () => (
+              entry.partSizes[(tag, toSide.other)],
+              entry.partSizes[(tag, toSide)],
+            ),
           );
         },
         child: child,
