@@ -219,7 +219,7 @@ class _RenderLaidOutSize extends RenderProxyBox {
 
 // How a part's two widgets fade into each other as it flies, from the hero
 // it leaves to the one it flies to: a copy fades out over the first half of
-// the way, and one laid out anew fades out as the other fades in.
+// the way, and one of another shape fades out as the other fades in.
 const _kCopyLeaves = Interval(0, .5);
 const _kPartLeaves = Interval(0, .3);
 const _kPartArrives = Interval(.1, .4);
@@ -233,11 +233,12 @@ const _kPartArrives = Interval(.1, .4);
 /// Two of a shape, such as a title in two sizes, are a copy of each other,
 /// scaled: each is laid out at its own size and stretched to the part's,
 /// and the one the flight leaves fades out over the one it flies to. Two of
-/// different shapes, such as a message wrapped to two widths, are one laid
-/// out anew: the one the flight flies to is laid out at the part's width on
-/// each frame, at its top and start, so a message wraps anew as it flies,
-/// and fades in as the one it leaves fades out, which may be aligned
-/// otherwise, such as centered.
+/// different shapes, such as a message wrapped to two widths, keep their
+/// own lines, so no word jumps from line to line as they fly: each is laid
+/// out at its own width, at the part's top and start, and the one the
+/// flight leaves fades out as the other fades in. One wider than the part
+/// is scaled down to the part's width, so it doesn't stick out of the tab
+/// around it.
 Widget _buildPartShuttle({
   required Animation<double> animation,
   required Widget from,
@@ -248,6 +249,7 @@ Widget _buildPartShuttle({
     final (fromSize, toSize) = sizes();
     return _partShuttleOfSizes(
       animation: animation,
+      width: constraints.maxWidth,
       from: from,
       fromSize: fromSize,
       to: to,
@@ -258,6 +260,7 @@ Widget _buildPartShuttle({
 
 Widget _partShuttleOfSizes({
   required Animation<double> animation,
+  required double width,
   required Widget from,
   required Size? fromSize,
   required Widget to,
@@ -280,36 +283,20 @@ Widget _partShuttleOfSizes({
     children: [
       FadeTransition(
         opacity: _Eased(animation, _kPartArrives),
-        child: LayoutBuilder(
-          builder: (context, constraints) => OverflowBox(
-            alignment: AlignmentDirectional.topStart,
-            minWidth: 0,
-            maxWidth: _reflowWidth(
-              constraints.maxWidth,
-              from: fromSize?.width,
-              to: toSize?.width,
-            ),
-            minHeight: 0,
-            maxHeight: double.infinity,
-            child: to,
-          ),
-        ),
+        child: _laidOutAt(toSize, to, _fitIn(width, toSize)),
       ),
       FadeTransition(
         opacity: _Eased(animation, _kPartLeaves, fadesOut: true),
-        child: _laidOutAt(fromSize, from, BoxFit.none),
+        child: _laidOutAt(fromSize, from, _fitIn(width, fromSize)),
       ),
     ],
   );
 }
 
-// The width a part of a width of [from] lays out at on its way to one of
-// [to], at [width] now: [to] for the last 5% of the way, and past its end,
-// so a message that just fits there doesn't wrap anew as a spring settles.
-double _reflowWidth(double width, {double? from, double? to}) {
-  if (from == null || to == null || from == to) return width;
-  return (to - width) / (to - from) < .05 ? to : width;
-}
+// How a part's widget laid out at [size] fits the part, [width] wide: as it
+// is, or, where it's wider than the part, scaled down to the part's width.
+BoxFit _fitIn(double width, Size? size) =>
+    size != null && size.width > width ? BoxFit.fitWidth : BoxFit.none;
 
 // Whether parts of sizes [a] and [b] are of about one shape, as a copy of
 // each other scaled is. Unknown sizes count as one.

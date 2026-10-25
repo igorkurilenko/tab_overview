@@ -249,7 +249,7 @@ void main() {
     await pumpFrames(tester, 5);
     // A second row comes as the title flies: laid out at the size it was,
     // the title would overflow it. Now of another shape than the page's, it
-    // flies laid out anew, its rows as wide as they are, rather than
+    // flies at its own width, its rows as wide as they are, rather than
     // stretched to the part as a copy of the page's would be.
     rows.value = 2;
     await pumpFrames(tester, 3);
@@ -260,6 +260,119 @@ void main() {
     expect(title.bounds!.width, lessThan(64));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
+  });
+
+  // Four words of 40 wide, or [count], in [color], wrapped as wide as the
+  // words are given.
+  Widget words(Color color, {int count = 4}) => Wrap(
+    children: [
+      for (var word = 0; word < count; word++) _box(color, const Size(40, 10)),
+    ],
+  );
+
+  testWidgets('a part of another shape flies in the lines it lands with', (
+    tester,
+  ) async {
+    // On the thumbnail, two lines of two words in 80; on the page, one.
+    final controller = TabOverviewController<int>(initialTabs: [0]);
+    await tester.pumpWidget(
+      RepaintBoundary(
+        key: _screen,
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          home: TabOverview<int>.builder(
+            controller: controller,
+            tabThumbnailBuilder: (context, tab) => Align(
+              alignment: Alignment.topLeft,
+              child: SizedBox(
+                width: 80,
+                child: TabHero(tag: 'words', child: words(_thumbnailTitle)),
+              ),
+            ),
+            tabBuilder: (context, tab) => Center(
+              child: TabHero(tag: 'words', child: words(_pageTitle)),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    controller.expand(0);
+    await tester.pumpAndSettle();
+
+    // On each frame the thumbnail's words show on, faint or in full, they're
+    // in two lines of two, never in a line of three on their way there.
+    controller.collapse();
+    final shown = await pumpFlight(tester, controller, () async {
+      final pixels = await ScreenPixels.capture(tester, _screen);
+      final faint = pixels.where((r, g, b) => r - g > 40 && r > b);
+      final full = pixels.where((r, g, b) => r > 240 && g < 15 && b < 15);
+      return (faint.bounds?.width, full.count > 0);
+    });
+    final widths = [for (final (width, _) in shown) ?width];
+    expect(widths, isNotEmpty);
+    expect(widths.every((width) => width <= 81), isTrue, reason: '$widths');
+    expect(
+      shown.where((frame) => frame.$1 != null && !frame.$2),
+      isNotEmpty,
+      reason: 'no frame with the words fading in',
+    );
+  });
+
+  testWidgets('a part wider than the part flies scaled down to it, inside '
+      'its tab', (tester) async {
+    const tab = Color(0xFF008000);
+    // Twelve words: on the thumbnail, six lines of two in 80; on the page, a
+    // line of 480, as wide as a narrow tab can't hold.
+    final controller = TabOverviewController<int>(initialTabs: [0]);
+    await tester.pumpWidget(
+      RepaintBoundary(
+        key: _screen,
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          home: TabOverview<int>.builder(
+            controller: controller,
+            thumbnailsGridDelegate:
+                const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 8,
+                ),
+            thumbnailDecoration: const BoxDecoration(color: tab),
+            expandedTabDecoration: const BoxDecoration(color: tab),
+            removeTabButtonBuilder: (context, tab) => const SizedBox.shrink(),
+            tabThumbnailBuilder: (context, tab) => Align(
+              alignment: Alignment.topLeft,
+              child: SizedBox(
+                width: 80,
+                child: TabHero(
+                  tag: 'words',
+                  child: words(_thumbnailTitle, count: 12),
+                ),
+              ),
+            ),
+            tabBuilder: (context, tab) => Center(
+              child: TabHero(tag: 'words', child: words(_pageTitle, count: 12)),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // On each frame the page's words show on, they're inside the tab.
+    controller.expand(0);
+    final outside = await pumpFlight(tester, controller, () async {
+      final pixels = await ScreenPixels.capture(tester, _screen);
+      final tabBounds = pixels
+          .where((r, g, b) => g > 60 && r < 30 && b < 30)
+          .bounds!;
+      final page = pixels.where((r, g, b) => b > 60 && b > g).bounds;
+      return page == null ||
+              tabBounds.inflate(1).expandToInclude(page) == tabBounds.inflate(1)
+          ? null
+          : (page, tabBounds);
+    });
+    expect(outside.length, greaterThan(5));
+    expect(outside.nonNulls, isEmpty);
   });
 
   testWidgets('a tab hero outside an overview shows its child', (tester) async {
