@@ -281,7 +281,7 @@ TabOverview<Chat>.builder(
 )
 ```
 
-A part that's a scaled copy of the other, such as a name set bigger, grows or shrinks as it flies, and a message wrapped to another width wraps anew as it flies. The [chats example](https://github.com/igorkurilenko/tab_overview/tree/main/example/lib/chat_tabs) shows chats as cards that open into their pages this way.
+A part that's a scaled copy of the other, such as a name set bigger, grows or shrinks as it flies, and a message wrapped to another width fades from the one into the other, each keeping its own lines, so no word jumps from line to line. The [chats example](https://github.com/igorkurilenko/tab_overview/tree/main/example/lib/chat_tabs) shows chats as cards that open into their pages this way.
 
 ### Pull to Collapse
 

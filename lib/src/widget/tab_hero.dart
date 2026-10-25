@@ -42,8 +42,9 @@ part of '../tab_overview.dart';
 /// where it is on the page, and back as the tab collapses. A part that's a
 /// scaled copy of the other, such as a name set bigger, grows or shrinks as
 /// it flies. One of another shape, such as a message wrapped to another
-/// width, is laid out again at each width it flies through, so its text
-/// wraps anew, and fades from the one into the other.
+/// width, fades from the one into the other as it flies, each keeping its
+/// own lines, so no word jumps from line to line. While one is wider than
+/// the flying part, it's scaled down to fit, so it stays inside the tab.
 ///
 /// A tag needs to be unique only among the tab's own parts. A part on only
 /// one of the two, such as a message that the page's list hasn't built,
