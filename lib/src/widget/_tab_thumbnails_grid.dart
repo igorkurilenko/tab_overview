@@ -359,7 +359,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
               ? (removal, AnimationStatus.dismissed)
               : (presence?.animation, presence?.endsAt);
           if (animation != null && endsAt != null) {
-            controller._trackTabPresence(entry, animation, endsAt: endsAt);
+            entry.trackPresence(animation, endsAt: endsAt);
           }
           return _buildThumbOrEmptyCell(
             context,
