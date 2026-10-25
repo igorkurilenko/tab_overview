@@ -133,7 +133,7 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
     tabWidget = _TabDecoration<T>(
       overview: overview,
       entry: entry,
-      idleDecoration: overview.expandedTabDecoration,
+      onPage: true,
       pull: entry.pull,
       child: tabWidget,
     );

@@ -32,6 +32,7 @@ import 'widget/fitted_tab.dart';
 part '_overview_views.dart';
 part '_mode_switch.dart';
 part '_tab_flights.dart';
+part 'tab_decoration.dart';
 part 'tab_transition.dart';
 part '_tab_overview_model.dart';
 part 'tab_overview_controller.dart';
@@ -129,13 +130,39 @@ class TabOverview<T> extends StatefulWidget {
   /// corners or a shadow. A thumbnail clips to it.
   ///
   /// As a tab zooms, its decoration turns from this into
-  /// [expandedTabDecoration], or back. An empty [BoxDecoration] by default.
+  /// [expandedTabDecoration], or back, and [tabDecorationBuilder] builds on
+  /// it: by default, it casts a soft shadow in its decoration's shape, which
+  /// grows as the tab leaves its place and fades as it lands, so it reads
+  /// apart from the grid it flies over. An empty [BoxDecoration] by default.
   final Decoration thumbnailDecoration;
 
   /// How the expanded tab's page looks, such as its color, or square
   /// corners where thumbnails have rounded ones. The page clips to it. An
   /// empty [BoxDecoration] by default.
   final Decoration expandedTabDecoration;
+
+  /// Builds each tab's decoration, at rest and as it zooms or its page is
+  /// pulled, from the one between [thumbnailDecoration] and
+  /// [expandedTabDecoration] where the tab is, and from how far it is on
+  /// its way, how high it's lifted and which way it heads. If null,
+  /// [TabDecorations.lifted].
+  ///
+  /// A builder of the app's own can build on a ready-made one, such as to
+  /// cast a shadow in each tab's color, where tabs have one:
+  ///
+  /// ```dart
+  /// tabDecorationBuilder: (context, tab, decoration, zoom) =>
+  ///     TabDecorations.lifted(
+  ///       shadows: [
+  ///         BoxShadow(
+  ///           color: tab.color.withValues(alpha: .4),
+  ///           blurRadius: 32,
+  ///           offset: const Offset(0, 16),
+  ///         ),
+  ///       ],
+  ///     )(context, tab, decoration, zoom),
+  /// ```
+  final TabDecorationBuilder<T>? tabDecorationBuilder;
 
   /// Whether the expanded tab can be pulled down to collapse it, as in
   /// hero_here's show details example.
@@ -144,10 +171,12 @@ class TabOverview<T> extends StatefulWidget {
   /// such as an app bar above a list, or anywhere on a tab without one. A
   /// drag in a vertical scroll view only scrolls it, so a list never pulls
   /// its tab, whether it's at its top or, as a chat's list is, at its
-  /// bottom. As it's pulled, a tab shrinks and its decoration turns toward
-  /// [thumbnailDecoration]. Let go once it's pulled 50 pixels, or while it
-  /// moves down fast, and it collapses from where it is, at the speed it
-  /// had. Otherwise it goes back.
+  /// bottom. As it's pulled, a tab shrinks, its decoration turns toward
+  /// [thumbnailDecoration], and it's lifted off the grid, as a tab is
+  /// while it zooms, so it casts the same shadow by default, which it
+  /// takes along as it collapses. Let go once it's pulled 50 pixels, or
+  /// while it moves down fast, and it collapses from where it is, at the
+  /// speed it had. Otherwise it goes back.
   ///
   /// Off by default.
   final bool pullToCollapse;
@@ -166,16 +195,21 @@ class TabOverview<T> extends StatefulWidget {
 
   bool _isRemovable(T tab) => isTabRemovable?.call(tab) ?? true;
 
-  // How tabs clip their content to their decorations: anti-aliased only if
-  // a decoration rounds or shapes them, as a path clip with anti-aliasing
-  // costs more than a square one. Always some clip, so a change of it
-  // changes no widget around the tab's content.
-  Clip get _tabClip =>
-      _isRounded(thumbnailDecoration) || _isRounded(expandedTabDecoration)
+  // How a tab clips its content to [decoration], which tabDecorationBuilder
+  // built: anti-aliased only if it, or either decoration it's built from,
+  // rounds or shapes the tab, as a path clip with anti-aliasing costs more
+  // than a square one. Always some clip, so a change of it changes no
+  // widget around the tab's content.
+  Clip _tabClip(Decoration decoration) =>
+      _isRounded(thumbnailDecoration) ||
+          _isRounded(expandedTabDecoration) ||
+          _isRounded(decoration)
       ? Clip.antiAlias
       : Clip.hardEdge;
 
   static bool _isRounded(Decoration decoration) => switch (decoration) {
+    // The tab clips to the decoration under the shadows.
+    _LiftedDecoration(decoration: final under) => _isRounded(under),
     BoxDecoration(:final shape, :final borderRadius) =>
       shape != BoxShape.rectangle ||
           (borderRadius != null &&
@@ -203,6 +237,7 @@ class TabOverview<T> extends StatefulWidget {
     this.scrollBehavior,
     Decoration? thumbnailDecoration,
     Decoration? expandedTabDecoration,
+    this.tabDecorationBuilder,
     this.pullToCollapse = false,
     this.isTabRemovable,
     this.isTabReorderable,
@@ -213,6 +248,21 @@ class TabOverview<T> extends StatefulWidget {
   Widget _buildRemoveTabButton(BuildContext context, T tab) =>
       removeTabButtonBuilder?.call(context, tab) ??
       RemoveTabButton(onPressed: () => controller.remove(tab));
+
+  // What tabDecorationBuilder builds for [tab] at [zoom], or
+  // TabDecorations.lifted, from the decoration between the thumbnail's and
+  // the page's where the tab is.
+  Decoration _buildTabDecoration(BuildContext context, T tab, TabZoom zoom) =>
+      (tabDecorationBuilder ?? _liftedByDefault)(
+        context,
+        tab,
+        Decoration.lerp(
+          thumbnailDecoration,
+          expandedTabDecoration,
+          zoom.expansion,
+        )!,
+        zoom,
+      );
 
   // What tabThumbnailBuilder builds, or the tab's content in a FittedTab.
   Widget _buildTabThumbnail(BuildContext context, T tab) =>

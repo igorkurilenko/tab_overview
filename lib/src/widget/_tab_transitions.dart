@@ -14,10 +14,12 @@
 
 part of '../tab_overview.dart';
 
-/// Decorates a tab's thumbnail or page with [idleDecoration] or, while the
-/// tab flies, with a decoration between the thumbnail's and the expanded
-/// tab's, as far as the tab is between them. A page pulled to collapse it,
-/// by [pull], turns toward the thumbnail's as far as it's pulled.
+/// Decorates a tab's thumbnail or page with what the overview's
+/// `tabDecorationBuilder` builds from where the tab is: where it rests, on
+/// its thumbnail or, as [onPage] says, its page, or, while it flies, as far
+/// as it is between them, lifted off the grid. A page pulled to collapse
+/// it, by [pull], turns toward its thumbnail, and lifts, as far as it's
+/// pulled.
 ///
 /// The same widgets in every phase. A change of widget type here would
 /// re-create the tab content's State, losing its text, focus and scroll
@@ -25,14 +27,17 @@ part of '../tab_overview.dart';
 class _TabDecoration<T> extends StatelessWidget {
   final TabOverview<T> overview;
   final _TabEntry<T> entry;
-  final Decoration idleDecoration;
+
+  /// Whether the tab rests on its page, rather than its thumbnail, while it
+  /// neither flies nor is pulled.
+  final bool onPage;
   final ValueListenable<double>? pull;
   final Widget child;
 
   const _TabDecoration({
     required this.overview,
     required this.entry,
-    required this.idleDecoration,
+    required this.onPage,
     this.pull,
     required this.child,
   });
@@ -45,28 +50,49 @@ class _TabDecoration<T> extends StatelessWidget {
       final flight = entry.flight;
       return AnimatedBuilder(
         animation: flight?.animation ?? pull ?? kAlwaysCompleteAnimation,
-        builder: (context, child) => Container(
-          clipBehavior: overview._tabClip,
-          decoration: _decorationFor(flight),
-          child: child,
-        ),
+        builder: (context, child) {
+          final decoration = overview._buildTabDecoration(
+            context,
+            entry.tab,
+            _zoomOf(flight, pull?.value ?? 0),
+          );
+          return Container(
+            clipBehavior: overview._tabClip(decoration),
+            decoration: decoration,
+            child: child,
+          );
+        },
         child: child,
       );
     },
     child: child,
   );
 
-  Decoration? _decorationFor(TabFlight? flight) {
-    final pulled = pull?.value ?? 0;
-    final expansion = flight?.expansion ?? (pulled > 0 ? 1 - pulled : null);
-    if (expansion == null) return idleDecoration;
-    // A flight on a spring may run past either end, where the decoration
-    // stays the end's, rather than rounding corners past it.
-    return Decoration.lerp(
-      overview.thumbnailDecoration,
-      overview.expandedTabDecoration,
-      clampDouble(expansion, 0, 1),
-    );
+  // Where the tab is: as far as its flight has taken it, or its page is
+  // [pulled], or, with neither, where it rests.
+  TabZoom _zoomOf(TabFlight? flight, double pulled) {
+    if (flight != null) {
+      return TabZoom(
+        // A flight on a spring may run past either end, where the decoration
+        // stays the end's, rather than rounding corners past it.
+        expansion: clampDouble(flight.expansion, 0, 1),
+        lift: flight.lift,
+        // Until it sets off, where it's asked to go, as a page let go of
+        // after a pull collapses.
+        direction: (flight.started ? flight.headsToPage : flight.toPage)
+            ? TabZoomDirection.expand
+            : TabZoomDirection.collapse,
+      );
+    }
+    if (pulled > 0) {
+      // A page is lifted as far as it's pulled, toward its thumbnail.
+      return TabZoom(
+        expansion: 1 - pulled,
+        lift: pulled,
+        direction: TabZoomDirection.collapse,
+      );
+    }
+    return TabZoom(expansion: onPage ? 1 : 0, lift: 0);
   }
 }
 

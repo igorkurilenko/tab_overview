@@ -58,12 +58,16 @@ export 'src/tab_overview.dart'
         ActiveTabChangedListener,
         ModeChangedListener,
         TabAddedListener,
+        TabDecorationBuilder,
+        TabDecorations,
         TabOverview,
         TabOverviewController,
         TabHero,
         TabOverviewMode,
         TabRemovedListener,
         TabTransition,
+        TabZoom,
+        TabZoomDirection,
         TabsReorderedListener;
 export 'src/util/model_widget_builder.dart' show ModelWidgetBuilder;
 export 'src/widget/fitted_tab.dart' show FittedTab;

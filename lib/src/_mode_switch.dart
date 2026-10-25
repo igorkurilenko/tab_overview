@@ -133,8 +133,13 @@ class _ModeSwitch<T> {
   }
 
   /// Collapses the active tab by [asked], flung at [velocity] from
-  /// [expansion] of the way, if given.
-  void collapse(TabTransition asked, {double? velocity, double? expansion}) {
+  /// [expansion] of the way and [lift] off the grid, if given.
+  void collapse(
+    TabTransition asked, {
+    double? velocity,
+    double? expansion,
+    double lift = 0,
+  }) {
     if (overview) {
       _takeBackWaitingExpand();
       return;
@@ -156,6 +161,7 @@ class _ModeSwitch<T> {
       transition: asked,
       velocity: velocity,
       expansion: expansion,
+      lift: lift,
     );
     // The stand-in is where the flight lands, which the switch looks for
     // after its frame, so it's there in time.

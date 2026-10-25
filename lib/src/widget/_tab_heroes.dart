@@ -85,7 +85,7 @@ mixin _TabHeroes<T> {
     shuttle: (context, animation, fromHero, toHero) =>
         overview.tabThumbnailBuilder == null
         ? _InTabShuttle(entry: entry, child: toHero.child)
-        : _TabZoom<T>(
+        : _ZoomingTab<T>(
             overview: overview,
             entry: entry,
             pageShown: _PageShown(
