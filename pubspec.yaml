@@ -1,6 +1,6 @@
 name: tab_overview
 description: "Tab switcher with live thumbnails: show the tabs your app keeps open in a grid, zoom one into a full page, swipe between pages, drag to reorder and swipe to close."
-version: 0.3.0
+version: 0.3.1
 repository: https://github.com/igorkurilenko/tab_overview
 topics:
   - tabs

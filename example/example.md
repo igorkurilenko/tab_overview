@@ -117,6 +117,19 @@ class TabOverviewExampleState extends State<TabOverviewExample> {
 }
 ```
 
+## More ways to use tab_overview.
+
+One more Flutter tab switcher example, a pattern apps often need, built with a `TabOverview` and recorded as it runs.<sup>1</sup> It's code to learn from and copy, not a widget to import. Run it from the repository's [example folder](https://github.com/igorkurilenko/tab_overview/tree/main/example/lib) with `flutter run -t lib/chat_tabs/main.dart`. Its `main.dart` builds the tab switcher, and the files beside it draw the rest.
+
+### Chats as tabs
+
+A messenger's chats as tabs, each shown as a card of its own, which `tabThumbnailBuilder` builds, rather than as its page scaled down: the chat's avatar, its name and its latest message, in the shape of an Apple Watch Ultra's screen. A phone shows two columns of them, and a watch one per screen. Tap a card, and the chat opens on a spring, from `TabTransition.spring`, as its avatar, name and latest message fly to their places on its page in `TabHero`s. Pull the chat down by its bar, and it closes back into its card. New messages come in as it runs, on the cards and in the open chat. [See the chats code ›](https://github.com/igorkurilenko/tab_overview/tree/main/example/lib/chat_tabs)
+
+<p align="center">
+  <img src="https://github.com/igorkurilenko/tab_overview/blob/main/assets/tab_overview_chats.webp?raw=true"
+    alt="Flutter chats as tabs: a tapped card opens into its chat on a spring, its avatar, name and latest message flying to their places, and a pull down on the chat's bar closes it back into its card" width="240"/>
+</p>
+
 ## Questions? Answers.
 
 <details>
@@ -157,8 +170,8 @@ The tab's page is built anew as it zooms in or out, so a `State` in it starts ov
 <details>
 <summary><b>Can a thumbnail look different from its page?</b></summary>
 
-Yes. `tabThumbnailBuilder` builds a tab's thumbnail, such as a card with the tab's title, in place of its scaled-down page. As the tab zooms in, the card fades into the page, and a `TabHero` with the same tag on both flies a part, such as the title, to its place on the page. The [chats example](https://github.com/igorkurilenko/tab_overview/tree/main/example/lib/chat_tabs) shows it.
+Yes. `tabThumbnailBuilder` builds a tab's thumbnail, such as a card with the tab's title, in place of its scaled-down page. As the tab zooms in, the card fades into the page, and a `TabHero` with the same tag on both flies a part, such as the title, to its place on the page. The [chats example](#chats-as-tabs) shows it.
 
 </details>
 
-<p><small>1. Recorded from the example frame by frame, at 60 fps, in an iPhone 15 frame.</small></p>
+<p><small>1. Recorded from the examples frame by frame, at 60 fps, in an iPhone 15 frame.</small></p>
