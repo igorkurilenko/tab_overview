@@ -73,7 +73,7 @@ class ChatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = Theme.of(context).textTheme.bodyMedium;
+    final style = _messageStyle(context);
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -172,6 +172,12 @@ class _LastMessage extends StatelessWidget {
     ),
   );
 }
+
+/// A message's text, on its card and on its page: the body type, its lines
+/// closer than body copy's, as a chat's are. One style on both, so a
+/// message of one line is of one size on both, and only moves as it flies.
+TextStyle? _messageStyle(BuildContext context) =>
+    Theme.of(context).textTheme.bodyMedium?.copyWith(height: 1.3);
 
 /// A chat's name, on its card, and [scale] times as big in its bar, so it
 /// only grows as it flies.
@@ -408,7 +414,7 @@ class MessageRow extends StatelessWidget {
     final theme = Theme.of(context);
     final text = theme.textTheme;
     final author = message.author ?? 'You';
-    final body = Text(message.text, style: text.bodyMedium);
+    final body = Text(message.text, style: _messageStyle(context));
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

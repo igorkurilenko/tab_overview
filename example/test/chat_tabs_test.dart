@@ -5,8 +5,12 @@ import 'package:example/chat_tabs/main.dart';
 import 'package:example/style/style.dart';
 
 void main() {
-  Future<ChatTabsExampleState> pumpChats(WidgetTester tester) async {
-    tester.view.physicalSize = const Size(393, 852);
+  // The chats on a screen of [size]: an iPhone 15's by default.
+  Future<ChatTabsExampleState> pumpChats(
+    WidgetTester tester, {
+    Size size = const Size(393, 852),
+  }) async {
+    tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(
@@ -47,5 +51,47 @@ void main() {
     await pumpFrames(tester);
     expect(controller.mode, TabOverviewMode.overview);
     expect(tester.takeException(), isNull);
+  });
+
+  const watch = Size(205, 251);
+  double top(WidgetTester tester, String name) =>
+      tester.getTopLeft(find.text(name)).dy;
+
+  testWidgets('on a watch, a card is the screen, and the next one shows a '
+      'gap after it as they scroll', (tester) async {
+    await pumpChats(tester, size: watch);
+
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.text('Alex Morgan')),
+    );
+    await gesture.moveBy(const Offset(0, -20));
+    await gesture.moveBy(const Offset(0, -80));
+    await tester.pump();
+    expect(
+      top(tester, 'Mia Collins') - top(tester, 'Alex Morgan'),
+      moreOrLessEquals(watch.height + 8),
+    );
+    await gesture.up();
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('on a watch, a scroll of the cards snaps to one', (tester) async {
+    await pumpChats(tester, size: watch);
+    double top(String name) => tester.getTopLeft(find.text(name)).dy;
+    final atRest = top('Alex Morgan');
+
+    // A quick swipe up turns to the next card, whole.
+    await tester.fling(find.text('Alex Morgan'), const Offset(0, -80), 1000);
+    await tester.pumpAndSettle();
+    expect(top('Mia Collins'), moreOrLessEquals(atRest));
+
+    // A short, slow drag goes back to the card it started from.
+    await tester.timedDrag(
+      find.text('Mia Collins'),
+      const Offset(0, -60),
+      const Duration(seconds: 1),
+    );
+    await tester.pumpAndSettle();
+    expect(top('Mia Collins'), moreOrLessEquals(atRest));
   });
 }
