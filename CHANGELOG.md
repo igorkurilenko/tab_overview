@@ -1,5 +1,16 @@
 # Changelog
 
+## [Unreleased]
+### Added
+- `TabHero`, a part of a tab, such as its title or its latest message, that flies on its own between the tab's thumbnail and its page as the tab zooms in and out. Put one with the same tag in what `tabThumbnailBuilder` builds and in what `tabBuilder` builds. A part that's a scaled copy of the other grows or shrinks as it flies, and one of another shape, such as a message wrapped to another width, wraps anew as it flies. A tag needs to be unique only among the tab's own parts.
+- `TabTransition.spring`, which expands and collapses tabs on a spring: from where a tab is, at the speed it has, so a page let go of mid-pull collapses as fast as it was pulled. A spring with some bounce carries a tab a little past its page's size or its thumbnail's, and back. A call to `expand` or `collapse` that passes its own `duration` or `curve` flies along that instead.
+
+### Changed
+- A thumbnail of the app's own fades into its page as the tab zooms in, and back as it zooms out. On the way, the page shows as it would in a window of the zooming tab's shape, at the overview's width, so its bars stay at its top and bottom, and its text wraps as on the page. Before, the zoom showed only the page as it zoomed in, scaled to the tab's width, and only the thumbnail as it zoomed out, laid out anew at each size it took.
+
+### Example
+- Add a chats example, `lib/chat_tabs/`: chats as cards in the shape of an Apple Watch Ultra's screen, laid out as a watch shows a message, two columns of them on a phone and one on a watch. A tap opens a chat on a spring, its avatar, name and latest message flying to their places on its page, and a pull down on its bar closes it. Its page has a bar like Signal's, floating over the messages, and messages without bubbles.
+
 ## [0.2.10]
 ### Changed
 - `pullToCollapse` pulls a tab only by a drag on a part of it outside its scroll views, such as an app bar above a list, or anywhere on a tab without one. A drag in a vertical scroll view now only scrolls it. Before, a list dragged down past its top pulled the tab, and so did a chat's list, which starts at its bottom, dragged up past its newest message. A `RefreshIndicator` at the top of a list no longer competes with the pull either.
