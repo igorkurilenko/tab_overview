@@ -157,7 +157,7 @@ The tab's page is built anew as it zooms in or out, so a `State` in it starts ov
 <details>
 <summary><b>Can a thumbnail look different from its page?</b></summary>
 
-Yes. `tabThumbnailBuilder` builds a tab's thumbnail, such as a card with the tab's title, in place of its scaled-down page.
+Yes. `tabThumbnailBuilder` builds a tab's thumbnail, such as a card with the tab's title, in place of its scaled-down page. As the tab zooms in, the card fades into the page, and a `TabHero` with the same tag on both flies a part, such as the title, to its place on the page. The [chats example](https://github.com/igorkurilenko/tab_overview/tree/main/example/lib/chat_tabs) shows it.
 
 </details>
 

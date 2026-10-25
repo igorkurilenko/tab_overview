@@ -17,7 +17,8 @@ tab_overview is a Flutter package for a tab switcher: the tabs your app keeps op
 
 - **Overview and Expanded Modes**: Users can view all tabs in a grid format (overview mode) or expand a selected tab for a detailed view.
 - **Reorderable and Removable Tabs**: Drag-and-drop reordering and tap-to-remove functionality provide a natural tab management experience.
-- **Customizable Animations and Layouts**: Fine-tune animation duration, curve, grid layout, and decorations for thumbnails and expanded views.
+- **Customizable Animations and Layouts**: Fine-tune animation duration and curve, or zoom on a spring, and the grid layout and decorations for thumbnails and expanded views.
+- **Thumbnails of Your Own**: Show each tab as a card of your own, such as a chat's avatar, name and latest message, and fly its parts to their places on the page with `TabHero`.
 - **Pull to Collapse**: Optionally, pull the expanded tab down to collapse it into its thumbnail, with `pullToCollapse: true`.
 
 ## Installation
@@ -176,7 +177,8 @@ class Tab {
   - `activeTab` is the tab the expanded view shows, and `activeIndex` is its index, or `null`.
   - `isTransitioning` tells whether a tab is flying between its thumbnail and its page.
   - It's a `ChangeNotifier`, and also has typed listeners for each kind of change.
-- **TabTransition**: How long an animation takes, and how it eases. The controller's `transition` sets it for expanding and collapsing, its `addRemoveTransition` for adding and removing tabs, and its `scrollTransition` for scrolling to a tab. The widget's `thumbnailsMotion` sets it for thumbnails moving in the grid.
+- **TabTransition**: How long an animation takes, and how it eases. The controller's `transition` sets it for expanding and collapsing, its `addRemoveTransition` for adding and removing tabs, and its `scrollTransition` for scrolling to a tab. The widget's `thumbnailsMotion` sets it for thumbnails moving in the grid. `TabTransition.spring` makes one that tabs expand and collapse on as on a spring.
+- **TabHero**: A part of a tab, such as its title, that flies on its own between the tab's thumbnail and its page.
 - **FittedTab**: Shows a tab's content scaled down to fit a thumbnail, as the default thumbnail does.
 - **RemoveTabButton**: The default remove button. Use it in a `removeTabButtonBuilder` to keep its look and do something else when it's pressed.
 
@@ -231,6 +233,19 @@ final controller = TabOverviewController<Tab>(
 
 A call can still pass its own `duration` and `curve`, as in `controller.expand(tab, duration: ...)`. Thumbnails moving to new places in the grid follow the widget's `thumbnailsMotion`.
 
+To expand and collapse tabs on a spring, give the controller a `TabTransition.spring`. A tab then flies from where it is at the speed it has, so a page let go of mid-pull collapses as fast as it was pulled, and a spring with some bounce carries it a little past its page's size, or its thumbnail's, and back:
+
+```dart
+final controller = TabOverviewController<Tab>(
+  transition: TabTransition.spring(
+    SpringDescription.withDurationAndBounce(
+      duration: const Duration(milliseconds: 350),
+      bounce: .15,
+    ),
+  ),
+);
+```
+
 Tabs added and removed scale and fade in and out over 350 ms, linearly, and scrolling to a tab takes 350 ms along `Curves.easeInOut`. The controller's `addRemoveTransition` and `scrollTransition` change those everywhere, and a call to `add`, `remove`, `removeAt`, `scrollToTab` or `scrollToTabAt` can pass its own:
 
 ```dart
@@ -244,6 +259,29 @@ final controller = TabOverviewController<Tab>(
 ```
 
 A tab swiped away doesn't scale or fade, whatever `addRemoveTransition` says: it flies off as it is when let go, at the speed it's let go at, speeding up evenly if it would otherwise take more than a quarter of a second to get out of sight.
+
+### Thumbnails of Your Own
+
+With `tabThumbnailBuilder`, a tab's thumbnail can be a card of its own rather than its page scaled down, such as a chat's avatar, name and latest message. As the tab zooms in, its card fades into its page, and back as it zooms out. Wrap a part that's on both, such as the chat's name, in a `TabHero` with the same tag on each, and it flies on its own from its place on the card to its place on the page:
+
+```dart
+TabOverview<Chat>.builder(
+  controller: controller,
+  tabThumbnailBuilder: (context, chat) => Column(
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      TabHero(tag: 'avatar', child: Avatar(chat.name, size: 64)),
+      TabHero(tag: 'name', child: Text(chat.name)),
+      TabHero(tag: 'last message', child: Text(chat.lastMessage)),
+    ],
+  ),
+  // ChatPage shows the avatar and the name in its bar, and the last
+  // message at its bottom, each in a TabHero with the same tag.
+  tabBuilder: (context, chat) => ChatPage(chat),
+)
+```
+
+A part that's a scaled copy of the other, such as a name set bigger, grows or shrinks as it flies, and a message wrapped to another width fades from the one into the other, each keeping its own lines, so no word jumps from line to line. The [chats example](https://github.com/igorkurilenko/tab_overview/tree/main/example/lib/chat_tabs) shows chats as cards that open into their pages this way.
 
 ### Pull to Collapse
 

@@ -16,6 +16,7 @@
 /// theme, its tokens and the icons, as hero_here's examples have it.
 library;
 
+export 'edge_scrim.dart';
 export 'theme.dart';
 export 'tokens.dart';
 export 'unicon.dart';

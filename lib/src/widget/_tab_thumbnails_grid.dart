@@ -66,6 +66,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
         middle <= position.pixels + position.viewportDimension;
   }
 
+  @override
   TabOverview<T> get overview => widget.overview;
 
   @override
@@ -277,15 +278,13 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
   // it back as far as the page is pulled, at once: the grid follows the
   // pull, and a collapse let go of carries on from where the pull left it.
   Widget _buildZoom(double pulled, Widget items) {
-    final flight = _activeFlight;
+    final transition = _activeFlight?.transition ?? controller.transition;
     final followsPull = controller.expanded && pulled > 0;
-    final duration = followsPull
-        ? Duration.zero
-        : flight?.duration ?? controller.transition.duration;
+    final duration = followsPull ? Duration.zero : transition.duration;
     return AnimatedScale(
       scale: thumbsGridScale(pulled),
       duration: duration,
-      curve: flight?.curve ?? controller.transition.curve,
+      curve: transition.curve,
       child: AnimatedOpacity(
         opacity: thumbsGridOpacity(pulled),
         duration: duration,
@@ -390,9 +389,18 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
 
     return Stack(
       children: [
-        Positioned.fill(child: tabHero(entry, onPage: false, child: thumb)),
+        Positioned.fill(
+          child: _LaidOutSize(
+            onLayout: (size) => entry.thumbnailSize = size,
+            child: tabHero(entry, side: _TabSide.thumbnail, child: thumb),
+          ),
+        ),
         if (overview._isRemovable(tab))
-          removeButtonHero(entry, onPage: false, child: removeButton),
+          removeButtonHero(
+            entry,
+            side: _TabSide.thumbnail,
+            child: removeButton,
+          ),
       ],
     );
   }
@@ -441,7 +449,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
       // from it, and comes back as the tab collapses, so the tab flies to it.
       builder: (context) => controller.isTabExpanded(tab)
           ? const SizedBox.shrink()
-          : tabHero(entry, onPage: false, child: thumb),
+          : tabHero(entry, side: _TabSide.thumbnail, child: thumb),
     );
   }
 
@@ -458,7 +466,11 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
       overview: overview,
       entry: entry,
       idleDecoration: overview.thumbnailDecoration,
-      child: overview._buildTabThumbnail(context, entry.tab),
+      child: placeTab(
+        entry,
+        side: _TabSide.thumbnail,
+        child: overview._buildTabThumbnail(context, entry.tab),
+      ),
     ),
   );
 }
