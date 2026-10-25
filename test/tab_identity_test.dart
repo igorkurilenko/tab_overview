@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tab_overview/tab_overview.dart';
 
+import 'support.dart';
+
 /// A tab whose equality and hash code follow a field that can change.
 class MutableTab {
   MutableTab(this.name);
@@ -13,12 +15,6 @@ class MutableTab {
 
   @override
   bool operator ==(Object other) => other is MutableTab && other.name == name;
-}
-
-Future<void> pumpFrames(WidgetTester tester, int frames) async {
-  for (var frame = 0; frame < frames; frame++) {
-    await tester.pump(const Duration(milliseconds: 16));
-  }
 }
 
 void main() {

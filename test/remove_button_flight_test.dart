@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tab_overview/tab_overview.dart';
 
+import 'support.dart';
+
 // The overview, at 800 by 600, with tab 1 of 4 expanded. Each tab's remove
 // button is keyed by its tab.
 Future<TabOverviewController<int>> pumpExpanded(WidgetTester tester) async {
@@ -28,11 +30,6 @@ Future<TabOverviewController<int>> pumpExpanded(WidgetTester tester) async {
   return controller;
 }
 
-Iterable<Rect> rectsOf(WidgetTester tester, Finder finder) => tester
-    .renderObjectList<RenderBox>(finder)
-    .map((box) => box.localToGlobal(Offset.zero) & box.size)
-    .where((rect) => rect.top.isFinite);
-
 // How far tab 1's remove button icon is from its tab's top right corner,
 // wherever each shows: on the page, on the thumbnail, or flying.
 Iterable<Offset> buttonOffsets(WidgetTester tester) {
@@ -56,18 +53,13 @@ Future<void> expectButtonInStep(
   TabOverviewController<int> controller,
 ) async {
   final atRest = buttonOffsets(tester).toSet().single;
-  // The frame of the switch, before the flights start.
-  await tester.pump();
-  var frames = 0;
-  while (controller.isTransitioning) {
-    await tester.pump(const Duration(milliseconds: 16));
+  final frames = await pumpFlight(tester, controller, () {
     for (final offset in buttonOffsets(tester)) {
       expect(offset.dx, moreOrLessEquals(atRest.dx, epsilon: 0.5));
       expect(offset.dy, moreOrLessEquals(atRest.dy, epsilon: 0.5));
     }
-    frames++;
-  }
-  expect(frames, greaterThan(5));
+  });
+  expect(frames.length, greaterThan(5));
   expect(controller.mode, TabOverviewMode.overview);
 }
 
@@ -95,20 +87,7 @@ void main() {
     final page = find
         .descendant(of: find.byType(PageView), matching: find.byType(FittedTab))
         .first;
-    final gesture = await tester.startGesture(tester.getCenter(page));
-    var time = Duration.zero;
-    Future<void> move(double dy) async {
-      time += const Duration(milliseconds: 16);
-      await gesture.moveBy(Offset(0, dy), timeStamp: time);
-      await tester.pump(const Duration(milliseconds: 16));
-    }
-
-    await move(20);
-    for (var step = 0; step < 6; step++) {
-      await move(8);
-    }
-
-    await gesture.up(timeStamp: time);
+    await pullDown(tester, tester.getCenter(page), [20, 8, 8, 8, 8, 8, 8]);
     await expectButtonInStep(tester, controller);
   });
 }

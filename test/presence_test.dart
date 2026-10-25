@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tab_overview/tab_overview.dart';
 
+import 'support.dart';
+
 late StateSetter rebuildParent;
 
 Future<TabOverviewController<int>> pumpOverview(WidgetTester tester) async {
@@ -21,12 +23,6 @@ Future<TabOverviewController<int>> pumpOverview(WidgetTester tester) async {
   );
   await tester.pumpAndSettle();
   return controller;
-}
-
-Future<void> pumpFrames(WidgetTester tester, int frames) async {
-  for (var frame = 0; frame < frames; frame++) {
-    await tester.pump(const Duration(milliseconds: 16));
-  }
 }
 
 double scaleOf(WidgetTester tester, int tab) => tester
