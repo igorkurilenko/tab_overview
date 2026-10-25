@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.3.0]
 ### Added
 - `TabHero`, a part of a tab, such as its title or its latest message, that flies on its own between the tab's thumbnail and its page as the tab zooms in and out. Put one with the same tag in what `tabThumbnailBuilder` builds and in what `tabBuilder` builds. A part that's a scaled copy of the other grows or shrinks as it flies, and one of another shape, such as a message wrapped to another width, wraps anew as it flies. A tag needs to be unique only among the tab's own parts.
 - `TabTransition.spring`, which expands and collapses tabs on a spring: from where a tab is, at the speed it has, so a page let go of mid-pull collapses as fast as it was pulled. A spring with some bounce carries a tab a little past its page's size or its thumbnail's, and back. A call to `expand` or `collapse` that passes its own `duration` or `curve` flies along that instead.
