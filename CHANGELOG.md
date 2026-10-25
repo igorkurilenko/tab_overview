@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.4.0]
 ### Added
 - `tabDecorationBuilder` on `TabOverview.builder` builds each tab's decoration from where it is: how far from its thumbnail to its page, how high it's lifted off the grid and which way it heads, at rest and as it zooms or is pulled. `TabDecorations.lifted`, the default, casts the soft shadow, or shadows of the app's own, and `TabDecorations.flat` casts none.
 
