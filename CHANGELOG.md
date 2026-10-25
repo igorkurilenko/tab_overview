@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.3.1]
 ### Docs
 - Say in the API docs what each member does, in place of docs that restated its code, such as "Returns `true` if…" and "A callback type that is triggered when…". The listener methods and three constructors get docs, which they lacked. `tabs` no longer calls them "all active tabs", and `isTabRemovable` no longer says the expanded page shows the close button, which it keeps hidden.
 - Show the chats example on the Example tab, under "More ways to use tab_overview.": what it does, its recording, how to run it and a link to its code.
