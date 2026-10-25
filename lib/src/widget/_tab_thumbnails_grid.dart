@@ -465,7 +465,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
     child: _TabDecoration<T>(
       overview: overview,
       entry: entry,
-      idleDecoration: overview.thumbnailDecoration,
+      onPage: false,
       child: placeTab(
         entry,
         side: _TabSide.thumbnail,

@@ -29,8 +29,8 @@ const _kPageFadeIn = Interval(0.2, 0.8);
 /// as [pageShown] shows the page, the thumbnail fades into it, even where
 /// the two are of one size, as on a watch. The tab's [TabHero]s fly on their
 /// own, and hide here while they do.
-class _TabZoom<T> extends StatelessWidget {
-  const _TabZoom({
+class _ZoomingTab<T> extends StatelessWidget {
+  const _ZoomingTab({
     required this.overview,
     required this.entry,
     required this.pageShown,
@@ -49,7 +49,7 @@ class _TabZoom<T> extends StatelessWidget {
       child: _TabDecoration<T>(
         overview: overview,
         entry: entry,
-        idleDecoration: overview.expandedTabDecoration,
+        onPage: true,
         child: Stack(
           fit: StackFit.expand,
           children: [

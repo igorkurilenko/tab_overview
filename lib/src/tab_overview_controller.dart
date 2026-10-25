@@ -368,6 +368,8 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
     // A fling the other way would land where it is at once.
     velocity: max(0, velocity),
     expansion: expansion,
+    // As high off the grid as the pull lifted it.
+    lift: 1 - expansion,
   );
 
   /// Lets go of the controller's listeners and its tabs' flights. Call it

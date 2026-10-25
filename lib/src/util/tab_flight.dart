@@ -23,7 +23,8 @@ part of '../tab_overview.dart';
 /// [transition] the flight was first asked with.
 ///
 /// A tab's page pulled to collapse it sets off part of the way to its
-/// thumbnail, at the `expansion` it's given, and flings its first run at
+/// thumbnail, at the `expansion` it's given, as high off the grid as the
+/// pull lifted it, at the `lift` it's given, and flings its first run at
 /// [velocity], with no curve, rather than over [duration].
 ///
 /// A flight with a [spring] runs on it instead: each run from where the tab
@@ -34,10 +35,12 @@ class TabFlight {
     required this.transition,
     this.velocity,
     double? expansion,
+    double lift = 0,
   }) : _toPage = toPage,
        _headsToPage = !toPage,
        _expansionAtSetOff = expansion ?? (toPage ? 0 : 1),
-       _pageShownAtSetOff = toPage ? 0 : 1;
+       _pageShownAtSetOff = toPage ? 0 : 1,
+       _liftPhaseAtSetOff = _liftPhaseOf(lift);
 
   /// How the flight runs: for as long as it says, along its curve, or on
   /// its spring.
@@ -61,6 +64,10 @@ class TabFlight {
   double _expansionAtSetOff;
 
   double _pageShownAtSetOff;
+
+  // Where on its arc the run under way set off: at 0, on the ground, or
+  // as far as halfway, where the arc is at its height.
+  double _liftPhaseAtSetOff;
 
   var _started = false;
 
@@ -98,6 +105,19 @@ class TabFlight {
   double get pageShown =>
       lerpDouble(_pageShownAtSetOff, _headsToPage ? 1 : 0, _animation.value)!;
 
+  /// How far the tab is lifted off the grid, from 0, where it rests, to 1:
+  /// it rises as the tab leaves where it was and settles as it lands, along
+  /// an arc, so a shadow under it grows and fades and nothing jumps. A run
+  /// that sets off mid-air, such as a diverted one, goes on from as high as
+  /// the tab is. Past its end, as a spring carries it, the tab has landed.
+  double get lift {
+    final run = clampDouble(_animation.value, 0, 1);
+    return sin(pi * lerpDouble(_liftPhaseAtSetOff, 1, run)!);
+  }
+
+  // Where on the arc a tab [lift] high is, on its way up.
+  static double _liftPhaseOf(double lift) => asin(clampDouble(lift, 0, 1)) / pi;
+
   /// Asks the tab to go to its page, or to its thumbnail.
   void ask({required bool toPage}) => _toPage = toPage;
 
@@ -113,6 +133,7 @@ class TabFlight {
   double? setOff() {
     _expansionAtSetOff = expansion;
     _pageShownAtSetOff = pageShown;
+    _liftPhaseAtSetOff = _liftPhaseOf(lift);
     _headsToPage = _toPage;
     return _runVelocity = _runs++ == 0 ? velocity : null;
   }
@@ -122,6 +143,7 @@ class TabFlight {
   void land() {
     _expansionAtSetOff = expansion;
     _pageShownAtSetOff = pageShown;
+    _liftPhaseAtSetOff = 0;
     _started = false;
     _animation.parent = kAlwaysDismissedAnimation;
   }
