@@ -3,15 +3,29 @@
 <p align="center">Like Flutter's <code>TabBarView</code>, but with every tab shown at once as a live thumbnail that zooms into its page.</p>
 
 <p align="center">
-  <a href="#installation">Get started ›</a>&emsp;<a href="https://pub.dev/packages/tab_overview/example">See the example ›</a>
+  <a href="#installation">Get started ›</a>&emsp;<a href="https://pub.dev/packages/tab_overview/example">See the examples ›</a>
 </p>
 
 tab_overview is a Flutter package for a tab switcher: the tabs your app keeps open, such as chats, documents or forms, show as live thumbnails in a grid, and a tap zooms one into a full page. Swipe between the pages, then zoom back out to the grid with a button, or by pulling the page down with `pullToCollapse`. Drag a thumbnail to reorder the tabs, and swipe it away or tap its close button to close it. Flutter's `TabBar` switches between a row of tabs; tab_overview is for multiple tabs that people add, close and reorder as they go, as in the tab overview of Safari or the tab switcher of Chrome. Its zoom is a hero animation within the same page, from [hero_here](https://pub.dev/packages/hero_here), and its grid reorders with [animated_reorderable](https://pub.dev/packages/animated_reorderable).
 
-<p align="center">
-  <img src="https://github.com/igorkurilenko/tab_overview/blob/main/assets/tab_overview_tab_switcher.webp?raw=true"
-    alt="Flutter tab switcher: a tap zooms a thumbnail into its page, a swipe turns to the next one, and a pull down zooms back out to the grid; + adds a tab, a drag takes it to the front, and a swipe closes it" width="220"/>
-</p>
+## Flutter tab switcher examples
+
+<table>
+  <tr>
+    <td align="center" valign="top" width="50%">
+      <img src="https://github.com/igorkurilenko/tab_overview/blob/main/assets/tab_overview_tab_switcher.webp?raw=true"
+        alt="Flutter tab switcher: a tap zooms a thumbnail into its page, a swipe turns to the next one, and a pull down zooms back out to the grid; + adds a tab, a drag takes it to the front, and a swipe closes it" width="220"/>
+      <p><b>Tab switcher with live thumbnails</b></p>
+      <p>Numbered tabs as live thumbnails in a grid: tap one, and it zooms into its page, where a swipe turns to the next tab. Pull the page down, and it zooms back out. Drag a thumbnail to reorder the tabs, swipe it away to close its tab, and tap + to add one. <a href="https://github.com/igorkurilenko/tab_overview/blob/main/example/lib/main.dart">See the code ›</a></p>
+    </td>
+    <td align="center" valign="top" width="50%">
+      <img src="https://github.com/igorkurilenko/tab_overview/blob/main/assets/tab_overview_chats.webp?raw=true"
+        alt="Flutter chats as tabs: a tapped card opens into its chat on a spring, its avatar, name and latest message flying to their places, and a pull down on the chat's bar closes it back into its card" width="220"/>
+      <p><b>Chats as tabs</b></p>
+      <p>A messenger's chats as cards of their own: tap one, and the chat opens on a spring, its avatar, name and latest message flying to their places on its page with <code>TabHero</code>. Pull it down by its bar, and it closes back into its card. <a href="https://github.com/igorkurilenko/tab_overview/tree/main/example/lib/chat_tabs">See the code ›</a></p>
+    </td>
+  </tr>
+</table>
 
 ## Features
 
@@ -220,6 +234,9 @@ You can also override this default layout by providing a custom `thumbnailsGridD
 Style your tabs with the following properties:
 - **thumbnailDecoration**: Apply decoration to each thumbnail in overview mode.
 - **expandedTabDecoration**: Apply decoration to the expanded view of a tab.
+- **tabDecorationBuilder**: Build each tab's decoration from where it is on its way, how high it's lifted and which way it heads, such as with a shadow of your own. `TabDecorations.lifted` and `TabDecorations.flat` are ready-made.
+
+As a tab zooms, its decoration turns from the one into the other, and, by default, it casts a soft shadow in its decoration's shape, which grows as it leaves its place and fades as it lands, so it reads apart from the grid it flies over. A page pulled down with `pullToCollapse` casts one too.
 
 ### Transitions
 

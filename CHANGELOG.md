@@ -7,6 +7,9 @@
 ### Changed
 - A tab casts a soft shadow as it zooms between its thumbnail and its page, in its decoration's shape, so it reads apart from the grid it flies over. It has none at either end and the most halfway, as hero_here's add to cart example lifts a picture off the page: up to 20% black, blurred 24 pixels and 12 pixels down. A page pulled down to collapse it casts one too, as far as it's pulled, which goes on from there as the tab flies back to its thumbnail.
 
+### Docs
+- Show both examples in the README, as tiles under "Flutter tab switcher examples", each with its recording and a link to its code, in place of the one recording under the intro. The link at the top now reads "See the examples ›".
+
 ## [0.3.1]
 ### Docs
 - Say in the API docs what each member does, in place of docs that restated its code, such as "Returns `true` if…" and "A callback type that is triggered when…". The listener methods and three constructors get docs, which they lacked. `tabs` no longer calls them "all active tabs", and `isTabRemovable` no longer says the expanded page shows the close button, which it keeps hidden.
