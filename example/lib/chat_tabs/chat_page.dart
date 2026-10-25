@@ -12,38 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// What the chats example looks like: a chat's card in the overview, its
-// page and their parts, apart from the tab switcher, which main.dart builds.
+// A chat's page, which the chat's card opens into.
 
 import 'package:flutter/material.dart';
 import 'package:tab_overview/tab_overview.dart';
 
 import '../style/style.dart';
 import 'chat.dart';
-
-/// The parts of a chat that fly between its card and its page, as
-/// [TabHero]s: its avatar, its name, and the text of its last message.
-enum ChatPart { avatar, name, lastMessage }
-
-/// The space around a card's content.
-const chatCardPadding = S.s3;
-
-/// A card's shape, an Apple Watch Ultra's screen's: 205 by 251 points.
-const chatCardAspectRatio = 205 / 251;
-
-/// The widest a card gets: the grid lays out as many columns as it can of
-/// cards no wider, so a screen no wider than one card, a watch's, has one.
-const chatCardMaxWidth = 220.0;
-
-/// The radius of a card's corners, about as round as a watch's screen's for
-/// a card of about its size.
-const chatCardRadius = 44.0;
+import 'chat_parts.dart';
 
 /// The space at the sides of a chat's page.
 const chatPagePadding = S.s4;
 
-/// The size of a chat's avatar on its card, and in its bar.
-const _cardAvatarSize = S.s10;
+/// The size of a chat's avatar in its bar.
 const _barAvatarSize = S.s8;
 
 /// How much bigger a chat's name is in its bar than on its card.
@@ -56,151 +37,6 @@ const _scrimBeyond = S.s5;
 /// above the home indicator.
 const _barHeight = S.s2 + _barAvatarSize + S.s2;
 const _composerHeight = S.s2 + S.s9 + S.s4;
-
-/// A chat's card in the overview, laid out as a watch shows a message: the
-/// chat's avatar in the middle, its name under it, and the text of its last
-/// message under that. All three fly to the chat's page as it opens, and
-/// back as it closes.
-///
-/// The message keeps room for two lines, so the avatar and the name stay
-/// where they are whether it takes one or two, and a new one slides up into
-/// place as it comes.
-class ChatCard extends StatelessWidget {
-  const ChatCard(this.chat, {super.key, required this.onTap});
-
-  final Chat chat;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final style = _messageStyle(context);
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: const EdgeInsets.all(chatCardPadding),
-        child: ListenableBuilder(
-          listenable: chat,
-          builder: (context, _) => Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              TabHero(
-                tag: ChatPart.avatar,
-                child: Avatar(chat.name, size: _cardAvatarSize),
-              ),
-              const SizedBox(height: S.s2),
-              TabHero(tag: ChatPart.name, child: _ChatName(chat)),
-              // Further from the name than the name is from the avatar, so
-              // the message reads apart from whom the chat is with.
-              const SizedBox(height: S.s3),
-              _TwoLines(
-                style: style,
-                child: TabHero(
-                  tag: ChatPart.lastMessage,
-                  child: _LastMessage(chat.last, style: style),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Room for two lines of [style]'s text, whatever [child] takes of it, with
-/// [child] at its top, clipped to it.
-class _TwoLines extends StatelessWidget {
-  const _TwoLines({required this.style, required this.child});
-
-  final TextStyle? style;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) => ClipRect(
-    child: Stack(
-      alignment: Alignment.topCenter,
-      children: [
-        // Two empty lines, unseen, whose height the room takes.
-        ExcludeSemantics(
-          child: Opacity(opacity: 0, child: Text('\n', style: style)),
-        ),
-        child,
-      ],
-    ),
-  );
-}
-
-/// The text of a chat's last message, in two lines at most. A new one slides
-/// up into place, fading in, as the one before it slides up and away.
-class _LastMessage extends StatelessWidget {
-  const _LastMessage(this.message, {required this.style});
-
-  final Message message;
-  final TextStyle? style;
-
-  @override
-  Widget build(BuildContext context) => AnimatedSwitcher(
-    duration: const Duration(milliseconds: 300),
-    switchInCurve: Curves.easeOut,
-    switchOutCurve: Curves.easeIn,
-    layoutBuilder: (current, previous) => Stack(
-      alignment: Alignment.topCenter,
-      children: [...previous, ?current],
-    ),
-    // Built anew for every message, so the one going out goes up too.
-    transitionBuilder: (child, animation) {
-      final coming = child.key == ValueKey(message);
-      return FadeTransition(
-        opacity: animation,
-        child: SlideTransition(
-          position: Tween(
-            begin: Offset(0, coming ? .5 : -.5),
-            end: Offset.zero,
-          ).animate(animation),
-          child: child,
-        ),
-      );
-    },
-    child: Text(
-      message.text,
-      key: ValueKey(message),
-      style: style,
-      textAlign: TextAlign.center,
-      maxLines: 2,
-      overflow: TextOverflow.ellipsis,
-    ),
-  );
-}
-
-/// A message's text, on its card and on its page: the body type, its lines
-/// closer than body copy's, as a chat's are. One style on both, so a
-/// message of one line is of one size on both, and only moves as it flies.
-TextStyle? _messageStyle(BuildContext context) =>
-    Theme.of(context).textTheme.bodyMedium?.copyWith(height: 1.3);
-
-/// A chat's name, on its card, and [scale] times as big in its bar, so it
-/// only grows as it flies.
-class _ChatName extends StatelessWidget {
-  const _ChatName(this.chat, {this.scale = 1});
-
-  final Chat chat;
-  final double scale;
-
-  @override
-  Widget build(BuildContext context) {
-    final style = Theme.of(context).textTheme.titleMedium!;
-    return Text(
-      chat.name,
-      style: style.copyWith(
-        fontSize: style.fontSize! * scale,
-        letterSpacing: (style.letterSpacing ?? 0) * scale,
-      ),
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-    );
-  }
-}
 
 /// A chat's page: its messages, the newest at the bottom, under a bar with
 /// whom the chat is with and a box to type a message in, both floating over
@@ -324,7 +160,7 @@ class _ChatBar extends StatelessWidget {
           Flexible(
             child: TabHero(
               tag: ChatPart.name,
-              child: _ChatName(chat, scale: _barNameScale),
+              child: ChatName(chat, scale: _barNameScale),
             ),
           ),
         ],
@@ -414,7 +250,7 @@ class MessageRow extends StatelessWidget {
     final theme = Theme.of(context);
     final text = theme.textTheme;
     final author = message.author ?? 'You';
-    final body = Text(message.text, style: _messageStyle(context));
+    final body = Text(message.text, style: messageStyle(context));
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -454,53 +290,6 @@ class MessageRow extends StatelessWidget {
     );
   }
 }
-
-/// Someone's avatar: the initials of [name] on a disc of its own color.
-class Avatar extends StatelessWidget {
-  const Avatar(this.name, {super.key, required this.size});
-
-  final String name;
-  final double size;
-
-  // Pale discs with darker initials, as in Signal.
-  static const _colors = [
-    (Color(0xFFE6E0FF), Color(0xFF5A3FD1)),
-    (Color(0xFFDDF3E4), Color(0xFF1F7A45)),
-    (Color(0xFFFFE4D6), Color(0xFFB4501C)),
-    (Color(0xFFDCEBFF), Color(0xFF1E5FB3)),
-    (Color(0xFFFFE0EC), Color(0xFFB0285F)),
-    (Color(0xFFF1EAD8), Color(0xFF7A5B12)),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final (background, foreground) =
-        _colors[name.codeUnits.fold(0, (sum, unit) => sum + unit) %
-            _colors.length];
-    return Container(
-      width: size,
-      height: size,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(color: background, shape: BoxShape.circle),
-      child: Text(
-        _initialsOf(name),
-        style: Theme.of(context).textTheme.labelMedium?.copyWith(
-          fontSize: size * .4,
-          fontWeight: FontWeight.w600,
-          color: foreground,
-        ),
-      ),
-    );
-  }
-}
-
-/// The first letters of [name]'s first two words.
-String _initialsOf(String name) => name
-    .split(' ')
-    .where((word) => word.isNotEmpty)
-    .take(2)
-    .map((word) => word.substring(0, 1).toUpperCase())
-    .join();
 
 String _timeOf(DateTime time) =>
     '${time.hour}:${time.minute.toString().padLeft(2, '0')}';
