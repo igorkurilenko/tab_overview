@@ -22,6 +22,7 @@ class RemoveTabButton extends StatelessWidget {
   /// Called when the button is pressed.
   final VoidCallback onPressed;
 
+  /// Creates the close button, which calls [onPressed] when it's pressed.
   const RemoveTabButton({super.key, required this.onPressed});
 
   ButtonStyle get _buttonStyle => ButtonStyle(

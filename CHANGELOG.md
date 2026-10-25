@@ -1,5 +1,9 @@
 # Changelog
 
+## [Unreleased]
+### Docs
+- Say in the API docs what each member does, in place of docs that restated its code, such as "Returns `true` if…" and "A callback type that is triggered when…". The listener methods and three constructors get docs, which they lacked. `tabs` no longer calls them "all active tabs", and `isTabRemovable` no longer says the expanded page shows the close button, which it keeps hidden.
+
 ## [0.3.0]
 ### Added
 - `TabHero`, a part of a tab, such as its title or its latest message, that flies on its own between the tab's thumbnail and its page as the tab zooms in and out. Put one with the same tag in what `tabThumbnailBuilder` builds and in what `tabBuilder` builds. A part that's a scaled copy of the other grows or shrinks as it flies, and one of another shape, such as a message wrapped to another width, fades from the one into the other, each keeping its own lines. A tag needs to be unique only among the tab's own parts.

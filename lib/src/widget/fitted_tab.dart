@@ -24,6 +24,8 @@ class FittedTab extends StatelessWidget {
   /// The tab's content, such as what `tabBuilder` builds.
   final Widget child;
 
+  /// Shows [child], such as what `tabBuilder` builds, as the default
+  /// thumbnail shows a tab's page.
   const FittedTab({super.key, required this.child});
 
   @override
