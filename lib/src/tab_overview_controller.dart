@@ -225,11 +225,11 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
   bool add(T newTab, {Duration? duration, Curve? curve}) {
     if (_model.containsTab(newTab)) return false;
 
-    _model.addTab(
-      newTab,
-      duration: duration ?? addRemoveTransition.duration,
-      curve: curve ?? addRemoveTransition.curve,
+    final asked = addRemoveTransition._overriddenBy(
+      duration: duration,
+      curve: curve,
     );
+    _model.addTab(newTab, duration: asked.duration, curve: asked.curve);
     _notifyTabAdded(newTab);
 
     activeTab ??= newTab;
@@ -269,14 +269,17 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
   ///
   /// Returns the removed tab.
   T removeAt(int index, {Duration? duration, Curve? curve}) {
-    duration ??= addRemoveTransition.duration;
+    final asked = addRemoveTransition._overriddenBy(
+      duration: duration,
+      curve: curve,
+    );
     // Its add animation, if any, is over, and may never end if its item
     // goes first.
     _model.entryAt(index).presence = null;
     final removed = _model.removeAt(
       index,
-      duration: duration,
-      curve: curve ?? addRemoveTransition.curve,
+      duration: asked.duration,
+      curve: asked.curve,
     );
     final removedTab = removed.tab;
     _notifyTabRemoved(removedTab);
@@ -288,7 +291,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
     }
 
     if (isActiveTab(removedTab)) {
-      if (expanded) _collapseRemoved(removed, duration: duration);
+      if (expanded) _collapseRemoved(removed, duration: asked.duration);
       _setActiveTab(_neighbourOfRemovedTabAt(index));
     } else if (expanded) {
       _showPagesAtActiveTab();
@@ -314,7 +317,10 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
     _model.addStandIn(removed);
     _collapseWith(
       removed,
-      TabFlight(toPage: false, duration: duration, curve: transition.curve),
+      TabFlight(
+        toPage: false,
+        transition: TabTransition(duration: duration, curve: transition.curve),
+      ),
     );
   }
 
@@ -350,6 +356,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
   /// is, over the duration and curve of the flight it's in.
   void expand(T tab, {Duration? duration, Curve? curve}) {
     final entry = _entryOrThrow(tab);
+    final asked = transition._overriddenBy(duration: duration, curve: curve);
 
     if (_thumbnails == null) {
       // Before the overview is built, with nothing to fly between: it
@@ -360,11 +367,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
     }
 
     if (expanded && _pages != null) {
-      scrollToTab(
-        tab,
-        duration: duration ?? transition.duration,
-        curve: curve ?? transition.curve,
-      );
+      scrollToTab(tab, duration: asked.duration, curve: asked.curve);
       return;
     }
 
@@ -381,11 +384,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
     }
     _setActiveTab(tab);
 
-    final flight = TabFlight(
-      toPage: true,
-      duration: duration ?? transition.duration,
-      curve: curve ?? transition.curve,
-    );
+    final flight = TabFlight(toPage: true, transition: asked);
     if (!_thumbnails!.thumbBuilt(tab)) {
       _expandOffScreen(entry, flight);
     } else {
@@ -406,22 +405,28 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
   /// A [duration] and [curve] override the controller's [scrollTransition].
   void scrollToTabAt(int index, {Duration? duration, Curve? curve}) {
     RangeError.checkValidIndex(index, tabs, 'index');
-    duration ??= scrollTransition.duration;
-    curve ??= scrollTransition.curve;
+    final asked = scrollTransition._overriddenBy(
+      duration: duration,
+      curve: curve,
+    );
     if (expanded) {
       final pages = _pages;
       if (pages == null) {
         // Expanded since the last frame, with no pages to scroll yet.
-        expand(tabs[index], duration: duration, curve: curve);
+        expand(tabs[index], duration: asked.duration, curve: asked.curve);
       } else {
-        pages.animateToPage(index, duration: duration, curve: curve);
+        pages.animateToPage(
+          index,
+          duration: asked.duration,
+          curve: asked.curve,
+        );
       }
     } else {
       // Before the overview is built, there's no grid to scroll.
       final grid = _thumbnails;
       if (grid == null) return;
       final offset = grid.getThumbScrollOffset(index);
-      grid.animateTo(offset, duration: duration, curve: curve);
+      grid.animateTo(offset, duration: asked.duration, curve: asked.curve);
     }
   }
 
@@ -430,10 +435,8 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
   /// A [duration] and [curve] override the controller's [transition]. A tab
   /// still flying to its page turns toward its thumbnail from where it is,
   /// over the duration and curve of the flight it's in.
-  void collapse({Duration? duration, Curve? curve}) => _collapse(
-    duration: duration ?? transition.duration,
-    curve: curve ?? transition.curve,
-  );
+  void collapse({Duration? duration, Curve? curve}) =>
+      _collapse(transition._overriddenBy(duration: duration, curve: curve));
 
   // Collapses the active tab from where a pull left its page: [expansion] of
   // the way from its thumbnail to its page, flung at [velocity], in flights
@@ -442,19 +445,15 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
     required double velocity,
     required double expansion,
   }) => _collapse(
-    duration: transition.duration,
-    curve: transition.curve,
+    transition,
     // A fling the other way would land where it is at once.
     velocity: max(0, velocity),
     expansion: expansion,
   );
 
-  void _collapse({
-    required Duration duration,
-    required Curve curve,
-    double? velocity,
-    double? expansion,
-  }) {
+  // Collapses the active tab by [asked], flung at [velocity] from
+  // [expansion] of the way, if given.
+  void _collapse(TabTransition asked, {double? velocity, double? expansion}) {
     if (overview) {
       _takeBackWaitingExpand();
       return;
@@ -473,8 +472,7 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
 
     final flight = TabFlight(
       toPage: false,
-      duration: duration,
-      curve: curve,
+      transition: asked,
       velocity: velocity,
       expansion: expansion,
     );

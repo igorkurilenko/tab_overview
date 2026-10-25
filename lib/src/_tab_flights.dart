@@ -14,6 +14,15 @@
 
 part of 'tab_overview.dart';
 
+/// What a hero asks of a flight it's in, as hero_here asks it: the
+/// controller that drives the flight, the animation the flight runs on, and
+/// the start of each of its runs.
+typedef _FlightWiring = ({
+  HeroHereFlightAnimationControllerFactory controller,
+  HeroHereFlightAnimationFactory animation,
+  HeroHereFlightAnimationStarter forward,
+});
+
 /// The tabs' flights between their thumbnails and their pages: which tab
 /// flies where, and what hero_here's heroes ask of a tab's flight as it
 /// starts, runs and ends. The controller decides when a tab is asked to fly.
@@ -73,103 +82,116 @@ class _TabFlights<T> {
     }
   }
 
+  /// What the tab's own hero asks of its flight, which leads the flights of
+  /// its other heroes. [toPage] is whether that hero is on the tab's page.
+  _FlightWiring leaderOf(_TabEntry<T> entry, {required bool toPage}) => (
+    controller: (vsync, duration) =>
+        _createController(entry, vsync, toPage: toPage),
+    animation: (controller) {
+      final flight = entry.flight!;
+      final animation = _animate(controller, flight);
+      flight.start(animation);
+      return animation;
+    },
+    // Each run of the tab's flight: the first, and one on each divert.
+    forward: (controller, {from}) {
+      final flight = entry.flight;
+      final velocity = flight?.setOff();
+      return _runForward(controller, flight, velocity: velocity, from: from);
+    },
+  );
+
+  /// What a hero that flies in step with the tab asks of its flight: its
+  /// remove button's, or, with a [part] tag, that of one of its [TabHero]s,
+  /// which the tab's shuttle hides the part for while it flies. It flies for
+  /// as long as the tab, along the same curve or on the same spring, and
+  /// flung as fast. Its hero comes after the tab's, so each run of its
+  /// flight starts after the tab's run has set off.
+  _FlightWiring followerOf(_TabEntry<T> entry, {Object? part}) => (
+    controller: (vsync, duration) {
+      if (part != null) entry.partTakesOff(part);
+      final flight = entry.flight;
+      return TabFlightController(
+        vsync: vsync,
+        duration: _transitionOf(flight).duration,
+        unbounded: flight?.spring != null,
+        onDispose: () {
+          if (part != null) entry.partLands(part);
+        },
+      );
+    },
+    animation: (controller) => _animate(controller, entry.flight),
+    forward: (controller, {from}) {
+      final flight = entry.flight;
+      return _runForward(
+        controller,
+        flight,
+        velocity: flight?.runVelocity,
+        from: from,
+      );
+    },
+  );
+
   // hero_here asks the hero the flight lands on for its controller, else the
   // hero it leaves, as the flight starts. [toPage] is whether that's the
   // tab's page, for a flight nobody asked for.
-  AnimationController createController(
+  AnimationController _createController(
     _TabEntry<T> entry,
     TickerProvider vsync, {
     required bool toPage,
   }) {
     var flight = entry.flight;
     if (flight == null) {
-      flight = TabFlight(
-        toPage: toPage,
-        duration: _controller.transition.duration,
-        curve: _controller.transition.curve,
-      );
+      flight = TabFlight(toPage: toPage, transition: _controller.transition);
       set(entry, flight);
     }
     final startedFlight = flight;
     return TabFlightController(
       vsync: vsync,
       duration: flight.duration,
+      unbounded: flight.spring != null,
       onDispose: () => _ended(entry, startedFlight),
     );
   }
 
-  Animation<double> createAnimation(
-    _TabEntry<T> entry,
+  // A flight that's flung, or on a spring, sets its own pace. Any other
+  // follows its curve.
+  Animation<double> _animate(
     AnimationController controller,
-  ) {
-    final flight = entry.flight!;
-    final animation = _animate(
-      controller,
-      flung: flight.velocity != null,
-      curve: flight.curve,
-    );
-    flight.start(animation);
-    return animation;
-  }
+    TabFlight? flight,
+  ) => flight != null && (flight.velocity != null || flight.spring != null)
+      ? controller
+      : CurvedAnimation(parent: controller, curve: _transitionOf(flight).curve);
 
-  // Starts each run of the tab's flight: the first, and one on each divert.
-  TickerFuture run(
-    _TabEntry<T> entry,
-    AnimationController controller, {
-    double? from,
-  }) {
-    final velocity = entry.flight?.setOff();
-    return _runForward(controller, velocity: velocity, from: from);
-  }
+  // How [flight] runs, or, with none, how the controller's flights do.
+  TabTransition _transitionOf(TabFlight? flight) =>
+      flight?.transition ?? _controller.transition;
 
-  // The tab's remove button flies in step with the tab: for as long, along
-  // the same curve, and flung as fast. Its hero comes after the tab's, so
-  // each run of its flight starts after the tab's run has set off.
-  AnimationController createButtonController(
-    _TabEntry<T> entry,
-    TickerProvider vsync,
-  ) => AnimationController(
-    vsync: vsync,
-    duration: entry.flight?.duration ?? _controller.transition.duration,
-  );
-
-  Animation<double> createButtonAnimation(
-    _TabEntry<T> entry,
-    AnimationController controller,
-  ) {
-    final flight = entry.flight;
-    return _animate(
-      controller,
-      flung: flight?.velocity != null,
-      curve: flight?.curve ?? _controller.transition.curve,
-    );
-  }
-
-  TickerFuture runButton(
-    _TabEntry<T> entry,
-    AnimationController controller, {
-    double? from,
-  }) {
-    final velocity = entry.flight?.runVelocity;
-    return _runForward(controller, velocity: velocity, from: from);
-  }
-
-  // A flight that's flung sets its own pace. Any other follows its curve.
-  static Animation<double> _animate(
-    AnimationController controller, {
-    required bool flung,
-    required Curve curve,
-  }) => flung ? controller : CurvedAnimation(parent: controller, curve: curve);
-
-  // Flings a run at [velocity], if it's flung, or runs it forward [from]
-  // where it is told.
+  // Runs a flight on its spring from [from], or where it is, at [velocity],
+  // if any; or else flings it at [velocity], if it's flung, or runs it
+  // forward [from] where it is told.
   static TickerFuture _runForward(
-    AnimationController controller, {
+    AnimationController controller,
+    TabFlight? flight, {
     double? velocity,
     double? from,
-  }) => velocity != null
-      ? controller.fling(velocity: velocity)
-      : controller.forward(from: from);
+  }) {
+    if (flight?.spring case final spring?) {
+      return controller.animateWith(
+        SpringSimulation(
+          spring,
+          from ?? controller.value,
+          1,
+          velocity ?? 0,
+          tolerance: _kSpringTolerance,
+          snapToEnd: true,
+        ),
+      );
+    }
+    return velocity != null
+        ? controller.fling(velocity: velocity)
+        : controller.forward(from: from);
+  }
 
   // However the flight ended: landed, or stopped by a switch that left no
   // hero for it, or by the overview going away.

@@ -12,9 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import 'dart:ui' show lerpDouble;
-
-import 'package:flutter/widgets.dart';
+part of '../tab_overview.dart';
 
 /// A tab's flight between its thumbnail and its page, from when it's asked
 /// for until the tab lands where it was last asked to go.
@@ -22,25 +20,36 @@ import 'package:flutter/widgets.dart';
 /// A switch that sends the tab elsewhere mid-flight diverts the flight
 /// rather than starting another, so one flight may have several runs, each
 /// from where the tab is to where it's asked to go. All of them take the
-/// [duration] and [curve] the flight was first asked with.
+/// [transition] the flight was first asked with.
 ///
 /// A tab's page pulled to collapse it sets off part of the way to its
 /// thumbnail, at the `expansion` it's given, and flings its first run at
 /// [velocity], with no curve, rather than over [duration].
+///
+/// A flight with a [spring] runs on it instead: each run from where the tab
+/// is, at the speed it has, with no curve.
 class TabFlight {
   TabFlight({
     required bool toPage,
-    required this.duration,
-    required this.curve,
+    required this.transition,
     this.velocity,
     double? expansion,
   }) : _toPage = toPage,
        _headsToPage = !toPage,
-       _expansionAtSetOff = expansion ?? (toPage ? 0 : 1);
+       _expansionAtSetOff = expansion ?? (toPage ? 0 : 1),
+       _pageShownAtSetOff = toPage ? 0 : 1;
 
-  final Duration duration;
+  /// How the flight runs: for as long as it says, along its curve, or on
+  /// its spring.
+  final TabTransition transition;
 
-  final Curve curve;
+  Duration get duration => transition.duration;
+
+  Curve get curve => transition.curve;
+
+  /// The spring the flight runs on, if any, rather than along [curve] over
+  /// [duration].
+  SpringDescription? get spring => transition.spring;
 
   /// How fast the first run sets off, in runs a second, if it's flung.
   final double? velocity;
@@ -50,6 +59,8 @@ class TabFlight {
   bool _headsToPage;
 
   double _expansionAtSetOff;
+
+  double _pageShownAtSetOff;
 
   var _started = false;
 
@@ -80,6 +91,13 @@ class TabFlight {
   double get expansion =>
       lerpDouble(_expansionAtSetOff, _headsToPage ? 1 : 0, _animation.value)!;
 
+  /// How far what the tab shows is from its thumbnail's content, at 0, to
+  /// its page's, at 1, which a thumbnail of the app's own fades between.
+  /// Unlike [expansion], a page pulled to collapse it sets off showing all
+  /// of itself, as it did while pulled.
+  double get pageShown =>
+      lerpDouble(_pageShownAtSetOff, _headsToPage ? 1 : 0, _animation.value)!;
+
   /// Asks the tab to go to its page, or to its thumbnail.
   void ask({required bool toPage}) => _toPage = toPage;
 
@@ -94,6 +112,7 @@ class TabFlight {
   /// its first run.
   double? setOff() {
     _expansionAtSetOff = expansion;
+    _pageShownAtSetOff = pageShown;
     _headsToPage = _toPage;
     return _runVelocity = _runs++ == 0 ? velocity : null;
   }
@@ -102,6 +121,7 @@ class TabFlight {
   /// to where the tab was asked to go since.
   void land() {
     _expansionAtSetOff = expansion;
+    _pageShownAtSetOff = pageShown;
     _started = false;
     _animation.parent = kAlwaysDismissedAnimation;
   }
@@ -109,14 +129,22 @@ class TabFlight {
 
 /// A flight's controller, which calls [onDispose] as hero_here disposes it,
 /// as the flight ends, however it ends.
+///
+/// One for a flight on a spring has no bounds, so the spring may carry it
+/// past its end and back.
 class TabFlightController extends AnimationController {
   final VoidCallback onDispose;
 
   TabFlightController({
     required super.vsync,
     super.duration,
+    bool unbounded = false,
     required this.onDispose,
-  });
+  }) : super(
+         value: 0,
+         lowerBound: unbounded ? double.negativeInfinity : 0,
+         upperBound: unbounded ? double.infinity : 1,
+       );
 
   @override
   void dispose() {

@@ -30,6 +30,7 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
 
   _TabOverviewModel<T> get model => controller._model;
 
+  @override
   TabOverview<T> get overview => widget.overview;
 
   @override
@@ -122,7 +123,13 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
 
   Widget _buildExpandedTab(BuildContext context, _TabEntry<T> entry) {
     final tab = entry.tab;
-    Widget tabWidget = FittedTab(child: overview.tabBuilder(context, tab));
+    Widget tabWidget = FittedTab(
+      child: placeTab(
+        entry,
+        side: _TabSide.page,
+        child: overview.tabBuilder(context, tab),
+      ),
+    );
     tabWidget = _TabDecoration<T>(
       overview: overview,
       entry: entry,
@@ -138,11 +145,13 @@ class _ExpandedTabState<T> extends State<_ExpandedTab<T>>
 
     return Stack(
       children: [
-        Positioned.fill(child: tabHero(entry, onPage: true, child: tabWidget)),
+        Positioned.fill(
+          child: tabHero(entry, side: _TabSide.page, child: tabWidget),
+        ),
         if (overview._isRemovable(tab))
           removeButtonHero(
             entry,
-            onPage: true,
+            side: _TabSide.page,
             child: IgnorePointer(
               ignoring: true,
               child: Opacity(

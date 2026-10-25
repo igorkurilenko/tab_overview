@@ -21,8 +21,9 @@
 /// they go, such as documents, chats or forms:
 ///
 /// - Zoom a thumbnail into its page and back, with a hero animation within
-///   the same page, from hero_here. With [TabOverview.pullToCollapse], a
-///   pull down zooms a page back out too.
+///   the same page, from hero_here, along a curve or, with
+///   [TabTransition.spring], on a spring. With [TabOverview.pullToCollapse],
+///   a pull down zooms a page back out too.
 /// - Swipe between the pages of the open tabs.
 /// - Drag and drop a thumbnail to reorder the tabs, from
 ///   animated_reorderable.
@@ -30,7 +31,9 @@
 ///   by swiping its thumbnail away, and add tabs with
 ///   [TabOverviewController.add].
 /// - Build thumbnails of your own with [TabOverview.tabThumbnailBuilder],
-///   around a [FittedTab], which scales a tab's page down to its cell.
+///   around a [FittedTab], which scales a tab's page down to its cell, or as
+///   cards whose parts, such as a title, fly to their places on the page in
+///   [TabHero]s.
 ///
 /// Give a [TabOverviewController] your tabs, and build their pages in
 /// [TabOverview.builder]:
@@ -57,6 +60,7 @@ export 'src/tab_overview.dart'
         TabAddedListener,
         TabOverview,
         TabOverviewController,
+        TabHero,
         TabOverviewMode,
         TabRemovedListener,
         TabTransition,

@@ -21,11 +21,11 @@ import 'dart:ui' show lerpDouble;
 import 'package:animated_reorderable/animated_reorderable.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/physics.dart';
 import 'package:flutter/rendering.dart';
 import 'package:hero_here/hero_here.dart';
 import 'package:tab_overview/src/widget/remove_tab_button.dart';
 
-import 'util/tab_flight.dart';
 import 'util/model_widget_builder.dart';
 import 'widget/fitted_tab.dart';
 
@@ -34,11 +34,14 @@ part '_tab_flights.dart';
 part 'tab_transition.dart';
 part '_tab_overview_model.dart';
 part 'tab_overview_controller.dart';
+part 'util/tab_flight.dart';
 part 'widget/_tab_heroes.dart';
 part 'widget/_tab_thumbnails_grid.dart';
 part 'widget/_expanded_tab.dart';
 part 'widget/_pull_to_collapse.dart';
 part 'widget/_tab_transitions.dart';
+part 'widget/_tab_zoom.dart';
+part 'widget/tab_hero.dart';
 
 const _kExpandedTabPageViewportFraction = 1.1;
 const _kDefaultThumbnailsGridCrossAxisSpacing = 8.0;
@@ -88,10 +91,15 @@ class TabOverview<T> extends StatefulWidget {
   /// thumbnails in overview mode.
   final SliverGridDelegate? thumbnailsGridDelegate;
 
-  /// Builder function for generating a thumbnail widget for each tab in overview mode.
+  /// Builds a tab's thumbnail of the app's own, such as a card with the
+  /// tab's title, in place of its page scaled down by a [FittedTab], as when
+  /// it's null.
   ///
-  /// This function allows customization of each tab’s appearance in the overview grid.
-  /// If null, a thumbnail shows what [tabBuilder] builds in a [FittedTab].
+  /// As the tab zooms in, its thumbnail fades into its page, and back as it
+  /// zooms out. On the way, the page shows as it would in a window of the
+  /// zooming tab's shape, at the overview's width: its bars at its top and
+  /// bottom, and its text wrapped as on the page. [TabHero]s fly parts of
+  /// the thumbnail, such as its title, to their places on the page.
   final ModelWidgetBuilder<T>? tabThumbnailBuilder;
 
   /// How thumbnails move to new places in the grid, as when tabs are added,

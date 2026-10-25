@@ -115,6 +115,40 @@ class _TabEntry<T> extends ChangeNotifier {
   /// from the page's hero after the page is gone.
   final pull = ValueNotifier<double>(0);
 
+  /// The size the grid last laid the tab's thumbnail out at, which a flight
+  /// lays a thumbnail of the app's own out at, so it keeps its layout as the
+  /// flight grows or shrinks it.
+  Size? thumbnailSize;
+
+  /// The size each of the tab's [TabHero]s was last laid out at, by its tag
+  /// and the side of the tab it's on, which its flight lays it out at.
+  final partSizes = <(Object, _TabSide), Size>{};
+
+  // How many flights each of the tab's parts is in, by its tag.
+  final _partFlights = <Object, int>{};
+
+  /// Tells when one of the tab's parts takes off or lands.
+  final partFlightsChanged = _Notifier();
+
+  /// Whether the part with [tag] flies, which the tab's shuttle hides it
+  /// for.
+  bool partFlies(Object tag) => _partFlights.containsKey(tag);
+
+  void partTakesOff(Object tag) {
+    _partFlights.update(tag, (flights) => flights + 1, ifAbsent: () => 1);
+    partFlightsChanged.notify();
+  }
+
+  void partLands(Object tag) {
+    final flights = (_partFlights[tag] ?? 1) - 1;
+    if (flights > 0) {
+      _partFlights[tag] = flights;
+    } else {
+      _partFlights.remove(tag);
+    }
+    partFlightsChanged.notify();
+  }
+
   _TabEntry(this.tab);
 
   /// The tab's flight between its thumbnail and its page, from when it's

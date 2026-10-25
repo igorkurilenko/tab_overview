@@ -60,10 +60,12 @@ class _TabDecoration<T> extends StatelessWidget {
     final pulled = pull?.value ?? 0;
     final expansion = flight?.expansion ?? (pulled > 0 ? 1 - pulled : null);
     if (expansion == null) return idleDecoration;
+    // A flight on a spring may run past either end, where the decoration
+    // stays the end's, rather than rounding corners past it.
     return Decoration.lerp(
       overview.thumbnailDecoration,
       overview.expandedTabDecoration,
-      expansion,
+      clampDouble(expansion, 0, 1),
     );
   }
 }
@@ -119,5 +121,24 @@ class _TabPresence extends StatelessWidget {
       scale: curved,
       child: FadeTransition(opacity: curved, child: child),
     );
+  }
+}
+
+/// [parent]'s value, kept from 0 to 1, as a spring may carry it past either,
+/// along [curve], or, if it [fadesOut], what's left of 1 after that.
+class _Eased extends Animation<double> with AnimationWithParentMixin<double> {
+  @override
+  final Animation<double> parent;
+
+  final Curve curve;
+
+  final bool fadesOut;
+
+  _Eased(this.parent, this.curve, {this.fadesOut = false});
+
+  @override
+  double get value {
+    final eased = curve.transform(clampDouble(parent.value, 0, 1));
+    return fadesOut ? 1 - eased : eased;
   }
 }
