@@ -17,9 +17,7 @@ void main() {
     }
   });
 
-  testWidgets('zooms a tapped tab into its page, and back out', (
-    tester,
-  ) async {
+  testWidgets('zooms a tapped tab into its page, and back out', (tester) async {
     await _pumpExample(tester);
     final controller = _controller(tester);
 
