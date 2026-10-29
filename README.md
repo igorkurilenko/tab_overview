@@ -177,6 +177,7 @@ class Tab {
 - **Active tab**: The tab the expanded view shows, and that `toggleMode` expands: the last one expanded, swiped to in the expanded view, or set with `activeTab`, wherever its thumbnail is scrolled in the overview.
 - **TabOverview.builder**: Creates a `TabOverview` with customizable `tabBuilder` for expanded views and `tabThumbnailBuilder` for the thumbnail grid.
 - **isTabRemovable & isTabReorderable**: Tell which tabs the user may close or move. Every tab may, by default.
+- **dragGestureRecognizerFactory & heldThumbnailBuilder**: How a thumbnail is picked up to move it, a long press by default, and how it looks while it's held, scaled up and faded a little by default. A recognizer of your own can pick it up sooner, or only by a part of it, such as an avatar, and a builder of your own gets the animation of it being picked up and let go.
 - **Expanded and Thumbnail Views**: Customize how each tab appears in both overview and expanded modes.
 
 ## API Overview

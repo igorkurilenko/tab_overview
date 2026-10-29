@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+### Added
+- `dragGestureRecognizerFactory` on `TabOverview.builder` makes the recognizer of the gesture that picks a thumbnail up to move it, a long press by default. One of the app's own can pick a thumbnail up sooner, or only by a part of it, such as an avatar.
+- `heldThumbnailBuilder` builds each thumbnail as it looks while it's held, in place of the default, which scales it up a little and fades it a little. It gets an animation that runs to 1 as the thumbnail is picked up and back to 0 as it's let go. It builds thumbnails at rest too, at 0, so a thumbnail keeps its State as it's picked up and let go, and a part of it, such as an avatar, can grow while the rest fades.
+
 ## [0.4.0]
 ### Added
 - `tabDecorationBuilder` on `TabOverview.builder` builds each tab's decoration from where it is: how far from its thumbnail to its page, how high it's lifted off the grid and which way it heads, at rest and as it zooms or is pulled. `TabDecorations.lifted`, the default, casts the soft shadow, or shadows of the app's own, and `TabDecorations.flat` casts none.

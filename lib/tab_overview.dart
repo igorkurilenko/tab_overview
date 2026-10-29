@@ -56,6 +56,7 @@ library;
 export 'src/tab_overview.dart'
     show
         ActiveTabChangedListener,
+        HeldThumbnailBuilder,
         ModeChangedListener,
         TabAddedListener,
         TabDecorationBuilder,

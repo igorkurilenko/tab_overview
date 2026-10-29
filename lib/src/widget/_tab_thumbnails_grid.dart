@@ -311,6 +311,10 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
             overview._isRemovable(model[index]) ||
             overview._isReorderable(model[index]),
         reorderableGetter: (index) => overview._isReorderable(model[index]),
+        gestureRecognizerFactory: overview.dragGestureRecognizerFactory,
+        decoration: overview.heldThumbnailBuilder == null
+            ? const ItemDecoration()
+            : ItemDecoration(decorator: _buildItemHold),
       ),
       swipeToRemove: SwipeToRemoveOptions(
         onSwipeToRemove: controller.removeAt,
@@ -341,6 +345,13 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
     endsAt: AnimationStatus.completed,
     child: child,
   );
+
+  // A held item's decoration, with heldThumbnailBuilder, which only hands
+  // its animation down to the thumb. The thumb builds itself with it, as it
+  // knows its tab, and the index is left alone: a held tab that's removed
+  // keeps the one it had.
+  Widget _buildItemHold(Widget child, int index, Animation<double> animation) =>
+      _ItemHold(animation: animation, child: child);
 
   Widget _cellOf(_TabEntry<T> entry) => _cells[entry] ??= _buildThumb(entry);
 
@@ -387,7 +398,7 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
       child: overview._buildRemoveTabButton(context, tab),
     );
 
-    return Stack(
+    final cell = Stack(
       children: [
         Positioned.fill(
           child: _LaidOutSize(
@@ -402,6 +413,16 @@ class _TabThumbnailsGridState<T> extends State<_TabThumbnailsGrid<T>>
             child: removeButton,
           ),
       ],
+    );
+    final buildHeld = overview.heldThumbnailBuilder;
+    if (buildHeld == null) return cell;
+    // At rest too, so the widgets around the thumb stay the same as it's
+    // held and let go.
+    return buildHeld(
+      context,
+      tab,
+      cell,
+      _ItemHold.maybeOf(context)?.animation ?? kAlwaysDismissedAnimation,
     );
   }
 

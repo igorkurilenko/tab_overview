@@ -20,6 +20,7 @@ import 'dart:ui' show lerpDouble;
 
 import 'package:animated_reorderable/animated_reorderable.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 import 'package:flutter/rendering.dart';
@@ -50,6 +51,26 @@ const _kDefaultThumbnailsGridCrossAxisSpacing = 8.0;
 const _kDefaultThumbnailsGridMainAxisSpacing = 8.0;
 const _kThumbsGridScaleWhenExpanded = 0.9;
 const _kThumbsGridOpacityWhenExpanded = 0.0;
+
+/// Builds a thumbnail in the grid, with its close button, as it looks while
+/// it's held to be moved, around [thumbnail], from [animation], which runs
+/// from 0 to 1 as the thumbnail is picked up and back to 0 as it's let go.
+///
+/// It's called for thumbnails at rest too, with [animation] at 0, where what
+/// it builds should look as [thumbnail] does. So the widgets around a
+/// thumbnail stay the same, and it keeps its State, as it's picked up and
+/// let go, and a part of it, such as an avatar, can follow [animation]
+/// through an inherited widget the builder puts around it.
+///
+/// It's called as the thumbnail builds, not on every frame, so it gets an
+/// animation rather than its values, which a [ScaleTransition], a
+/// [FadeTransition] or an [AnimatedBuilder] follows.
+typedef HeldThumbnailBuilder<T> = Widget Function(
+  BuildContext context,
+  T tab,
+  Widget thumbnail,
+  Animation<double> animation,
+);
 
 /// A tab switcher: the tabs a [TabOverviewController] holds show as live
 /// thumbnails in a grid, and [TabOverviewController.expand] zooms one into a
@@ -193,6 +214,39 @@ class TabOverview<T> extends StatefulWidget {
   /// If null, every tab may be moved.
   final bool Function(T tab)? isTabReorderable;
 
+  /// Makes the recognizer of the gesture that picks a thumbnail up to move
+  /// it: a long press, if null.
+  ///
+  /// One of the app's own can pick a thumbnail up sooner, or only by a part
+  /// of it, such as an avatar, by the pointers it allows
+  /// ([GestureRecognizer.isPointerAllowed]). This one picks a thumbnail up
+  /// after 250 ms. The multi-drag recognizers come from
+  /// `package:flutter/gestures.dart`, which `material.dart` doesn't export:
+  ///
+  /// ```dart
+  /// dragGestureRecognizerFactory: (context) =>
+  ///     DelayedMultiDragGestureRecognizer(
+  ///       delay: const Duration(milliseconds: 250),
+  ///     )..gestureSettings = MediaQuery.maybeGestureSettingsOf(context),
+  /// ```
+  final MultiDragGestureRecognizer Function(BuildContext context)?
+  dragGestureRecognizerFactory;
+
+  /// Builds each thumbnail in the grid as it looks while it's held to be
+  /// moved: if null, it scales up a little and fades a little, as a thumbnail
+  /// swiped away to close it always does.
+  ///
+  /// This one scales a held thumbnail up more, and doesn't fade it:
+  ///
+  /// ```dart
+  /// heldThumbnailBuilder: (context, tab, thumbnail, animation) =>
+  ///     ScaleTransition(
+  ///       scale: animation.drive(Tween(begin: 1.0, end: 1.1)),
+  ///       child: thumbnail,
+  ///     ),
+  /// ```
+  final HeldThumbnailBuilder<T>? heldThumbnailBuilder;
+
   bool _isRemovable(T tab) => isTabRemovable?.call(tab) ?? true;
 
   // How a tab clips its content to [decoration], which tabDecorationBuilder
@@ -241,6 +295,8 @@ class TabOverview<T> extends StatefulWidget {
     this.pullToCollapse = false,
     this.isTabRemovable,
     this.isTabReorderable,
+    this.dragGestureRecognizerFactory,
+    this.heldThumbnailBuilder,
   }) : thumbnailDecoration = thumbnailDecoration ?? const BoxDecoration(),
        expandedTabDecoration = expandedTabDecoration ?? const BoxDecoration();
 

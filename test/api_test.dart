@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tab_overview/tab_overview.dart';
@@ -9,6 +10,8 @@ Future<TabOverviewController<int>> pumpOverview(
   bool Function(int tab)? isTabReorderable,
   Widget Function(BuildContext context, int tab)? removeTabButtonBuilder,
   TabTransition? transition,
+  MultiDragGestureRecognizer Function(BuildContext context)?
+  dragGestureRecognizerFactory,
 }) async {
   final tabs = List.generate(tabCount, (tab) => tab);
   final controller = transition == null
@@ -32,6 +35,7 @@ Future<TabOverviewController<int>> pumpOverview(
               isTabRemovable: isTabRemovable,
               isTabReorderable: isTabReorderable,
               removeTabButtonBuilder: removeTabButtonBuilder,
+              dragGestureRecognizerFactory: dragGestureRecognizerFactory,
               tabBuilder: (context, tab) => ColoredBox(
                 color: Colors.white,
                 child: Center(child: Text('T$tab')),
@@ -47,12 +51,15 @@ Future<TabOverviewController<int>> pumpOverview(
 }
 
 // Drags tab 3's thumbnail over tab 2's, after holding it long enough to pick
-// it up.
-Future<void> dragThumbnail3Over2(WidgetTester tester) async {
+// it up, or for [hold].
+Future<void> dragThumbnail3Over2(
+  WidgetTester tester, {
+  Duration hold = const Duration(milliseconds: 600),
+}) async {
   final from = tester.getCenter(find.text('T3'));
   final to = tester.getCenter(find.text('T2'));
   final gesture = await tester.startGesture(from);
-  await tester.pump(const Duration(milliseconds: 600));
+  await tester.pump(hold);
   for (var step = 1; step <= 10; step++) {
     await gesture.moveTo(Offset.lerp(from, to, step / 10)!);
     await tester.pump(const Duration(milliseconds: 16));
@@ -466,4 +473,39 @@ void main() {
       expect(controller.tabs, [0, 1, 2, 3]);
     });
   });
+
+  group('dragGestureRecognizerFactory', () {
+    testWidgets('picks a thumbnail up as the app\'s recognizer does', (
+      tester,
+    ) async {
+      final controller = await pumpOverview(
+        tester,
+        dragGestureRecognizerFactory: (context) =>
+            ImmediateMultiDragGestureRecognizer(),
+      );
+
+      // No hold: the recognizer picks it up at once.
+      await dragThumbnail3Over2(tester, hold: Duration.zero);
+
+      expect(controller.tabs, [0, 1, 3, 2]);
+    });
+
+    testWidgets('leaves a thumbnail its recognizer doesn\'t allow in its '
+        'place', (tester) async {
+      final controller = await pumpOverview(
+        tester,
+        dragGestureRecognizerFactory: (context) => _NoPointers(),
+      );
+
+      await dragThumbnail3Over2(tester);
+
+      expect(controller.tabs, [0, 1, 2, 3]);
+    });
+  });
+}
+
+/// A long press that allows no pointer, so it picks nothing up.
+class _NoPointers extends DelayedMultiDragGestureRecognizer {
+  @override
+  bool isPointerAllowed(PointerDownEvent event) => false;
 }

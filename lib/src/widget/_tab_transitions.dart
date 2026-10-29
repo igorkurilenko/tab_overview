@@ -120,6 +120,25 @@ class _ItemPresence extends InheritedWidget {
       animation != oldWidget.animation || endsAt != oldWidget.endsAt;
 }
 
+/// Hands a held grid item's animation, which runs to 1 as it's picked up
+/// and back to 0 as it's let go, down to its thumb, which builds itself with
+/// the overview's heldThumbnailBuilder from it.
+///
+/// animated_reorderable puts a held item in its decoration, around the
+/// item's subtree, which it moves there with its State.
+class _ItemHold extends InheritedWidget {
+  final Animation<double> animation;
+
+  const _ItemHold({required this.animation, required super.child});
+
+  static _ItemHold? maybeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<_ItemHold>();
+
+  @override
+  bool updateShouldNotify(_ItemHold oldWidget) =>
+      animation != oldWidget.animation;
+}
+
 /// Scales and fades a tab's thumbnail, page or remove button with
 /// [animation] along [curve], in as the tab is added, and out as it's
 /// removed.
