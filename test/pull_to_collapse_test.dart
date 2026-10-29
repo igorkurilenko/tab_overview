@@ -1,4 +1,6 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tab_overview/tab_overview.dart';
 
@@ -9,6 +11,14 @@ const thumbnailDecoration = BoxDecoration(
 Widget staticTab(int tab) => ColoredBox(
   color: Colors.white,
   child: Center(child: Text('T$tab')),
+);
+
+// A bar 80 pixels high, above a list.
+Widget barAboveListTab(int tab) => Column(
+  children: [
+    SizedBox(height: 80, child: Center(child: Text('Bar $tab'))),
+    Expanded(child: listTab(tab)),
+  ],
 );
 
 Widget listTab(int tab, {ScrollPhysics? physics, ScrollController? scroll}) =>
@@ -26,6 +36,7 @@ Future<TabOverviewController<int>> pumpExpanded(
   WidgetTester tester, {
   bool pullToCollapse = true,
   Widget Function(int tab) tabBuilder = staticTab,
+  ScrollBehavior? scrollBehavior,
 }) async {
   final controller = TabOverviewController<int>(initialTabs: [0, 1, 2, 3]);
   await tester.pumpWidget(
@@ -34,6 +45,7 @@ Future<TabOverviewController<int>> pumpExpanded(
         controller: controller,
         pullToCollapse: pullToCollapse,
         thumbnailDecoration: thumbnailDecoration,
+        scrollBehavior: scrollBehavior,
         tabBuilder: (context, tab) => tabBuilder(tab),
       ),
     ),
@@ -50,6 +62,31 @@ Finder page() => find
 
 Future<void> pull(WidgetTester tester, double distance) =>
     tester.timedDrag(page(), Offset(0, distance), const Duration(seconds: 1));
+
+// Drags [finder]'s first widget down by [distance] with a mouse, 10 pixels
+// a frame.
+Future<void> mouseDrag(
+  WidgetTester tester,
+  Finder finder,
+  double distance,
+) async {
+  final gesture = await tester.startGesture(
+    tester.getCenter(finder.first),
+    kind: PointerDeviceKind.mouse,
+  );
+  for (var dragged = 0.0; dragged < distance; dragged += 10) {
+    await gesture.moveBy(const Offset(0, 10));
+    await tester.pump(const Duration(milliseconds: 16));
+  }
+  await gesture.up();
+}
+
+// Lets the mouse drag the grid and the pages, and pull, as an app on the
+// web or the desktop would, while lists keep the default, which it doesn't
+// drag.
+final mouseDrags = const MaterialScrollBehavior().copyWith(
+  dragDevices: {PointerDeviceKind.touch, PointerDeviceKind.mouse},
+);
 
 // The corner radius of every decoration with a border radius shown.
 Iterable<double> cornerRadii(WidgetTester tester) => tester
@@ -466,6 +503,86 @@ void main() {
 
     expectExpandedAtFullSize(tester, controller);
     expect(scroll.offset, lessThan(400));
+  });
+
+  testWidgets('a mouse drag in a list pulls nothing, though the mouse may '
+      'pull', (tester) async {
+    final controller = await pumpExpanded(
+      tester,
+      tabBuilder: barAboveListTab,
+      scrollBehavior: mouseDrags,
+    );
+
+    await mouseDrag(tester, find.text('T1 row 3'), 200);
+    await tester.pumpAndSettle();
+
+    expectExpandedAtFullSize(tester, controller);
+  });
+
+  testWidgets('a mouse drag on an app bar above a list pulls the tab', (
+    tester,
+  ) async {
+    final controller = await pumpExpanded(
+      tester,
+      tabBuilder: barAboveListTab,
+      scrollBehavior: mouseDrags,
+    );
+
+    await mouseDrag(
+      tester,
+      find.descendant(of: find.byType(PageView), matching: find.text('Bar 1')),
+      150,
+    );
+    await tester.pumpAndSettle();
+
+    expect(controller.mode, TabOverviewMode.overview);
+    expect(controller.isTransitioning, isFalse);
+  });
+
+  testWidgets('a drag down a horizontal list pulls the tab', (tester) async {
+    final controller = await pumpExpanded(
+      tester,
+      tabBuilder: (tab) => Column(
+        children: [
+          SizedBox(
+            height: 120,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              children: [
+                for (var card = 0; card < 20; card++)
+                  SizedBox(width: 100, child: Text('T$tab card $card')),
+              ],
+            ),
+          ),
+          Expanded(child: staticTab(tab)),
+        ],
+      ),
+    );
+
+    await tester.timedDrag(
+      find.text('T1 card 2'),
+      const Offset(0, 150),
+      const Duration(seconds: 1),
+    );
+    await tester.pumpAndSettle();
+
+    expect(controller.mode, TabOverviewMode.overview);
+    expect(controller.isTransitioning, isFalse);
+  });
+
+  testWidgets('a screen reader\'s scroll down pulls the tab', (tester) async {
+    final controller = await pumpExpanded(tester);
+
+    // The page's own node, the only one that scrolls down: the pages
+    // scroll left and right.
+    tester.semantics.performAction(
+      find.semantics.byAction(SemanticsAction.scrollDown),
+      SemanticsAction.scrollDown,
+    );
+    await tester.pumpAndSettle();
+
+    expect(controller.mode, TabOverviewMode.overview);
+    expect(controller.isTransitioning, isFalse);
   });
 
   testWidgets('a swipe still turns the page', (tester) async {
