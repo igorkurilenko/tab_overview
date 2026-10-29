@@ -27,8 +27,10 @@ const _kPullGoBackDuration = Duration(milliseconds: 200);
 /// `pullToCollapse` is on.
 ///
 /// The page is pulled by a vertical drag outside its scroll views, such as
-/// one on an app bar above a list. A drag in a vertical scroll view goes to
-/// the scroll view, which scrolls, so a list never pulls the page, whether
+/// one on an app bar above a list. A drag that starts in a vertical scroll
+/// view never pulls it, whatever the pointer: it goes to the scroll view,
+/// which scrolls, unless it doesn't scroll with that pointer, as a list
+/// doesn't with a mouse by default. So a list never pulls the page, whether
 /// it's at its top or, as a chat's list, at its bottom.
 ///
 /// The page shrinks by its layout rather than by a transform, as the flight
@@ -96,14 +98,26 @@ class _PullToCollapseState<T> extends State<_PullToCollapse<T>>
   @override
   Widget build(BuildContext context) {
     final on = overview.pullToCollapse;
-    return GestureDetector(
-      supportedDevices:
-          (overview.scrollBehavior ?? ScrollConfiguration.of(context))
-              .dragDevices,
-      onVerticalDragStart: on ? _handleDragStart : null,
-      onVerticalDragUpdate: on ? _handleDragUpdate : null,
-      onVerticalDragEnd: on ? _handleDragEnd : null,
-      onVerticalDragCancel: on ? _handleDragCancel : null,
+    final devices = (overview.scrollBehavior ?? ScrollConfiguration.of(context))
+        .dragDevices;
+    final gestureSettings = MediaQuery.maybeGestureSettingsOf(context);
+    return RawGestureDetector(
+      gestures: {
+        _PullGestureRecognizer:
+            GestureRecognizerFactoryWithHandlers<_PullGestureRecognizer>(
+              () => _PullGestureRecognizer(
+                goesDownInScrollView: _goesDownInScrollView,
+              ),
+              (recognizer) => recognizer
+                ..supportedDevices = devices
+                ..gestureSettings = gestureSettings
+                ..onStart = on ? _handleDragStart : null
+                ..onUpdate = on ? _handleDragUpdate : null
+                ..onEnd = on ? _handleDragEnd : null
+                ..onCancel = on ? _handleDragCancel : null,
+            ),
+      },
+      semantics: _PullSemantics(on ? _handleSemanticPull : null),
       child: AnimatedBuilder(
         animation: _distance,
         builder: (context, child) => Transform.translate(
@@ -119,7 +133,42 @@ class _PullToCollapseState<T> extends State<_PullToCollapse<T>>
     );
   }
 
+  // Whether [event] goes down in a vertical scroll view of the page, which
+  // keeps the drag from the pull whatever the pointer, though a mouse
+  // doesn't scroll a list by default.
+  bool _goesDownInScrollView(PointerDownEvent event) {
+    final page = context.findRenderObject();
+    if (page is! RenderBox || !page.hasSize) return false;
+    final hits = BoxHitTestResult();
+    page.hitTest(hits, position: page.globalToLocal(event.position));
+    final hit = {for (final entry in hits.path) entry.target};
+    var found = false;
+    void visit(Element element) {
+      if (found) return;
+      if (element case StatefulElement(state: final ScrollableState scrollable)
+          when axisDirectionToAxis(scrollable.axisDirection) == Axis.vertical &&
+              hit.contains(
+                scrollable.notificationContext?.findRenderObject(),
+              )) {
+        found = true;
+        return;
+      }
+      element.visitChildren(visit);
+    }
+
+    context.visitChildElements(visit);
+    return found;
+  }
+
   void _handleDistanceChanged() => entry.pull.value = _progress;
+
+  // A screen reader's scroll of the page, which pulls it as far as a drag
+  // would, as a GestureDetector's vertical drag has it.
+  void _handleSemanticPull(DragUpdateDetails details) {
+    _handleDragStart(DragStartDetails());
+    _handleDragUpdate(details);
+    _handleDragEnd(DragEndDetails(primaryVelocity: 0));
+  }
 
   void _handleDragStart(DragStartDetails details) {
     if (!_canPull) return;
@@ -176,4 +225,29 @@ class _PullToCollapseState<T> extends State<_PullToCollapse<T>>
     duration: _kPullGoBackDuration,
     curve: Curves.easeOut,
   );
+}
+
+// A vertical drag that doesn't take a pointer that goes down in a vertical
+// scroll view, as [goesDownInScrollView] says.
+class _PullGestureRecognizer extends VerticalDragGestureRecognizer {
+  final bool Function(PointerDownEvent event) goesDownInScrollView;
+
+  _PullGestureRecognizer({required this.goesDownInScrollView});
+
+  @override
+  bool isPointerAllowed(PointerEvent event) =>
+      super.isPointerAllowed(event) &&
+      !(event is PointerDownEvent && goesDownInScrollView(event));
+}
+
+// Gives a pullable page the scroll actions a GestureDetector's vertical drag
+// gives it, which [onPull] handles.
+class _PullSemantics extends SemanticsGestureDelegate {
+  final GestureDragUpdateCallback? onPull;
+
+  const _PullSemantics(this.onPull);
+
+  @override
+  void assignSemantics(RenderSemanticsGestureHandler renderObject) =>
+      renderObject.onVerticalDragUpdate = onPull;
 }

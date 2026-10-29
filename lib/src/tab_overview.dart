@@ -190,14 +190,16 @@ class TabOverview<T> extends StatefulWidget {
   ///
   /// A tab is pulled by a drag on a part of it outside its scroll views,
   /// such as an app bar above a list, or anywhere on a tab without one. A
-  /// drag in a vertical scroll view only scrolls it, so a list never pulls
-  /// its tab, whether it's at its top or, as a chat's list is, at its
-  /// bottom. As it's pulled, a tab shrinks, its decoration turns toward
-  /// [thumbnailDecoration], and it's lifted off the grid, as a tab is
-  /// while it zooms, so it casts the same shadow by default, which it
-  /// takes along as it collapses. Let go once it's pulled 50 pixels, or
-  /// while it moves down fast, and it collapses from where it is, at the
-  /// speed it had. Otherwise it goes back.
+  /// drag that starts in a vertical scroll view never pulls the tab,
+  /// whatever the pointer: it scrolls the view, unless the view doesn't
+  /// scroll with that pointer, as a list doesn't with a mouse by default.
+  /// So a list never pulls its tab, whether it's at its top or, as a
+  /// chat's list is, at its bottom. As it's pulled, a tab shrinks, its
+  /// decoration turns toward [thumbnailDecoration], and it's lifted off
+  /// the grid, as a tab is while it zooms, so it casts the same shadow by
+  /// default, which it takes along as it collapses. Let go once it's
+  /// pulled 50 pixels, or while it moves down fast, and it collapses from
+  /// where it is, at the speed it had. Otherwise it goes back.
   ///
   /// Off by default.
   final bool pullToCollapse;

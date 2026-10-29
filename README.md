@@ -303,7 +303,7 @@ A part that's a scaled copy of the other, such as a name set bigger, grows or sh
 
 ### Pull to Collapse
 
-With `pullToCollapse: true`, the expanded tab can be pulled down to collapse it, as in hero_here's show details example. It's pulled by a drag on a part of it outside its scroll views, such as an app bar above a list, or anywhere on a tab without one. A drag in a vertical scroll view only scrolls it, so a list never pulls its tab, whether it's at its top or, as a chat's list is, at its bottom. As it's pulled, the tab shrinks and its corners round toward `thumbnailDecoration`'s. Let go once it's pulled 50 pixels, or while it moves down fast, and it collapses into its thumbnail from where it is, at the speed it had. Otherwise it goes back.
+With `pullToCollapse: true`, the expanded tab can be pulled down to collapse it, as in hero_here's show details example. It's pulled by a drag on a part of it outside its scroll views, such as an app bar above a list, or anywhere on a tab without one. A drag that starts in a vertical scroll view never pulls the tab, whatever the pointer: it scrolls the view, unless the view doesn't scroll with that pointer, as a list doesn't with a mouse by default. So a list never pulls its tab, whether it's at its top or, as a chat's list is, at its bottom. As it's pulled, the tab shrinks and its corners round toward `thumbnailDecoration`'s. Let go once it's pulled 50 pixels, or while it moves down fast, and it collapses into its thumbnail from where it is, at the speed it had. Otherwise it goes back.
 
 It's off by default.
 
