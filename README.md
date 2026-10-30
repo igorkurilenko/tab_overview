@@ -186,7 +186,7 @@ class Tab {
 
 - **TabOverview**: The widget that shows the tabs, as a grid of thumbnails or as the expanded tab's page.
 - **TabOverviewController**: Holds the tabs, the active tab and the mode, and animates the changes:
-  - `add` and `remove` return whether they changed anything. `removeAt` removes the tab at an index. Each takes an optional `duration` and `curve`, which override the controller's `addRemoveTransition`.
+  - `add` adds a tab after the others and `insert` adds one at an index, and `remove` and `removeAt` remove one. `add`, `insert` and `remove` return whether they changed anything. Each takes an optional `duration` and `curve`, which override the controller's `addRemoveTransition`.
   - `scrollToTab` and `scrollToTabAt` scroll to a tab, over the controller's `scrollTransition` unless a call says otherwise.
   - `expand`, `expandAt`, `collapse` and `toggleMode` switch the mode. Each takes an optional `duration` and `curve`, which override the controller's `transition`.
   - `activeTab` is the tab the expanded view shows, and `activeIndex` is its index, or `null`.
@@ -199,7 +199,7 @@ class Tab {
 
 ### Errors
 
-A controller method that takes a tab throws an `ArgumentError` for a tab that isn't in the overview. `remove` is the exception: it returns `false`, as `add` does for a tab that's already there. A method that takes an index throws a `RangeError` for an index out of range.
+A controller method that takes a tab throws an `ArgumentError` for a tab that isn't in the overview. `remove` is the exception: it returns `false`, as `add` and `insert` do for a tab that's already there. A method that takes an index throws a `RangeError` for an index out of range.
 
 ### Enums
 

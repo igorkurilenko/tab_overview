@@ -17,8 +17,9 @@ part of 'tab_overview.dart';
 /// Holds a [TabOverview]'s tabs, its active tab, and whether it shows them as
 /// a grid of thumbnails or the active tab as a full page: its [mode].
 ///
-/// [add] and [remove] add and close tabs, [expand] and [collapse] zoom a tab
-/// into its page and back out, and [toggleMode] switches between the two.
+/// [add] and [insert] add tabs and [remove] closes them, [expand] and
+/// [collapse] zoom a tab into its page and back out, and [toggleMode]
+/// switches between the two.
 /// Listeners such as [addTabsReorderedListener] tell when tabs are added,
 /// removed or reordered, the mode changes, or another tab becomes active.
 ///
@@ -27,10 +28,11 @@ part of 'tab_overview.dart';
 /// it, as with a [ScrollController].
 ///
 /// A method that takes a tab throws an [ArgumentError] for a tab that isn't
-/// in the overview, except [remove], which returns `false`, as [add] does
-/// for a tab that already is. A method that takes an index throws a
-/// [RangeError] for an index out of range. Questions such as [isActiveTab]
-/// and [isTabExpanded] answer `false` for a tab that isn't there.
+/// in the overview, except [remove], which returns `false`, as [add] and
+/// [insert] do for a tab that already is. A method that takes an index
+/// throws a [RangeError] for an index out of range. Questions such as
+/// [isActiveTab] and [isTabExpanded] answer `false` for a tab that isn't
+/// there.
 class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
   T? _activeTab;
   final _TabOverviewModel<T> _model;
@@ -196,14 +198,34 @@ class TabOverviewController<T> extends ChangeNotifier with _Listeners<T> {
   ///
   /// A [duration] and [curve] override the controller's
   /// [addRemoveTransition].
-  bool add(T newTab, {Duration? duration, Curve? curve}) {
+  bool add(T newTab, {Duration? duration, Curve? curve}) =>
+      insert(_model.tabCount, newTab, duration: duration, curve: curve);
+
+  /// Inserts [newTab] at [index], its thumbnail scaling and fading in, and
+  /// returns `true`, or returns `false` and does nothing if the overview
+  /// already has a tab equal to it. The tabs from [index] on move one place
+  /// along. If no tab was active, [newTab] becomes active.
+  ///
+  /// [index] goes from 0, the first place, to the number of tabs, after the
+  /// last tab, where [add] puts a tab. An expanded tab's page stays on
+  /// screen.
+  ///
+  /// A [duration] and [curve] override the controller's
+  /// [addRemoveTransition].
+  bool insert(int index, T newTab, {Duration? duration, Curve? curve}) {
+    RangeError.checkValueInInterval(index, 0, _model.tabCount, 'index');
     if (_model.containsTab(newTab)) return false;
 
     final asked = addRemoveTransition._overriddenBy(
       duration: duration,
       curve: curve,
     );
-    _model.addTab(newTab, duration: asked.duration, curve: asked.curve);
+    _model.insertTab(
+      index,
+      newTab,
+      duration: asked.duration,
+      curve: asked.curve,
+    );
     _notifyTabAdded(newTab);
 
     activeTab ??= newTab;
