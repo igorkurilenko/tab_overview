@@ -51,9 +51,14 @@ class _TabOverviewModel<T> {
   /// The key of the grid's item for the tab at [index].
   Key keyAt(int index) => _entries[index].key;
 
-  void addTab(T tab, {required Duration duration, required Curve curve}) {
+  void insertTab(
+    int index,
+    T tab, {
+    required Duration duration,
+    required Curve curve,
+  }) {
     final entry = _TabEntry(tab)..presenceCurve = curve;
-    _entries.add(entry);
+    _entries.insert(index, entry);
     _thumbnails?.addTab(entry, duration: duration);
   }
 

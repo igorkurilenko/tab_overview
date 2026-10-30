@@ -4,6 +4,7 @@
 ### Added
 - `dragGestureRecognizerFactory` on `TabOverview.builder` makes the recognizer of the gesture that picks a thumbnail up to move it, a long press by default. One of the app's own can pick a thumbnail up sooner, or only by a part of it, such as an avatar.
 - `heldThumbnailBuilder` builds each thumbnail as it looks while it's held, in place of the default, which scales it up a little and fades it a little. It gets an animation that runs to 1 as the thumbnail is picked up and back to 0 as it's let go. It builds thumbnails at rest too, at 0, so a thumbnail keeps its State as it's picked up and let go, and a part of it, such as an avatar, can grow while the rest fades.
+- `TabOverviewController.insert` adds a tab at an index, where `add` adds one after the others, its thumbnail scaling and fading in the same way. An app can put a new tab first, such as a new chat. An expanded tab's page stays on screen.
 
 ### Fixed
 - A mouse drag in a list on an expanded tab's page no longer pulls the page down to collapse it, with a `scrollBehavior` that lets the mouse drag. A list doesn't scroll with a mouse by default, so nothing took the drag from the pull. Now a drag that starts in a vertical scroll view never pulls, whatever the pointer.
